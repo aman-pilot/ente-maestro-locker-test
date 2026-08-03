@@ -8,41 +8,88 @@ stack.
 ## Decisions already made
 
 - Product Maestro YAML stays out of this phase.
-- Fixture profiles describe exact required starting inventory, not account
-  ownership or reuse.
+- Fixture profiles describe exact required starting inventory.
 - `locker-seed apply` consumes a caller-supplied private account context.
 - Account creation is an explicit local capability and is not wired into CI.
+- Each isolated seeded run creates exactly one temporary synthetic account.
+- Every profile and scenario in that run reuses the same email, credentials,
+  and user ID after a deterministic reset.
+- A reset failure aborts the run; it never creates or selects another account.
 - Rust dependencies use one full Ente Git revision recorded in provenance.
 - All backend images are digest pinned and recorded in provenance.
 - Private account contexts and run records never enter artifacts or source
   control.
 - Imported pass/failure counts are historical evidence, not current coverage.
 
-## Account lifecycle intentionally unassigned
+## Single-account-per-run contract
 
-We will choose the orchestration model only after measuring the standalone
-stack and seeder. The candidates remain:
+The account lifecycle decision is closed. One isolated local or hosted run
+creates one synthetic account before executing seeded profiles. The account is
+reset to the required deterministic baseline before each scenario, and its
+email, credentials, and user ID remain unchanged for the entire run.
 
-1. one reusable account with a proven reset-to-baseline operation;
-2. one account per fixture profile or behavior shard;
-3. separate accounts only for destructive scenario groups;
-4. one account per scenario.
+A separate CI job may create another synthetic account only because that job
+starts a separately isolated backend stack. This job boundary is not a flow,
+profile, retry, or shard boundary. Account pools, behavior-shard accounts,
+profile-specific accounts, and fallback accounts after a reset failure are not
+supported architectures.
 
-No candidate is preferred by the current code or catalog. The decision must
-compare preparation time, reset reliability, destructive-state leakage,
-parallel execution, failure diagnosis, and credential handling. Until then,
-there is no seeded hosted workflow, login prelude, suite matrix, or promotion
-claim.
+## Selected reset: backend account baseline
 
-## What must be proven next
+API cleanup was rejected after auditing the pinned Ente revision. File,
+collection, membership, and Trash deletion APIs retain tombstones and diff
+history. Permanent file deletion marks objects for an asynchronous queue, so a
+successful API response can still leave encrypted documents and thumbnails in
+MinIO. Recreating `Important` or `Uncategorized` would also produce new IDs
+while leaving earlier collection history.
+
+The dedicated runtime therefore captures a PostgreSQL template database after
+the account is created and its raw collection/Trash diffs and MinIO buckets are
+confirmed empty. Before the next profile, `locker-seed reset`:
+
+1. Stops Museum and socat.
+2. Drops and recreates `ente_db` from `locker_account_baseline`.
+3. Removes objects, versions, delete markers, and incomplete uploads from all
+   three dedicated MinIO buckets.
+4. Compares canonical per-table row/count hashes and all sequence values with
+   the captured baseline.
+5. Starts Museum and socat, logs in again, verifies the original user ID, and
+   rejects any raw collection or Trash record or MinIO object.
+6. Stops Museum again and performs a second fingerprinted restore so the SRP
+   verification session/token rows are not handed to the next profile, then
+   restarts Museum without another login.
+
+PostgreSQL and MinIO cannot be restored atomically. If either operation or its
+verification fails, Museum remains stopped and the run aborts; there is no
+fallback account. The runner's trap then removes only its uniquely named
+Compose project and volumes. The private baseline is bound to that explicit
+project and a fingerprint of its container IDs, volume mounts, service labels,
+and loopback port bindings. Its template fingerprint is verified before the
+live database is dropped; new database connections are disabled and PostgreSQL
+force-drops the old database to avoid the healthcheck race. Baseline metadata
+is persisted while Museum remains stopped, and baseline commands accept only
+the dedicated loopback endpoint.
+
+This mechanism is deliberately limited to a dedicated local or CI backend. It
+is more correct here than portable API cleanup because it removes diff history,
+queues, sequence drift, documents, and thumbnails at the same boundary.
+
+## Local proof
+
+The clean local proof completed with exactly one account and four sequential
+manifests. Three backend resets preserved the same redacted identity and each
+reported zero collection records, Trash records, and MinIO objects before the
+next apply. Trash ran before the final profile, so the third reset specifically
+proved that raw Trash residue was removed. See `docs/single-account-proof.md`
+for the redacted timing table.
+
+## What remains
 
 1. `cargo test --locked` and `cargo check --locked` from a clean checkout.
 2. Repeat the successful local stack startup on the eventual hosted x86 runner.
-3. Manifest validation and encrypted read-back using a private temporary
-   account context.
-4. Preparation, reset, and replay timings for representative empty, document,
-   collection-action, and Trash profiles.
-5. A concrete grouping experiment before importing any product YAML.
+3. Repeat the same-account proof on the eventual hosted x86 runner.
+4. Decide canonical ownership and import timing for authenticated product YAML.
+5. Add app-data clearing and login only when product YAML import is approved.
 
 ## Known product/runtime boundary
 
@@ -51,3 +98,7 @@ showed the document in the target collection, while the renamed title was not
 reliably displayed after save and relaunch. That assertion should remain intact
 when YAML is eventually imported. Native picker/viewer and paid public-link
 coverage also stay outside the first hosted seeded gate.
+
+Any older evidence produced by the source prototype is historical and
+noncanonical. It may explain fixture or selector provenance, but it does not
+prove reset correctness, account reuse, or current product coverage.

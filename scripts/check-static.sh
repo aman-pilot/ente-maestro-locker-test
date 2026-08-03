@@ -17,6 +17,7 @@ scripts/test-hosted-flow-registration.sh
 scripts/test-resolve-nightly-apk.sh
 scripts/test-download-locker-nightly.sh
 scripts/test-run-locker-android-local.sh
+scripts/test-run-locker-single-account-proof.sh
 scripts/check-locker-boundaries.sh
 ruby scripts/check-locker-assets.rb
 

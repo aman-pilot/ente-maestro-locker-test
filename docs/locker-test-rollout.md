@@ -8,7 +8,7 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 | Layer | Purpose | Current state |
 | --- | --- | --- |
 | Published smoke | Account-free onboarding and other public startup behavior. | Scaffolded for local and hosted execution. |
-| Seeded infrastructure | Encrypted fixture profiles plus a caller-supplied account context. | Non-YAML infrastructure imported; account lifecycle and product YAML pending. |
+| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Local reset/reuse proof passed; hosted proof and product YAML remain pending. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 
@@ -39,7 +39,8 @@ in a compatible published Locker nightly.
 
 Authenticated product flows are not added in this phase. Their 31 scenario
 records live in `locker/catalog.v1.json` without YAML paths, runnable-suite
-status, or an account assignment policy.
+status, or current product-coverage claims. Their future runner must create one
+account before the suite and preserve that identity across every profile.
 
 Registration validation fails when a smoke flow is not reachable from a
 selected hosted suite. Shared helpers should remain small and must not escape
@@ -56,6 +57,12 @@ Changes to shared helpers, workflows, selectors, or nightly resolution select
 the full Locker matrix. Platform-local paths intentionally select no hosted
 suite.
 
+A future seeded job may create one synthetic account because it owns one fresh,
+isolated backend stack. The same job must reset and reuse that account between
+all profiles. A different job may create its own account on its own isolated
+stack; this job boundary must not be modeled as profile, flow, retry, or shard
+account assignment. Reset failure ends the job without an additional account.
+
 The workflow pins external actions and Maestro to immutable revisions, records
 APK provenance in the job summary, uploads JUnit output for seven days, and
 retains account-free smoke diagnostics on failure.
@@ -71,3 +78,11 @@ emulators and should not retain this state.
 Do not describe a flow as hosted-verified from a local run, a targeted pull
 request run, or an unmerged branch. Update public coverage only from a clean
 complete run on the default branch using an exact recorded APK digest.
+
+Catalog `historicalEvidence` is noncanonical import context. It may guide later
+assertion work but cannot promote seeded coverage or prove single-account reuse.
+
+The current local single-account proof is also not product coverage. It proves
+that four representative manifests can reuse one account after complete
+backend restoration. Product promotion still requires imported canonical YAML,
+app-data clearing before each profile login, and an exact published APK run.

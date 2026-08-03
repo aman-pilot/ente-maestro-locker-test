@@ -22,7 +22,9 @@ for public_path in \
     locker/fixtures/locker-seed.pdf \
     locker/manifests/empty.json \
     locker/stack/compose.yaml \
+    scripts/run-locker-single-account-proof.sh \
     tools/locker-seed/Cargo.toml \
+    tools/locker-seed/src/baseline.rs \
     tools/locker-seed/src/main.rs; do
     if git check-ignore --quiet --no-index "$public_path"; then
         echo "Expected source asset to remain visible: $public_path" >&2
@@ -31,11 +33,59 @@ for public_path in \
 done
 
 if grep --recursive --line-number --binary-files=without-match --extended-regexp \
-    'fresh-account-per-flow|locker-maestro-worktree|mobile/mobile-tests/locker|\.\./\.\./rust/crates|server/compose\.yaml' \
+    'locker-maestro-worktree|mobile/mobile-tests/locker|\.\./\.\./rust/crates|server/compose\.yaml' \
     locker tools/locker-seed README.md docs; then
-    echo "Legacy checkout path or decided account policy remains" >&2
+    echo "Legacy checkout path remains" >&2
     exit 1
 fi
+
+orchestration_paths=(scripts .github/workflows)
+if grep --recursive --line-number --binary-files=without-match --ignore-case --extended-regexp \
+    '(account[-_ ]?per[-_ ]?(flow|scenario|profile|shard|retry)|per[-_ ]?(flow|scenario|profile|shard|retry)[-_ ]?account|fresh[-_ ]?account[-_ ]?per[-_ ]?(flow|scenario|profile)|grouped[-_ ]?accounts?|shard[-_ ]?accounts?|account[-_ ]?pools?)' \
+    "${orchestration_paths[@]}"; then
+    echo "Unsupported multi-account orchestration policy is present" >&2
+    exit 1
+fi
+
+if grep --recursive --line-number --binary-files=without-match --ignore-case --extended-regexp \
+    '(matrix\.(account|account_context|fixture_profile|scenario)|^[[:space:]-]*(account|account_context|fixture_profile|scenario)[[:space:]]*:)' \
+    .github/workflows; then
+    echo "Hosted workflows must not assign accounts through a fixture-profile or scenario matrix" >&2
+    exit 1
+fi
+
+while IFS= read -r script; do
+    create_count="$(grep --count --extended-regexp '(^|[[:space:]])create-account([[:space:]\\]|$)' "$script" || true)"
+    if (( create_count > 1 )); then
+        echo "Orchestration may contain at most one account-creation call: $script" >&2
+        exit 1
+    fi
+
+    if (( create_count == 1 )) && awk '
+        /^[[:space:]]*(for|while|until)([[:space:]]|$)/ { loop_depth += 1 }
+        /(^|[[:space:]])create-account([[:space:]\\]|$)/ && loop_depth > 0 { found = 1 }
+        /^[[:space:]]*done([[:space:];]|$)/ && loop_depth > 0 { loop_depth -= 1 }
+        END { exit(found ? 0 : 1) }
+    ' "$script"; then
+        echo "Account creation must not run inside a scenario/profile loop: $script" >&2
+        exit 1
+    fi
+done < <(find scripts -type f -name 'run-*.sh' -print)
+
+create_account_scripts="$(grep --files-with-matches --extended-regexp \
+    '(^|[[:space:]])create-account([[:space:]\\]|$)' \
+    scripts/run-*.sh 2>/dev/null || true)"
+if [[ "$create_account_scripts" != "scripts/run-locker-single-account-proof.sh" ]]; then
+    echo "Only the single-account proof runner may orchestrate account creation" >&2
+    exit 1
+fi
+
+for loopback_port in '127.0.0.1:8080:8080' '127.0.0.1:3200:3200'; do
+    if ! grep --quiet --fixed-strings "$loopback_port" locker/stack/compose.yaml; then
+        echo "Dedicated test ports must remain bound to loopback: $loopback_port" >&2
+        exit 1
+    fi
+done
 
 if find . \
     -path './.git' -prune -o \
@@ -63,7 +113,7 @@ done < <(find . \
 if grep --recursive --quiet --extended-regexp \
     'locker-seed (create-account|apply)|locker/stack/compose\.yaml' \
     .github/workflows; then
-    echo "Seeded runtime must stay disabled in hosted workflows until lifecycle and YAML decisions are made" >&2
+    echo "Seeded runtime must stay disabled in hosted workflows until reset proof and YAML import decisions are complete" >&2
     exit 1
 fi
 
