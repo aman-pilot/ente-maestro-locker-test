@@ -4,8 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -14,6 +15,7 @@ pub struct AccountContext {
     pub endpoint: String,
     pub email: String,
     pub password: String,
+    pub user_id: i64,
 }
 
 impl AccountContext {
@@ -40,7 +42,14 @@ impl AccountContext {
                 context.version
             );
         }
+        if context.user_id <= 0 {
+            bail!("account context has an invalid user ID");
+        }
         Ok(context)
+    }
+
+    pub fn redacted_identity(&self) -> String {
+        redacted_identity(self.user_id, &self.email)
     }
 }
 
@@ -92,8 +101,23 @@ impl RunRecord {
         let path = run_dir.join("run.json");
         let bytes = fs::read(&path)
             .with_context(|| format!("failed to read run record {}", path.display()))?;
-        serde_json::from_slice(&bytes)
-            .with_context(|| format!("invalid run record {}", path.display()))
+        let record: Self = serde_json::from_slice(&bytes)
+            .with_context(|| format!("invalid run record {}", path.display()))?;
+        record.validate()?;
+        Ok(record)
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.version != 1 {
+            bail!(
+                "unsupported run record version {}; expected 1",
+                self.version
+            );
+        }
+        if self.user_id <= 0 {
+            bail!("run record has an invalid user ID");
+        }
+        Ok(())
     }
 
     pub fn retire(run_dir: &Path) -> Result<()> {
@@ -103,7 +127,7 @@ impl RunRecord {
     }
 }
 
-fn write_private_json(path: &Path, value: &impl Serialize) -> Result<()> {
+pub(crate) fn write_private_json(path: &Path, value: &impl Serialize) -> Result<()> {
     let bytes = serde_json::to_vec_pretty(value)?;
 
     #[cfg(unix)]
@@ -126,6 +150,11 @@ fn write_private_json(path: &Path, value: &impl Serialize) -> Result<()> {
     fs::write(path, bytes).with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())
+}
+
+pub(crate) fn redacted_identity(user_id: i64, email: &str) -> String {
+    let digest = Sha256::digest(format!("{user_id}\0{}", email.to_ascii_lowercase()).as_bytes());
+    format!("sha256:{digest:x}")
 }
 
 #[cfg(test)]
@@ -152,6 +181,58 @@ mod tests {
         assert!(debug.contains("[REDACTED]"));
         assert!(!debug.contains("example@example.org"));
         assert!(!debug.contains("never-print-me"));
+    }
+
+    #[test]
+    fn redacted_identity_is_stable_without_exposing_account_data() {
+        let identity = redacted_identity(41, "Example@Example.org");
+        assert_eq!(identity, redacted_identity(41, "example@example.org"));
+        assert!(!identity.contains("41"));
+        assert!(!identity.contains("example"));
+    }
+
+    #[test]
+    fn load_rejects_unsupported_version_and_invalid_user_id() {
+        let run_dir = std::env::temp_dir().join(format!("locker-seed-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&run_dir).unwrap();
+        let path = run_dir.join("run.json");
+
+        fs::write(
+            &path,
+            serde_json::to_vec(&RunRecord {
+                version: 2,
+                scenario_id: "unsupported".to_owned(),
+                endpoint: "http://127.0.0.1:8080".to_owned(),
+                email: "private@example.org".to_owned(),
+                password: "private-password".to_owned(),
+                user_id: 1,
+                created_at_ms: 1,
+                manifest_path: PathBuf::from("manifest.json"),
+                manifest_sha256: "hash".to_owned(),
+                collections: BTreeMap::new(),
+                items: BTreeMap::new(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        let error = RunRecord::load(&run_dir).unwrap_err().to_string();
+        assert!(error.contains("unsupported run record version 2"));
+        assert!(!error.contains("private@example.org"));
+        assert!(!error.contains("private-password"));
+
+        let mut invalid_user: RunRecord =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        invalid_user.version = 1;
+        invalid_user.user_id = 0;
+        fs::write(&path, serde_json::to_vec(&invalid_user).unwrap()).unwrap();
+        assert!(
+            RunRecord::load(&run_dir)
+                .unwrap_err()
+                .to_string()
+                .contains("invalid user ID")
+        );
+
+        fs::remove_dir_all(run_dir).unwrap();
     }
 
     #[cfg(unix)]

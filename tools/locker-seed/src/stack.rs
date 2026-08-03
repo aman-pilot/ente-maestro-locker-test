@@ -4,9 +4,20 @@ use anyhow::{Context, Result, bail};
 
 const DEFAULT_PROJECT_NAME: &str = "ente-locker-maestro";
 
+pub(crate) fn required_compose_project() -> Result<String> {
+    let project = std::env::var("LOCKER_COMPOSE_PROJECT")
+        .context("LOCKER_COMPOSE_PROJECT must identify the dedicated reset stack")?;
+    if project.trim().is_empty() {
+        bail!("LOCKER_COMPOSE_PROJECT must not be empty");
+    }
+    Ok(project)
+}
+
 pub async fn up(endpoint: &str) -> Result<()> {
     run_compose(&["up", "-d", "--pull", "always"])?;
-    wait_for_ping(endpoint, Duration::from_secs(180)).await
+    wait_for_ping(endpoint, Duration::from_secs(180)).await?;
+    println!("Museum is ready at {endpoint}");
+    Ok(())
 }
 
 pub async fn status(endpoint: &str) -> Result<()> {
@@ -25,14 +36,13 @@ pub fn reset() -> Result<()> {
     run_compose(&["down", "-v", "--remove-orphans"])
 }
 
-async fn wait_for_ping(endpoint: &str, timeout: Duration) -> Result<()> {
+pub(crate) async fn wait_for_ping(endpoint: &str, timeout: Duration) -> Result<()> {
     let start = std::time::Instant::now();
     let url = format!("{}/ping", endpoint.trim_end_matches('/'));
     loop {
         if let Ok(response) = reqwest::get(&url).await
             && response.status().is_success()
         {
-            println!("Museum is ready at {endpoint}");
             return Ok(());
         }
         if start.elapsed() >= timeout {
@@ -43,29 +53,33 @@ async fn wait_for_ping(endpoint: &str, timeout: Duration) -> Result<()> {
 }
 
 fn run_compose(args: &[&str]) -> Result<()> {
-    let root = repo_root();
-    let compose_file = root.join("locker/stack/compose.yaml");
-    let project_name =
-        std::env::var("LOCKER_COMPOSE_PROJECT").unwrap_or_else(|_| DEFAULT_PROJECT_NAME.to_owned());
-    let status = Command::new("docker")
-        .arg("compose")
-        .arg("--project-name")
-        .arg(project_name)
-        .arg("--file")
-        .arg(&compose_file)
-        .args(args)
-        .current_dir(&root)
-        .status()
-        .with_context(|| {
-            format!(
-                "failed to invoke docker compose with {}",
-                compose_file.display()
-            )
-        })?;
+    let compose_file = repo_root().join("locker/stack/compose.yaml");
+    let status = compose_command().args(args).status().with_context(|| {
+        format!(
+            "failed to invoke docker compose with {}",
+            compose_file.display()
+        )
+    })?;
     if !status.success() {
         bail!("docker compose exited with {status}");
     }
     Ok(())
+}
+
+pub(crate) fn compose_command() -> Command {
+    let root = repo_root();
+    let compose_file = root.join("locker/stack/compose.yaml");
+    let project_name =
+        std::env::var("LOCKER_COMPOSE_PROJECT").unwrap_or_else(|_| DEFAULT_PROJECT_NAME.to_owned());
+    let mut command = Command::new("docker");
+    command
+        .arg("compose")
+        .arg("--project-name")
+        .arg(project_name)
+        .arg("--file")
+        .arg(compose_file)
+        .current_dir(root);
+    command
 }
 
 pub fn workspace_root() -> PathBuf {

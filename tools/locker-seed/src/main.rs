@@ -1,5 +1,6 @@
 mod api;
 mod auth;
+mod baseline;
 mod manifest;
 mod run_record;
 mod seeder;
@@ -29,7 +30,8 @@ enum Command {
         #[arg(
             long,
             env = "LOCKER_MUSEUM_ENDPOINT",
-            default_value = "http://127.0.0.1:8080"
+            default_value = "http://127.0.0.1:8080",
+            global = true
         )]
         endpoint: String,
     },
@@ -45,6 +47,16 @@ enum Command {
             default_value = "http://127.0.0.1:8080"
         )]
         endpoint: String,
+    },
+    /// Capture the empty backend baseline for the run's single account.
+    Baseline {
+        #[command(subcommand)]
+        action: BaselineAction,
+    },
+    /// Restore the run's single account to its captured empty baseline.
+    Reset {
+        #[arg(long)]
+        account_context: PathBuf,
     },
     /// Validate one manifest without starting Docker or accessing an account.
     Validate {
@@ -88,6 +100,14 @@ enum StackAction {
     Reset,
 }
 
+#[derive(Subcommand)]
+enum BaselineAction {
+    Capture {
+        #[arg(long)]
+        account_context: PathBuf,
+    },
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -103,15 +123,30 @@ async fn main() -> Result<()> {
             endpoint,
         } => {
             let (email, password) = generated_credentials(&label);
-            auth::create_account(&endpoint, &email, &password).await?;
+            let account = auth::create_account(&endpoint, &email, &password).await?;
             let context = AccountContext {
                 version: 1,
                 endpoint,
                 email,
                 password,
+                user_id: account.user_id,
             };
             context.write_secure(&account_context)?;
-            println!("Account context: {}", account_context.display());
+            println!("Created Locker account: {}", context.redacted_identity());
+            Ok(())
+        }
+        Command::Baseline { action } => match action {
+            BaselineAction::Capture { account_context } => {
+                let context = AccountContext::load(&account_context)?;
+                let report = baseline::capture(&context, &account_context).await?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
+                Ok(())
+            }
+        },
+        Command::Reset { account_context } => {
+            let context = AccountContext::load(&account_context)?;
+            let report = baseline::restore(&context, &account_context).await?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
             Ok(())
         }
         Command::Validate { manifest } => {
@@ -140,7 +175,7 @@ async fn main() -> Result<()> {
                 .await
                 .with_context(|| format!("failed to apply Locker scenario {scenario}"))?;
             println!("Applied Locker scenario: {}", record.scenario_id);
-            println!("Run record: {}", run_dir.join("run.json").display());
+            println!("Account identity: {}", account_context.redacted_identity());
             println!("Fixtures verified: {}", record.items.len());
             Ok(())
         }

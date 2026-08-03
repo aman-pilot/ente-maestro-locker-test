@@ -72,6 +72,9 @@ pub async fn apply(
         &account_context.password,
     )
     .await?;
+    if account.user_id != account_context.user_id {
+        bail!("authenticated user ID does not match the private account context");
+    }
     let master_key = Key::try_from_slice(&account.secrets.master_key)
         .context("account returned an invalid master key")?;
     let client = MuseumClient::new(&account_context.endpoint, &auth::encoded_token(&account))?;
@@ -113,7 +116,7 @@ pub async fn apply(
 }
 
 pub async fn inspect(record: &RunRecord) -> Result<InventorySnapshot> {
-    let account = auth::login(&record.endpoint, &record.email, &record.password).await?;
+    let account = authenticate_run_record(record).await?;
     inventory_from_account(&record.endpoint, &account).await
 }
 
@@ -123,7 +126,7 @@ pub async fn inspect(record: &RunRecord) -> Result<InventorySnapshot> {
 /// collection is not in its local database yet. Replaying the idempotent
 /// `/files/trash` request makes those entries available to the next app sync.
 pub async fn replay_trash(record: &RunRecord) -> Result<usize> {
-    let account = auth::login(&record.endpoint, &record.email, &record.password).await?;
+    let account = authenticate_run_record(record).await?;
     let client = MuseumClient::new(&record.endpoint, &auth::encoded_token(&account))?;
     let before = client.trash().await?;
     let expected_ids = before
@@ -154,11 +157,12 @@ pub async fn replay_trash(record: &RunRecord) -> Result<usize> {
 }
 
 pub async fn finish(record: &RunRecord, run_dir: &Path, status: &str) -> Result<FinishRecord> {
+    let account = authenticate_run_record(record).await?;
     let path = run_dir.join("finish.json");
     if path.exists() {
         bail!("session {} is already finished", run_dir.display());
     }
-    let inventory = inspect(record).await?;
+    let inventory = inventory_from_account(&record.endpoint, &account).await?;
     let result = FinishRecord {
         scenario_id: record.scenario_id.clone(),
         status: status.to_owned(),
@@ -169,6 +173,20 @@ pub async fn finish(record: &RunRecord, run_dir: &Path, status: &str) -> Result<
         .with_context(|| format!("failed to write {}", path.display()))?;
     RunRecord::retire(run_dir)?;
     Ok(result)
+}
+
+async fn authenticate_run_record(record: &RunRecord) -> Result<AuthenticatedAccount> {
+    record.validate()?;
+    let account = auth::login(&record.endpoint, &record.email, &record.password).await?;
+    validate_authenticated_user(record, account.user_id)?;
+    Ok(account)
+}
+
+fn validate_authenticated_user(record: &RunRecord, authenticated_user_id: i64) -> Result<()> {
+    if authenticated_user_id != record.user_id {
+        bail!("authenticated user ID does not match the private run record");
+    }
+    Ok(())
 }
 
 async fn seed_manifest(
@@ -745,6 +763,8 @@ fn now_ms() -> u128 {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]
@@ -752,6 +772,31 @@ mod tests {
         let mut value = json!({"name": "Thing"});
         insert_optional(&mut value, "notes", &Some(String::new()));
         assert!(value.get("notes").is_none());
+    }
+
+    #[test]
+    fn rejects_authenticated_user_mismatch_without_exposing_credentials() {
+        let record = RunRecord {
+            version: 1,
+            scenario_id: "identity-guard".to_owned(),
+            endpoint: "http://127.0.0.1:8080".to_owned(),
+            email: "private@example.org".to_owned(),
+            password: "private-password".to_owned(),
+            user_id: 41,
+            created_at_ms: 1,
+            manifest_path: PathBuf::from("manifest.json"),
+            manifest_sha256: "hash".to_owned(),
+            collections: BTreeMap::new(),
+            items: BTreeMap::new(),
+        };
+
+        validate_authenticated_user(&record, 41).unwrap();
+        let error = validate_authenticated_user(&record, 42)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("authenticated user ID does not match"));
+        assert!(!error.contains("private@example.org"));
+        assert!(!error.contains("private-password"));
     }
 
     #[test]

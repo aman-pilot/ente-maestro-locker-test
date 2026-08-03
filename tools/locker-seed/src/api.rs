@@ -367,6 +367,14 @@ impl MuseumClient {
             .collect())
     }
 
+    pub async fn trash_record_count(&self) -> Result<usize> {
+        let response: TrashResponse = self.get_json("/trash/v2/diff?sinceTime=0").await?;
+        if response.has_more {
+            bail!("trash returned a paginated fixture set");
+        }
+        Ok(response.diff.len())
+    }
+
     pub async fn download_document(&self, file: &RemoteFile, file_key: &Key) -> Result<Vec<u8>> {
         self.download_and_decrypt(file.id, &file.file, "download", "document", file_key)
             .await
