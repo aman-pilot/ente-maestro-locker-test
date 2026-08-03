@@ -1,0 +1,20 @@
+{
+    "version": 1,
+  "collections": [
+    {
+      "ref": "home_inventory",
+      "name": "Home Inventory",
+      "collectionType": "folder"
+    }
+  ],
+  "items": [
+    {
+      "ref": "blue_suitcase",
+      "type": "thing",
+      "name": "Blue Suitcase",
+      "location": "Blue folder moved updated",
+      "notes": "Selection menu fixture.",
+      "collections": ["home_inventory"]
+    }
+  ]
+}

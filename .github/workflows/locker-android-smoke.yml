@@ -1,0 +1,234 @@
+name: "Locker Android smoke"
+
+# Keep Android execution manual until the first published Locker nightly has
+# passed this exact hosted x86_64 contract. Static checks already run on pull
+# requests and pushes to main.
+on:
+    workflow_dispatch:
+        inputs:
+            suite:
+                description: Account-free Locker suite to run
+                required: true
+                default: all
+                type: choice
+                options:
+                    - all
+                    - onboarding
+
+permissions:
+    contents: read
+
+concurrency:
+    group: locker-android-smoke-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    APP_ID: io.ente.locker.independent
+    LOCKER_APK_DIR: ${{ github.workspace }}/artifacts/locker
+    MAESTRO_CLI_NO_ANALYTICS: 1
+    MAESTRO_VERSION: 2.6.1
+    MAESTRO_SHA256: 3440825f514f537c6a96bcf5de995780c2a4a7f83a43208fdc95d4f1fecfad3b
+
+jobs:
+    resolve:
+        name: Resolve test inputs
+        runs-on: ubuntu-latest
+        outputs:
+            apk_asset_id: ${{ steps.release.outputs.apk_asset_id }}
+            apk_created_at: ${{ steps.release.outputs.apk_created_at }}
+            apk_name: ${{ steps.release.outputs.apk_name }}
+            apk_sha256: ${{ steps.release.outputs.apk_sha256 }}
+            channel: ${{ steps.release.outputs.channel }}
+            matrix: ${{ steps.select.outputs.matrix }}
+            release_tag: ${{ steps.release.outputs.release_tag }}
+            source_repository: ${{ steps.release.outputs.source_repository }}
+        steps:
+            - name: Checkout tests
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Validate hosted configuration
+              run: scripts/check-static.sh
+
+            - name: Select requested suite
+              id: select
+              env:
+                  REQUESTED_SUITE: ${{ inputs.suite || 'all' }}
+              run: |
+                  if [[ "$REQUESTED_SUITE" == "all" ]]; then
+                      matrix=$(scripts/select-locker-ci-suites.sh --all)
+                  else
+                      matrix=$(scripts/select-locker-ci-suites.sh --suite "$REQUESTED_SUITE")
+                  fi
+                  if [[ "$(jq '.include | length' <<< "$matrix")" -eq 0 ]]; then
+                      echo "The requested Locker suite selected no flows" >&2
+                      exit 1
+                  fi
+                  echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+            - name: Resolve latest Locker nightly
+              id: release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"
+
+    smoke:
+        name: ${{ matrix.name }}
+        needs: resolve
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+        steps:
+            - name: Checkout tests
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  persist-credentials: false
+
+            - name: Set up Java
+              uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+              with:
+                  distribution: temurin
+                  java-version: 17
+
+            - name: Download resolved Locker nightly
+              env:
+                  APK_ASSET_ID: ${{ needs.resolve.outputs.apk_asset_id }}
+                  APK_CREATED_AT: ${{ needs.resolve.outputs.apk_created_at }}
+                  APK_NAME: ${{ needs.resolve.outputs.apk_name }}
+                  APK_SHA256: ${{ needs.resolve.outputs.apk_sha256 }}
+                  GH_TOKEN: ${{ github.token }}
+                  LOCKER_CHANNEL: ${{ needs.resolve.outputs.channel }}
+                  LOCKER_RELEASE_TAG: ${{ needs.resolve.outputs.release_tag }}
+                  SOURCE_REPOSITORY: ${{ needs.resolve.outputs.source_repository }}
+              run: |
+                  mkdir -p "$LOCKER_APK_DIR"
+                  apk_path="$LOCKER_APK_DIR/$APK_NAME"
+                  gh api \
+                      -H 'Accept: application/octet-stream' \
+                      "repos/$SOURCE_REPOSITORY/releases/assets/$APK_ASSET_ID" > "$apk_path"
+
+                  expected_sha256="${APK_SHA256#sha256:}"
+                  actual_sha256=$(sha256sum "$apk_path" | awk '{print $1}')
+                  if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+                      echo "Downloaded Locker APK does not match the resolved release asset" >&2
+                      exit 1
+                  fi
+
+                  echo "LOCKER_APK_PATH=$apk_path" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_ASSET_ID=$APK_ASSET_ID" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_CREATED_AT=$APK_CREATED_AT" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_NAME=$APK_NAME" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_SHA256=$expected_sha256" >> "$GITHUB_ENV"
+                  echo "LOCKER_CHANNEL=$LOCKER_CHANNEL" >> "$GITHUB_ENV"
+                  echo "LOCKER_RELEASE_TAG=$LOCKER_RELEASE_TAG" >> "$GITHUB_ENV"
+
+            - name: Install pinned Maestro
+              run: |
+                  curl --fail --location --silent --show-error \
+                      "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip" \
+                      --output "$RUNNER_TEMP/maestro.zip"
+                  echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum --check -
+                  mkdir -p "$HOME/.maestro"
+                  unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro"
+                  maestro_bin="$HOME/.maestro/maestro/bin/maestro"
+                  installed_version=$($maestro_bin --version)
+                  if [[ "$installed_version" != "$MAESTRO_VERSION" ]]; then
+                      echo "Expected Maestro $MAESTRO_VERSION, installed $installed_version" >&2
+                      exit 1
+                  fi
+                  echo "$HOME/.maestro/maestro/bin" >> "$GITHUB_PATH"
+
+            - name: Enable KVM
+              run: |
+                  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                  sudo udevadm control --reload-rules
+                  sudo udevadm trigger --name-match=kvm
+
+            - name: Run Locker smoke tests
+              id: smoke-tests
+              continue-on-error: true
+              uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+              with:
+                  api-level: 34
+                  target: default
+                  arch: x86_64
+                  profile: pixel_5
+                  emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
+                  disable-animations: true
+                  script: |
+                      mkdir -p artifacts/maestro/debug
+                      adb shell settings put system screen_off_timeout 2147483647
+                      adb install -r "$LOCKER_APK_PATH"
+                      maestro test \
+                          --no-ansi \
+                          -e "APP_ID=$APP_ID" \
+                          --format JUNIT \
+                          --output artifacts/maestro/results.xml \
+                          --debug-output artifacts/maestro/debug \
+                          --flatten-debug-output \
+                          ${{ matrix.flows }}
+
+            - name: Summarize Locker smoke tests
+              if: always() && steps.smoke-tests.outcome != 'skipped'
+              env:
+                  TEST_OUTCOME: ${{ steps.smoke-tests.outcome }}
+              run: |
+                  if [[ "$TEST_OUTCOME" == "success" ]]; then
+                      status=passed
+                  else
+                      status=failed
+                  fi
+                  {
+                      echo "### Locker Android smoke $status"
+                      echo
+                      echo "- Release: \`$LOCKER_RELEASE_TAG\`"
+                      echo "- Channel: \`$LOCKER_CHANNEL\`"
+                      echo "- Build: \`$LOCKER_APK_NAME\`"
+                      echo "- Asset created: \`$LOCKER_APK_CREATED_AT\`"
+                      echo "- Asset ID: \`$LOCKER_APK_ASSET_ID\`"
+                      echo "- Locker APK SHA-256: \`$LOCKER_APK_SHA256\`"
+                      echo "- Suite: ${{ matrix.name }}"
+                      echo "- Coverage: ${{ matrix.coverage }}"
+                      echo "- Android API: \`34\`"
+                      echo "- Maestro: \`$MAESTRO_VERSION\`"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Upload JUnit results
+              if: always() && steps.smoke-tests.outcome != 'skipped'
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: locker-${{ matrix.suite }}-results
+                  path: artifacts/maestro/results.xml
+                  if-no-files-found: warn
+                  retention-days: 7
+
+            - name: Upload account-free failure diagnostics
+              if: steps.smoke-tests.outcome == 'failure'
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: locker-${{ matrix.suite }}-diagnostics
+                  path: artifacts/maestro/debug
+                  if-no-files-found: warn
+                  retention-days: 3
+
+            - name: Propagate smoke failure
+              if: steps.smoke-tests.outcome == 'failure'
+              run: exit 1
+
+    locker-smoke-gate:
+        name: Locker smoke gate
+        if: always()
+        needs: [resolve, smoke]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify selected suites
+              env:
+                  RESOLVE_RESULT: ${{ needs.resolve.result }}
+                  SMOKE_RESULT: ${{ needs.smoke.result }}
+              run: |
+                  test "$RESOLVE_RESULT" = success
+                  test "$SMOKE_RESULT" = success

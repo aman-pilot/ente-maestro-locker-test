@@ -1,0 +1,70 @@
+services:
+    museum:
+        image: ghcr.io/ente/server@sha256:e9e06eb01834c38f41a3a09f9a64885b631346ce0005ccff2153faea403bd6e2
+        ports:
+            - "8080:8080"
+        depends_on:
+            postgres:
+                condition: service_healthy
+            minio-init:
+                condition: service_completed_successfully
+        environment:
+            ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_SUFFIX: "@example.org"
+            ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_VALUE: "123456"
+            ENTE_INTERNAL_SILENT: "true"
+        volumes:
+            - ./museum.yaml:/museum.yaml:ro
+
+    socat:
+        image: alpine/socat@sha256:e7b17711daaa7d49107a7193112689e91fb1a27bddd9cb0b32641b55b8e9e3b0
+        network_mode: service:museum
+        depends_on:
+            museum:
+                condition: service_started
+        command: "TCP-LISTEN:3200,fork,reuseaddr TCP:minio:3200"
+
+    postgres:
+        image: postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
+        environment:
+            POSTGRES_USER: pguser
+            POSTGRES_PASSWORD: pgpass
+            POSTGRES_DB: ente_db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -q -d ente_db -U pguser"]
+            interval: 1s
+            timeout: 5s
+            retries: 60
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+
+    minio:
+        image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+        ports:
+            - "3200:3200"
+        environment:
+            MINIO_ROOT_USER: changeme
+            MINIO_ROOT_PASSWORD: changeme1234
+        command: server /data --address ":3200" --console-address ":3201"
+        volumes:
+            - minio-data:/data
+
+    minio-init:
+        image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+        depends_on:
+            minio:
+                condition: service_started
+        entrypoint: /bin/sh
+        command:
+            - -c
+            - |
+                until mc alias set local http://minio:3200 changeme changeme1234; do
+                    sleep 1
+                done
+                mc mb --ignore-existing local/b2-eu-cen
+                mc mb --ignore-existing local/wasabi-eu-central-2-v3
+                mc mb --ignore-existing local/scw-eu-fr-v3
+        restart: "no"
+
+volumes:
+    postgres-data:
+    minio-data:

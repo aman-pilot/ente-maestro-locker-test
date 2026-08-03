@@ -1,0 +1,11 @@
+{
+    "version": 1,
+  "collections": [
+    {
+      "ref": "travel_archive",
+      "name": "Travel Archive",
+      "collectionType": "folder"
+    }
+  ],
+  "items": []
+}

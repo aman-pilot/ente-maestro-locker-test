@@ -1,0 +1,25 @@
+{
+    "version": 1,
+  "collections": [
+    {
+      "ref": "moving_plans",
+      "name": "Moving Plans",
+      "collectionType": "folder"
+    },
+    {
+      "ref": "home_projects",
+      "name": "Home Projects",
+      "collectionType": "folder"
+    }
+  ],
+  "items": [
+    {
+      "ref": "moving_dolly",
+      "type": "thing",
+      "name": "Moving Dolly",
+      "location": "Garage moving shelf",
+      "notes": "Starts in Moving Plans; the flow adds Home Projects.",
+      "collections": ["moving_plans"]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "collections": [
+    {
+      "ref": "insurance_documents",
+      "name": "Insurance Documents",
+      "collectionType": "folder"
+    }
+  ],
+  "items": []
+}

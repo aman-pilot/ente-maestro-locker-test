@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "collections": [
+    {
+      "ref": "seeded_info",
+      "name": "Personal Records",
+      "collectionType": "folder"
+    }
+  ],
+  "items": [
+    {
+      "ref": "seeded_note",
+      "type": "note",
+      "title": "Passport Renewal Checklist",
+      "content": "Prepared before Maestro starts.",
+      "collections": ["seeded_info"]
+    },
+    {
+      "ref": "seeded_secret",
+      "type": "secret",
+      "name": "GitHub Recovery Codes",
+      "username": "locker.seed@example.org",
+      "password": "Seeded-Secret-123!",
+      "notes": "Encrypted credential fixture",
+      "collections": ["seeded_info"]
+    },
+    {
+      "ref": "seeded_thing",
+      "type": "thing",
+      "name": "Blue Suitcase",
+      "location": "Blue drawer",
+      "notes": "Physical record fixture",
+      "important": true,
+      "collections": ["seeded_info"]
+    },
+    {
+      "ref": "seeded_contact",
+      "type": "emergencyContact",
+      "name": "Dr. Maya Patel",
+      "contactDetails": "+1 555 0100",
+      "notes": "Call during the fixture test",
+      "collections": ["seeded_info"]
+    }
+  ]
+}

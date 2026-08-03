@@ -1,0 +1,11 @@
+{
+    "version": 1,
+  "collections": [
+    {
+      "ref": "family_documents",
+      "name": "Family Documents",
+      "collectionType": "folder"
+    }
+  ],
+  "items": []
+}

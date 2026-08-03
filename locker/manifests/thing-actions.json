@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "collections": [
+    {
+      "ref": "home_inventory",
+      "name": "Home Inventory",
+      "collectionType": "folder"
+    },
+    {
+      "ref": "storage_archive",
+      "name": "Storage Archive",
+      "collectionType": "folder"
+    }
+  ],
+  "items": []
+}

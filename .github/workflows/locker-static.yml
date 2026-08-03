@@ -1,0 +1,27 @@
+name: "Locker static checks"
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: locker-static-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    static:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout tests
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Run Locker static checks
+              run: scripts/check-static.sh

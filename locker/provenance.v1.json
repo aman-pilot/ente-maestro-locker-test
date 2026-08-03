@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "importedAt": "2026-08-03",
+  "importSource": "aman-pilot/ente at 390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
+  "enteGitRevision": "390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
+  "images": {
+    "museum": "ghcr.io/ente/server@sha256:e9e06eb01834c38f41a3a09f9a64885b631346ce0005ccff2153faea403bd6e2",
+    "postgres": "postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f",
+    "minio": "minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+    "minioClient": "minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727",
+    "socat": "alpine/socat@sha256:e7b17711daaa7d49107a7193112689e91fb1a27bddd9cb0b32641b55b8e9e3b0"
+  },
+  "fixtures": {
+    "locker/fixtures/black-thumbnail.jpg.b64": "585169db87f14de69e03f64b99fb0ef50a4e0a85fcfba6f1b7bce74308632c57",
+    "locker/fixtures/locker-seed.pdf": "0cb8b160e921c59ddbb9aa16416f0ae72b1c019f53631fd1f46d233070bd361e"
+  },
+  "manifestSetSha256": "ac8c0f1e79409525610e08551656ab221310fa325d5709fa805a4bb38f984002",
+  "stackVerification": {
+    "verifiedAt": "2026-08-03",
+    "dockerServer": "29.4.0",
+    "museumPing": "pong",
+    "postgresHealthy": true,
+    "buckets": [
+      "b2-eu-cen",
+      "wasabi-eu-central-2-v3",
+      "scw-eu-fr-v3"
+    ],
+    "socatStarted": true,
+    "accountCreated": false,
+    "cleanup": "Dedicated containers, network, and volumes removed after verification."
+  }
+}

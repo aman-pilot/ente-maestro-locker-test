@@ -1,0 +1,13 @@
+appId: ${APP_ID}
+name: Locker onboarding launches
+tags:
+  - locker
+  - android
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Login to existing account"
+    timeout: 60000
+- assertVisible: "Create an Ente account"

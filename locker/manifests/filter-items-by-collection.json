@@ -1,0 +1,20 @@
+{
+    "version": 1,
+  "collections": [
+    {
+      "ref": "garage_equipment",
+      "name": "Garage Equipment",
+      "collectionType": "folder"
+    }
+  ],
+  "items": [
+    {
+      "ref": "extension_ladder",
+      "type": "thing",
+      "name": "Extension Ladder",
+      "location": "Garage wall rack",
+      "notes": "Used to verify collection filtering.",
+      "collections": ["garage_equipment"]
+    }
+  ]
+}

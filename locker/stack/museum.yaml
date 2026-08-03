@@ -1,0 +1,52 @@
+db:
+    host: postgres
+    port: 5432
+    name: ente_db
+    user: pguser
+    password: pgpass
+
+s3:
+    are_local_buckets: true
+    use_path_style_urls: true
+    b2-eu-cen:
+        key: changeme
+        secret: changeme1234
+        endpoint: localhost:3200
+        region: eu-central-2
+        bucket: b2-eu-cen
+    wasabi-eu-central-2-v3:
+        key: changeme
+        secret: changeme1234
+        endpoint: localhost:3200
+        region: eu-central-2
+        bucket: wasabi-eu-central-2-v3
+        compliance: false
+    scw-eu-fr-v3:
+        key: changeme
+        secret: changeme1234
+        endpoint: localhost:3200
+        region: eu-central-2
+        bucket: scw-eu-fr-v3
+
+apps:
+    public-albums: http://localhost:3002
+    public-locker: http://localhost:3005
+    public-paste: http://localhost:3008
+    public-memories: http://localhost:3010
+    cast: http://localhost:3004
+    embed-albums: http://localhost:3006
+    accounts: http://localhost:3001
+    legacy: http://localhost:3011
+
+key:
+    encryption: yvmG/RnzKrbCb9L3mgsmoxXr9H7i2Z4qlbT0mL3ln4w=
+    hash: KXYiG07wC7GIgvCSdg+WmyWdXDAn6XKYJtp/wkEU7x573+byBRAYtpTP0wwvi8i/4l37uicX1dVTUzwH3sLZyw==
+
+jwt:
+    secret: i2DecQmfGreG6q1vBj5tCokhlN41gcfS2cjOs9Po-u8=
+
+internal:
+    silent: true
+    hardcoded-ott:
+        local-domain-suffix: "@example.org"
+        local-domain-value: "123456"
