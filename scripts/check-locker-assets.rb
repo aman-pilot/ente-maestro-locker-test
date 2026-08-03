@@ -36,7 +36,11 @@ end
 catalog_path = LOCKER.join("catalog.v1.json")
 catalog = load_json(catalog_path)
 fail_check("catalog schemaVersion must be 1") unless catalog["schemaVersion"] == 1
-fail_check("account lifecycle must remain unassigned") unless catalog.dig("accountLifecycle", "status") == "unassigned"
+expected_account_lifecycle = {
+  "status" => "single-account-per-run",
+  "contract" => "One synthetic account is created for an isolated test run and reset to the required fixture baseline before each scenario. No flow, profile, or shard may create an additional account."
+}
+fail_check("catalog must declare the single-account-per-run contract") unless catalog["accountLifecycle"] == expected_account_lifecycle
 
 forbidden_catalog_keys = %w[entries isolation runtimeValidation suiteRoot]
 present_forbidden = forbidden_catalog_keys & catalog.keys
@@ -81,6 +85,8 @@ load_manifest = lambda do |relative_path|
 end
 
 profiles.each do |profile_id, profile|
+  account_keys = profile.keys.grep(/account|pool|shard/i)
+  fail_check("profile #{profile_id} assigns account lifecycle fields: #{account_keys.join(", ")}") unless account_keys.empty?
   relative_manifest = profile.fetch("manifest")
   manifest = load_manifest.call(relative_manifest)
   collection_names = manifest.fetch("collections").map { |entry| entry.fetch("name") }.sort
@@ -99,6 +105,8 @@ scenario_ids.each do |scenario_id|
 end
 
 scenarios.each do |scenario|
+  account_keys = scenario.keys.grep(/account|pool|shard/i)
+  fail_check("scenario #{scenario.fetch("scenarioId")} assigns account lifecycle fields: #{account_keys.join(", ")}") unless account_keys.empty?
   profile_id = scenario.fetch("fixtureProfile")
   profile = profiles[profile_id]
   fail_check("scenario #{scenario.fetch("scenarioId")} references unknown profile #{profile_id}") unless profile
