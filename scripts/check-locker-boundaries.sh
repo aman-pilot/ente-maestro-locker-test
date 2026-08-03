@@ -30,7 +30,7 @@ for public_path in \
     fi
 done
 
-if rg --line-number \
+if grep --recursive --line-number --binary-files=without-match --extended-regexp \
     'fresh-account-per-flow|locker-maestro-worktree|mobile/mobile-tests/locker|\.\./\.\./rust/crates|server/compose\.yaml' \
     locker tools/locker-seed README.md docs; then
     echo "Legacy checkout path or decided account policy remains" >&2
@@ -60,14 +60,16 @@ done < <(find . \
     -path './tools/locker-seed/target' -prune -o \
     -type f -name '*.json' -print)
 
-if rg --quiet 'locker-seed (create-account|apply)|locker/stack/compose\.yaml' .github/workflows; then
+if grep --recursive --quiet --extended-regexp \
+    'locker-seed (create-account|apply)|locker/stack/compose\.yaml' \
+    .github/workflows; then
     echo "Seeded runtime must stay disabled in hosted workflows until lifecycle and YAML decisions are made" >&2
     exit 1
 fi
 
-rg --quiet 'local-domain-suffix: "@example\.org"' locker/stack/museum.yaml
-rg --quiet 'local-domain-value: "123456"' locker/stack/museum.yaml
-rg --quiet 'ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_SUFFIX: "@example\.org"' locker/stack/compose.yaml
-rg --quiet 'ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_VALUE: "123456"' locker/stack/compose.yaml
+grep --quiet --fixed-strings 'local-domain-suffix: "@example.org"' locker/stack/museum.yaml
+grep --quiet --fixed-strings 'local-domain-value: "123456"' locker/stack/museum.yaml
+grep --quiet --fixed-strings 'ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_SUFFIX: "@example.org"' locker/stack/compose.yaml
+grep --quiet --fixed-strings 'ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_VALUE: "123456"' locker/stack/compose.yaml
 
 echo "Locker source/private boundaries passed"
