@@ -8,7 +8,7 @@ readonly workspace_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly endpoint="${LOCKER_MUSEUM_ENDPOINT:-http://127.0.0.1:8080}"
 readonly catalog="$workspace_root/locker/catalog.v1.json"
 readonly flow_registry="$workspace_root/locker/product-flows.v1.json"
-readonly login_flow="$workspace_root/maestro/locker/runtime/login-seeded-account.yaml"
+readonly login_flow="$workspace_root/maestro/locker/online/subflows/login-online-account.yaml"
 
 usage() {
     cat <<'EOF'
@@ -272,7 +272,7 @@ fi
 
 declare -a flows=()
 for scenario in "${scenarios[@]}"; do
-    flow="$workspace_root/maestro/locker/online/core/$scenario.yaml"
+    flow="$workspace_root/maestro/locker/online/$scenario.yaml"
     if [[ ! -f "$flow" ]]; then
         printf 'Missing canonical flow for scenario=%s\n' "$scenario" >&2
         exit 2

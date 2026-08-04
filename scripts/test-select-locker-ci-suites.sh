@@ -30,12 +30,12 @@ assert_flows() {
 
 assert_suites onboarding --changed-file maestro/locker/smoke/onboarding.yaml
 assert_suites onboarding --changed-file maestro/locker/smoke/new-hosted-flow.yaml
-assert_suites onboarding --changed-file maestro/locker/subflows/new-shared-helper.yaml
+assert_suites "" --changed-file maestro/locker/online/subflows/new-online-helper.yaml
 assert_suites onboarding --changed-file scripts/resolve-nightly-apk.sh
 assert_suites onboarding --changed-file scripts/test-hosted-flow-registration.sh
 assert_suites onboarding --all
 assert_suites onboarding --suite onboarding
-assert_suites "" --changed-file maestro/locker/platform/native-picker.yaml
+assert_suites "" --changed-file maestro/locker/online/platform/native-picker.yaml
 assert_suites "" --changed-file README.md
 assert_suites "" --changed-file docs/locker-test-rollout.md
 assert_flows onboarding "maestro/locker/smoke/onboarding.yaml" --all

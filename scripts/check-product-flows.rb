@@ -42,19 +42,21 @@ fail_check("expected three native-system flows") unless native.length == 3
 fail_check("expected one deferred platform-state flow") unless platform_state.length == 1
 fail_check("expected one paid flow") unless paid.length == 1
 
-lane_for = lambda do |scenario_id|
+directory_for = lambda do |scenario_id|
   return "paid" if paid.include?(scenario_id)
   return "platform" if (native + platform_state).include?(scenario_id)
 
-  "core"
+  nil
 end
 
 expected_paths = classified.to_h do |scenario_id|
-  [scenario_id, "maestro/locker/online/#{lane_for.call(scenario_id)}/#{scenario_id}.yaml"]
+  directory = directory_for.call(scenario_id)
+  relative_path = ["maestro/locker/online", directory, "#{scenario_id}.yaml"].compact.join("/")
+  [scenario_id, relative_path]
 end
 on_disk = Dir.glob(ROOT.join("maestro/locker/online/**/*.yaml")).map do |path|
   Pathname.new(path).relative_path_from(ROOT).to_s
-end.sort
+end.reject { |path| path.start_with?("maestro/locker/online/subflows/") }.sort
 fail_check("canonical YAML inventory differs from the registry") unless on_disk == expected_paths.values.sort
 
 forbidden = /USER_EMAIL|USER_PASSWORD|MUSEUM_ENDPOINT|clearState\s*:|appId:\s+io\.ente\.locker|fresh[- ]account|every workflow gets its own account/
@@ -65,7 +67,7 @@ on_disk.each do |relative_path|
   fail_check("#{relative_path} references an external Maestro flow") if body.match?(/runFlow:\s*\n\s+file:/)
 end
 
-login_path = ROOT.join("maestro/locker/runtime/login-seeded-account.yaml")
+login_path = ROOT.join("maestro/locker/online/subflows/login-online-account.yaml")
 fail_check("missing private runtime login flow") unless login_path.file?
 login_body = login_path.read
 fail_check("runtime login must use the runtime APP_ID") unless login_body.start_with?("appId: ${APP_ID}\n---\n")

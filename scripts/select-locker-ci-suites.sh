@@ -70,7 +70,7 @@ fi
 if [[ ${#changed_files[@]} -gt 0 ]]; then
     for changed_file in "${changed_files[@]}"; do
         case "$changed_file" in
-            .github/workflows/locker-android-smoke.yml|.github/workflows/locker-static.yml|scripts/check-static.sh|scripts/check-workflow-security.rb|scripts/download-locker-nightly.sh|scripts/resolve-nightly-apk.sh|scripts/run-locker-android-local.sh|scripts/select-locker-ci-suites.sh|scripts/test-download-locker-nightly.sh|scripts/test-hosted-flow-registration.sh|scripts/test-resolve-nightly-apk.sh|scripts/test-run-locker-android-local.sh|scripts/test-select-locker-ci-suites.sh|maestro/locker/subflows/*)
+            .github/workflows/locker-android-smoke.yml|.github/workflows/locker-static.yml|scripts/check-static.sh|scripts/check-workflow-security.rb|scripts/download-locker-nightly.sh|scripts/resolve-nightly-apk.sh|scripts/run-locker-android-local.sh|scripts/select-locker-ci-suites.sh|scripts/test-download-locker-nightly.sh|scripts/test-hosted-flow-registration.sh|scripts/test-resolve-nightly-apk.sh|scripts/test-run-locker-android-local.sh|scripts/test-select-locker-ci-suites.sh)
                 full_matrix=true
                 ;;
             maestro/locker/smoke/onboarding.yaml)
@@ -80,7 +80,7 @@ if [[ ${#changed_files[@]} -gt 0 ]]; then
                 # A new hosted flow must not silently receive no coverage.
                 full_matrix=true
                 ;;
-            maestro/locker/platform/*|docs/*|README.md)
+            maestro/locker/online/*|docs/*|README.md)
                 ;;
         esac
     done

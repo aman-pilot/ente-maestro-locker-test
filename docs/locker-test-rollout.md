@@ -8,7 +8,7 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 | Layer | Purpose | Current state |
 | --- | --- | --- |
 | Published smoke | Account-free onboarding and other public startup behavior. | Hosted API 34 x86_64 proof passed. |
-| Online product lane | One synthetic online account and one shared encrypted fixture per isolated run, with no intra-lane backend reset. | Static/mocked validation pending; exact-APK hosted proof must be rerun. |
+| Online product lane | One synthetic online account and one shared encrypted fixture per isolated run, with no intra-lane backend reset. | Source-built API 35 ARM proof passed; exact published-APK hosted proof remains. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 
@@ -42,6 +42,11 @@ classified by `locker/product-flows.v1.json`. They intentionally contain no
 login, endpoint, or credential setup. Their runner must create one account
 before the suite, apply the shared fixture once, and preserve that identity and
 backend state across the ordered lane.
+
+Like Auth, shared online orchestration lives under
+`maestro/locker/online/subflows/`. The top-level `locker/` directory is not a
+second Maestro tree: it owns Locker-only manifests, public fixture inputs,
+catalog/provenance, and the disposable backend stack.
 
 Registration validation fails when a smoke flow is not reachable from a
 selected hosted suite. Shared helpers should remain small and must not escape

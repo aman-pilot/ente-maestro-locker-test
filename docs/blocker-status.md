@@ -18,7 +18,7 @@ Snapshot: 2026-08-04
 | Account lifecycle decision | Catalog and runtime policy require one online account, one shared fixture application, and no intra-lane backend reset. |
 | Seeder runtime | The active online fixture has encrypted apply/read-back support; inactive manifests remain reference inputs for later promotion. |
 | Hosted account-free Android | API 34 x86_64 passed onboarding against published asset `500679355` with its exact SHA-256. |
-| Product YAML ownership | This repository canonically owns all 31 flows, their source snapshot hashes, and their core/platform/paid classifications. |
+| Product YAML ownership | This repository canonically owns all 31 flows, their source snapshot hashes, and their online/platform/paid classifications. |
 | Profile/reset orchestration | Scenario-to-profile mappings, baseline capture/restore code, and the reset-only hosted proof were removed. |
 | Seeded Android orchestration | Static and mocked tests prove one account, one fixture apply, zero backend resets, two cold-login boundaries, private login arguments, and credential-free product invocation. |
 | Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`; bounded retries reuse the same identity and never create another account. |
@@ -31,7 +31,7 @@ Snapshot: 2026-08-04
 | Blocker | Required handling |
 | --- | --- |
 | Exact published seeded gate | Publish one Locker APK containing the proven collection-sync and semantics changes, then rerun the same four-flow workflow against that immutable asset. The local source-built pass is not release provenance. |
-| Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally only after the four-flow core gate passes. |
+| Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally after the four-flow online gate. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
 ## Current evidence boundary

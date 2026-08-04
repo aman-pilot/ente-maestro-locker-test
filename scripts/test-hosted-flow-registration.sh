@@ -42,7 +42,7 @@ collect_reachable() {
             dependency_absolute=$(realpath "$source_path")
             dependency_path=${dependency_absolute#"$workspace_root/"}
             case "$dependency_path" in
-                maestro/locker/smoke/*|maestro/locker/subflows/*)
+                maestro/locker/smoke/*)
                     enqueue "$dependency_path"
                     ;;
                 *)

@@ -13,11 +13,12 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "33721a16a6dc0190153693ddb1e88a74935a781eaa8ce5e178265fc649a2295f",
+    "flowSetSha256": "1a516b8221edbe3f1ae102e5b1dd64a13ecfe68183926b41c598fc0bd83439ed",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
       "Normalize lifecycle comments to the single-account, one-fixture online lane contract.",
+      "Place ordinary online product flows directly under maestro/locker/online and private login under online/subflows to match Auth.",
       "Use the current Locker Open navigation menu semantics label for seeded settings flows.",
       "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action."
     ]

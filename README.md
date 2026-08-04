@@ -12,7 +12,7 @@ fixture application per lane. Product flows reuse that backend state in a
 deliberate order; there is no profile-per-flow account reset.
 
 The repository owns all 31 canonical product YAML flows: 25 hosted candidates,
-one unresolved core flow, three native-system flows, one platform-state
+one unresolved online flow, three native-system flows, one platform-state
 validation flow, and one paid flow. Native, paid, and network-state validation
 remain deferred; Locker itself has no offline account mode.
 
@@ -36,7 +36,9 @@ The initial hosted lane is intentionally small:
 | `locker/stack/` | Self-contained digest-pinned Museum/PostgreSQL/MinIO stack. |
 | `tools/locker-seed/` | Rust manifest validation, account creation, E2EE seeding, and read-back verification. |
 | `maestro/locker/smoke/` | Public account-free startup coverage. |
-| `maestro/locker/online/` | Canonical authenticated core, platform, and paid flows. |
+| `maestro/locker/online/` | Canonical authenticated product flows, matching Auth's online-flow layout. |
+| `maestro/locker/online/subflows/` | Private runtime helpers such as same-account online login; product YAML remains credential-free. |
+| `maestro/locker/online/platform/`, `paid/` | Explicitly deferred platform-state and paid-product flows. |
 | `scripts/` | Static contracts, APK resolution, local execution, and the online lane runner. |
 
 ## Validate locally
@@ -75,14 +77,10 @@ The account-free onboarding flow passed hosted API 34 x86_64 against
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
 with Maestro 2.6.1.
 
-The earlier four-flow run used the retired reset-per-profile orchestration and
-is historical evidence only. It reached all four product YAML files: empty home
-and account/security passed, while two app-side blockers remained:
-
-- seeded collections/files were not visible after login, so the home search UI
-  did not appear;
-- the published APK predated the `Search settings` accessibility tooltip.
-
-The online-only lane must be rerun against an exact published APK after those
-two app contracts are available. Historical prototype and reset-proof results
-do not prove the new one-fixture lane.
+The online-only four-flow lane passes locally on API 35 ARM against source-built
+independent APK SHA-256
+`e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
+It proves one account, one shared fixture application, seeded search, account
+and security settings, and settings-search semantics without a backend reset.
+The remaining release gate is to repeat that proof against one immutable
+published APK and on the hosted x86_64 runner.
