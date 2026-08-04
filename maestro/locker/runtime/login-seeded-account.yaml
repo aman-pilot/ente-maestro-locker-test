@@ -5,23 +5,15 @@ appId: ${APP_ID}
     visible: Login to existing account
     timeout: 30000
 - tapOn: Login to existing account
-- extendedWaitUntil:
-    visible: |-
-      Email
-      Enter your email id
-    timeout: 15000
-- tapOn: |-
-    Email
-    Enter your email id
+- waitForAnimationToEnd
 - inputText: ${USER_EMAIL}
-- tapOn:
-    text: Done
+- assertVisible: ${USER_EMAIL}
+- tapOn: done
 - extendedWaitUntil:
-    visible: ".*Password.*"
-    timeout: 15000
+    visible: ".*Enter the password for.*"
+    timeout: 30000
 - inputText: ${USER_PASSWORD}
-- tapOn:
-    text: Done
+- tapOn: done
 - extendedWaitUntil:
     visible: ".*(Add item|Save to Locker).*"
     timeout: 90000
