@@ -14,10 +14,12 @@ usage() {
     cat <<'EOF'
 Usage: scripts/run-locker-seeded-suite.sh --apk <path> [options]
 
-Run the audited four-flow Locker proof on one account and one Android device.
-The backend is restored between scenarios; login and product behavior are
-separate Maestro invocations. The Android device must be a rootable emulator so
-the local Museum endpoint can be restored after each app-data clear.
+Run the audited online Locker lane on one account and one Android device. The
+account starts empty, one shared fixture is applied once after the empty-state
+flow, and all later product flows reuse that backend state. Login and product
+behavior remain separate Maestro invocations. The Android device must be a
+rootable emulator so the local Museum endpoint can be restored after app-data
+clears.
 
 Options:
   --apk <path>          Exact Locker APK to install once (required).
@@ -236,7 +238,7 @@ cleanup() {
     clear_app_data > /dev/null 2>&1 || true
     if [[ "$stack_requested" == true ]]; then
         if ! LOCKER_COMPOSE_PROJECT="$compose_project" \
-            "$seeder_bin" stack reset --endpoint "$endpoint" \
+            "$seeder_bin" stack down --endpoint "$endpoint" \
             > "$private_logs/stack-cleanup.log" 2>&1; then
             printf 'Seeded suite cleanup failed while removing the dedicated stack\n' >&2
             cleanup_status=1
@@ -260,28 +262,29 @@ output_owned=true
 scenarios=()
 while IFS= read -r scenario; do
     [[ -n "$scenario" ]] && scenarios+=("$scenario")
-done < <(jq --exit-status --raw-output '.initialHostedProof[]' "$flow_registry")
+done < <(jq --exit-status --raw-output '.initialHostedLane.flows[]' "$flow_registry")
 if [[ ${#scenarios[@]} -ne 4 ]]; then
-    printf 'The audited seeded proof must contain exactly four scenarios\n' >&2
+    printf 'The audited online lane must contain exactly four flows\n' >&2
     exit 2
 fi
 
-declare -a manifests=()
 declare -a flows=()
 for scenario in "${scenarios[@]}"; do
-    profile=$(jq --exit-status --raw-output --arg id "$scenario" \
-        '.scenarios[] | select(.scenarioId == $id) | .fixtureProfile' "$catalog")
-    manifest_relative=$(jq --exit-status --raw-output --arg profile "$profile" \
-        '.fixtureProfiles[$profile].manifest' "$catalog")
-    manifest="$workspace_root/locker/$manifest_relative"
     flow="$workspace_root/maestro/locker/online/core/$scenario.yaml"
-    if [[ ! -f "$manifest" || ! -f "$flow" ]]; then
-        printf 'Missing canonical assets for scenario=%s\n' "$scenario" >&2
+    if [[ ! -f "$flow" ]]; then
+        printf 'Missing canonical flow for scenario=%s\n' "$scenario" >&2
         exit 2
     fi
-    manifests+=("$manifest")
     flows+=("$flow")
 done
+
+readonly seed_before_flow="$(jq --exit-status --raw-output '.initialHostedLane.seedBeforeFlow' "$flow_registry")"
+readonly manifest_relative="$(jq --exit-status --raw-output '.onlineFixture.manifest' "$catalog")"
+readonly manifest="$workspace_root/locker/$manifest_relative"
+if [[ ! " ${scenarios[*]} " =~ " $seed_before_flow " ]] || [[ ! -f "$manifest" ]]; then
+    printf 'The online lane seed boundary or shared fixture is invalid\n' >&2
+    exit 2
+fi
 
 if [[ -n "$(docker ps --all --quiet --filter "label=com.docker.compose.project=$compose_project")" ]] ||
     [[ -n "$(docker volume ls --quiet --filter "label=com.docker.compose.project=$compose_project")" ]] ||
@@ -377,18 +380,11 @@ fi
 
 email=$(jq --exit-status --raw-output '.email' "$account_context")
 password=$(jq --exit-status --raw-output '.password' "$account_context")
-baseline_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$account_context")
+account_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$account_context")
 if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
     printf '::add-mask::%s\n' "$email"
     printf '::add-mask::%s\n' "$password"
 fi
-
-LOCKER_COMPOSE_PROJECT="$compose_project" \
-    "$seeder_bin" baseline capture --account-context "$account_context" \
-    > "$private_logs/baseline-capture.json" 2>&1
-jq --exit-status \
-    '.collectionRecordCount == 0 and .trashRecordCount == 0 and .bucketObjectCount == 0' \
-    "$private_logs/baseline-capture.json" > /dev/null
 
 adb -s "$serial" uninstall "$app_id" > /dev/null 2>&1 || true
 adb -s "$serial" install -r "$apk_path" > "$private_logs/apk-install.log"
@@ -398,77 +394,86 @@ adb -s "$serial" shell settings put system screen_off_timeout 2147483647 > /dev/
 failure_count=0
 records_file="$private_root/scenario-records.txt"
 : > "$records_file"
+online_run_dir="$private_runs/online-fixture"
+fixture_applied=false
+fixture_apply_count=0
+login_ready=true
+login_failure_category=none
+
+prepare_locker_app_data
+configure_reverse
+if ! run_private_login "empty-account" "$email" "$password"; then
+    # A clean same-account retry absorbs occasional emulator focus/network
+    # startup flakes without changing the account or backend state.
+    prepare_locker_app_data
+    configure_reverse
+    if ! run_private_login "empty-account" "$email" "$password"; then
+        login_ready=false
+    fi
+fi
 
 for index in "${!scenarios[@]}"; do
     scenario=${scenarios[$index]}
-    manifest=${manifests[$index]}
     flow=${flows[$index]}
-    run_dir="$private_runs/$scenario"
     scenario_status=pass
     failure_phase=none
     failure_category=none
 
-    clear_app_data
-    if [[ $index -gt 0 ]]; then
-        if ! LOCKER_COMPOSE_PROJECT="$compose_project" \
-            "$seeder_bin" reset --account-context "$account_context" \
-            > "$private_logs/reset-$scenario.json" 2>&1; then
-            printf 'Verified account reset failed before scenario=%s\n' "$scenario" >&2
+    if [[ "$login_ready" != true ]]; then
+        scenario_status=fail
+        failure_phase=login
+        failure_category=$login_failure_category
+    fi
+
+    if [[ "$scenario_status" == "pass" && "$scenario" == "$seed_before_flow" ]]; then
+        "$seeder_bin" apply \
+            --scenario online-fixture \
+            --manifest "$manifest" \
+            --run-dir "$online_run_dir" \
+            --account-context "$account_context" \
+            > "$private_logs/apply-online-fixture.log" 2>&1
+        fixture_applied=true
+        fixture_apply_count=1
+
+        observed_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$online_run_dir/run.json")
+        observed_email=$(jq --exit-status --raw-output '.email' "$online_run_dir/run.json")
+        if [[ "$observed_user_id" != "$account_user_id" || "$observed_email" != "$email" ]]; then
+            printf 'Account identity changed while applying the online fixture\n' >&2
             exit 1
         fi
-        jq --exit-status \
-            '.databaseRestored == true and .collectionRecordCount == 0 and .trashRecordCount == 0 and .bucketObjectCount == 0' \
-            "$private_logs/reset-$scenario.json" > /dev/null
-    fi
+        "$seeder_bin" inspect --run-dir "$online_run_dir" > "$private_logs/inspect-online-fixture.json" 2>&1
 
-    "$seeder_bin" apply \
-        --scenario "$scenario" \
-        --manifest "$manifest" \
-        --run-dir "$run_dir" \
-        --account-context "$account_context" \
-        > "$private_logs/apply-$scenario.log" 2>&1
-
-    observed_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$run_dir/run.json")
-    observed_email=$(jq --exit-status --raw-output '.email' "$run_dir/run.json")
-    if [[ "$observed_user_id" != "$baseline_user_id" || "$observed_email" != "$email" ]]; then
-        printf 'Account identity changed for scenario=%s\n' "$scenario" >&2
-        exit 1
-    fi
-    "$seeder_bin" inspect --run-dir "$run_dir" > "$private_logs/inspect-$scenario.json" 2>&1
-
-    prepare_locker_app_data
-    configure_reverse
-    if ! run_private_login "$scenario" "$email" "$password"; then
-        # A clean same-account retry absorbs occasional emulator focus/network
-        # startup flakes without changing the account or backend fixture.
         prepare_locker_app_data
         configure_reverse
-        if ! run_private_login "$scenario" "$email" "$password"; then
-            scenario_status=fail
-            failure_phase=login
-            failure_category=$login_failure_category
+        if ! run_private_login "seeded-account" "$email" "$password"; then
+            prepare_locker_app_data
+            configure_reverse
+            if ! run_private_login "seeded-account" "$email" "$password"; then
+                login_ready=false
+                scenario_status=fail
+                failure_phase=login
+                failure_category=$login_failure_category
+            fi
         fi
     fi
+
     if [[ "$scenario_status" == "pass" ]] && ! run_product_flow "$scenario" "$flow"; then
         scenario_status=fail
         failure_phase=product
         failure_category=canonical-yaml
     fi
 
-    if ! "$seeder_bin" finish --run-dir "$run_dir" --status "$scenario_status" \
-        > "$private_logs/finish-$scenario.json" 2>&1; then
-        printf 'Scenario finalization failed for scenario=%s\n' "$scenario" >&2
-        exit 1
-    fi
-    clear_app_data
-
     if [[ "$scenario_status" == "fail" ]]; then
         failure_count=$((failure_count + 1))
+    fi
+    fixture_sha256=none
+    if [[ "$fixture_applied" == true ]]; then
+        fixture_sha256="$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")"
     fi
     printf 'scenario=%s status=%s failure_phase=%s failure_category=%s flow_sha256=%s manifest_sha256=%s\n' \
         "$scenario" "$scenario_status" "$failure_phase" "$failure_category" \
         "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$flow")" \
-        "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")" \
+        "$fixture_sha256" \
         >> "$records_file"
 done
 
@@ -476,9 +481,17 @@ suite_status=pass
 if [[ $failure_count -ne 0 ]]; then
     suite_status=fail
 fi
+if [[ "$fixture_applied" == true ]]; then
+    if ! "$seeder_bin" finish --run-dir "$online_run_dir" --status "$suite_status" \
+        > "$private_logs/finish-online-fixture.json" 2>&1; then
+        printf 'Online fixture finalization failed\n' >&2
+        exit 1
+    fi
+fi
+clear_app_data
 {
-    printf 'seeded_suite status=%s accounts_created=1 scenarios=%s failures=%s identity_unchanged=true\n' \
-        "$suite_status" "${#scenarios[@]}" "$failure_count"
+    printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true\n' \
+        "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count"
     cat "$records_file"
 } > "$summary_file"
 
@@ -493,8 +506,8 @@ if grep --recursive --fixed-strings --quiet -- "$email" "$output_dir" ||
     exit 1
 fi
 
-printf 'seeded_suite status=%s accounts_created=1 scenarios=%s failures=%s identity_unchanged=true\n' \
-    "$suite_status" "${#scenarios[@]}" "$failure_count"
+printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true\n' \
+    "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count"
 if [[ "$suite_status" == "fail" ]]; then
     exit 1
 fi

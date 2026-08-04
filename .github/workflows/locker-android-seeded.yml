@@ -1,7 +1,8 @@
 name: "Locker Android seeded proof"
 
 # Keep this manual until the exact published-nightly proof passes on hosted
-# x86_64. The job is deliberately sequential: one stack, one account, one APK.
+# x86_64. The job is deliberately sequential: one stack, one online account,
+# one shared fixture application, and one APK.
 on:
     workflow_dispatch:
 
@@ -154,7 +155,7 @@ jobs:
                       echo "- Locker APK SHA-256: \`$LOCKER_APK_SHA256\`"
                       echo "- Android API: \`34\` x86_64"
                       echo "- Maestro: \`$MAESTRO_VERSION\`"
-                      echo "- Account contract: one account, sequential reset between four scenarios"
+                      echo "- Account contract: one online account, one shared fixture application, no intra-lane backend reset"
                       echo
                       if [[ -f "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" ]]; then
                           sed 's/^/- `/' "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" | sed 's/$/`/'
@@ -179,7 +180,7 @@ jobs:
               run: |
                   if [[ -x "$LOCKER_SEED_BIN" ]]; then
                       LOCKER_COMPOSE_PROJECT="$LOCKER_COMPOSE_PROJECT" \
-                          "$LOCKER_SEED_BIN" stack reset --endpoint http://127.0.0.1:8080
+                          "$LOCKER_SEED_BIN" stack down --endpoint http://127.0.0.1:8080
                   fi
 
     locker-seeded-gate:

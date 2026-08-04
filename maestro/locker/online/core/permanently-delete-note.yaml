@@ -2,7 +2,7 @@ appId: ${APP_ID}
 ---
 - stopApp
 - launchApp
-# The reset fixture seeds exactly one target so the destructive action
+# The shared fixture must expose exactly one target so the destructive action
 # is deterministic and never relies on data from a previous run.
 - extendedWaitUntil:
     visible: Expired Lease Checklist

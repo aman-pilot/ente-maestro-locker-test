@@ -26,7 +26,7 @@ appId: ${APP_ID}
 - pressKey: Enter
 - inputText: "Warranty card + backup key !@#"
 - hideKeyboard
-# Home Inventory and Storage Archive are part of this scenario's reset fixture.
+# Home Inventory and Storage Archive are shared online fixture collections.
 - scrollUntilVisible:
     element: "Home Inventory\nHome Inventory"
     direction: DOWN

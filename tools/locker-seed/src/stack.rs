@@ -4,15 +4,6 @@ use anyhow::{Context, Result, bail};
 
 const DEFAULT_PROJECT_NAME: &str = "ente-locker-maestro";
 
-pub(crate) fn required_compose_project() -> Result<String> {
-    let project = std::env::var("LOCKER_COMPOSE_PROJECT")
-        .context("LOCKER_COMPOSE_PROJECT must identify the dedicated reset stack")?;
-    if project.trim().is_empty() {
-        bail!("LOCKER_COMPOSE_PROJECT must not be empty");
-    }
-    Ok(project)
-}
-
 pub async fn up(endpoint: &str) -> Result<()> {
     run_compose(&["up", "-d", "--pull", "always"])?;
     wait_for_ping(endpoint, Duration::from_secs(180)).await?;
@@ -32,7 +23,7 @@ pub async fn status(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn reset() -> Result<()> {
+pub fn down() -> Result<()> {
     run_compose(&["down", "-v", "--remove-orphans"])
 }
 

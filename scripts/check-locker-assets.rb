@@ -37,21 +37,18 @@ catalog_path = LOCKER.join("catalog.v1.json")
 catalog = load_json(catalog_path)
 fail_check("catalog schemaVersion must be 1") unless catalog["schemaVersion"] == 1
 expected_account_lifecycle = {
-  "status" => "single-account-per-run",
-  "contract" => "One synthetic account is created for an isolated test run and reset to the required fixture baseline before each scenario. No flow, profile, or shard may create an additional account."
+  "status" => "single-online-account-per-run",
+  "contract" => "One synthetic online account is created for an isolated run. The shared fixture is applied once, related flows reuse its backend state, and the disposable stack is removed after the lane."
 }
-fail_check("catalog must declare the single-account-per-run contract") unless catalog["accountLifecycle"] == expected_account_lifecycle
+fail_check("catalog must declare the single online account contract") unless catalog["accountLifecycle"] == expected_account_lifecycle
 
-forbidden_catalog_keys = %w[entries isolation runtimeValidation suiteRoot]
+forbidden_catalog_keys = %w[entries fixtureProfiles isolation runtimeValidation scenarios suiteRoot supportManifests]
 present_forbidden = forbidden_catalog_keys & catalog.keys
 fail_check("catalog retains legacy keys: #{present_forbidden.join(", ")}") unless present_forbidden.empty?
 
-profiles = catalog.fetch("fixtureProfiles")
-scenarios = catalog.fetch("scenarios")
-support_manifests = catalog.fetch("supportManifests")
-blockers = catalog.fetch("selectorBlockers")
-fail_check("fixtureProfiles must not be empty") if profiles.empty?
-fail_check("scenarios must not be empty") if scenarios.empty?
+online_fixture = catalog.fetch("onlineFixture")
+reference_manifests = catalog.fetch("referenceManifests")
+fail_check("the online fixture must be applied exactly once") unless online_fixture["applyCount"] == 1
 
 manifest_cache = {}
 load_manifest = lambda do |relative_path|
@@ -84,45 +81,16 @@ load_manifest = lambda do |relative_path|
   end
 end
 
-profiles.each do |profile_id, profile|
-  account_keys = profile.keys.grep(/account|pool|shard/i)
-  fail_check("profile #{profile_id} assigns account lifecycle fields: #{account_keys.join(", ")}") unless account_keys.empty?
-  relative_manifest = profile.fetch("manifest")
-  manifest = load_manifest.call(relative_manifest)
-  collection_names = manifest.fetch("collections").map { |entry| entry.fetch("name") }.sort
-  item_names = manifest.fetch("items").map { |item| item_name(item, relative_manifest) }.sort
-  fail_check("profile #{profile_id} collection summary differs from #{relative_manifest}") unless Array(profile["collections"]).sort == collection_names
-  fail_check("profile #{profile_id} item summary differs from #{relative_manifest}") unless Array(profile["items"]).sort == item_names
-  Array(profile["localFiles"]).each do |relative_path|
-    fail_check("profile #{profile_id} local file is missing: #{relative_path}") unless inside_locker(relative_path).file?
-  end
-end
+online_manifest_path = online_fixture.fetch("manifest")
+online_manifest = load_manifest.call(online_manifest_path)
+collection_names = online_manifest.fetch("collections").map { |entry| entry.fetch("name") }.sort
+item_names = online_manifest.fetch("items").map { |item| item_name(item, online_manifest_path) }.sort
+fail_check("online fixture collection summary differs from #{online_manifest_path}") unless online_fixture.fetch("collections").sort == collection_names
+fail_check("online fixture item summary differs from #{online_manifest_path}") unless online_fixture.fetch("items").sort == item_names
 
-scenario_ids = scenarios.map { |scenario| scenario.fetch("scenarioId") }
-fail_check("scenario IDs must be unique") unless scenario_ids.uniq.length == scenario_ids.length
-scenario_ids.each do |scenario_id|
-  fail_check("invalid scenario ID #{scenario_id.inspect}") unless scenario_id.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
-end
-
-scenarios.each do |scenario|
-  account_keys = scenario.keys.grep(/account|pool|shard/i)
-  fail_check("scenario #{scenario.fetch("scenarioId")} assigns account lifecycle fields: #{account_keys.join(", ")}") unless account_keys.empty?
-  profile_id = scenario.fetch("fixtureProfile")
-  profile = profiles[profile_id]
-  fail_check("scenario #{scenario.fetch("scenarioId")} references unknown profile #{profile_id}") unless profile
-  Array(scenario["selectorBlockers"]).each do |blocker|
-    fail_check("scenario #{scenario.fetch("scenarioId")} references unknown selector blocker #{blocker}") unless blockers.key?(blocker)
-  end
-  collection_refs = load_manifest.call(profile.fetch("manifest")).fetch("collections").map { |entry| entry.fetch("ref") }
-  scenario.fetch("collectionActions", {}).each_value do |refs|
-    Array(refs).each do |collection_ref|
-      fail_check("scenario #{scenario.fetch("scenarioId")} references unknown action collection #{collection_ref}") unless collection_refs.include?(collection_ref)
-    end
-  end
-end
-
-support_manifests.each { |relative_path| load_manifest.call(relative_path) }
-classified = (profiles.values.map { |profile| profile.fetch("manifest") } + support_manifests).uniq.sort
+fail_check("reference manifests contain duplicates") unless reference_manifests.uniq.length == reference_manifests.length
+reference_manifests.each { |relative_path| load_manifest.call(relative_path) }
+classified = ([online_manifest_path] + reference_manifests).uniq.sort
 on_disk = Dir.glob(LOCKER.join("manifests/*.json")).map { |path| Pathname.new(path).relative_path_from(LOCKER).to_s }.sort
 fail_check("manifest classification differs from files on disk") unless classified == on_disk
 
@@ -168,4 +136,4 @@ services.each do |service, definition|
   fail_check("Compose service #{service} must not extend another file") if definition.key?("extends")
 end
 
-puts "Locker assets are aligned: #{profiles.length} profiles, #{scenarios.length} scenario records, #{on_disk.length} manifests"
+puts "Locker assets are aligned: one online fixture, #{reference_manifests.length} reference manifests"

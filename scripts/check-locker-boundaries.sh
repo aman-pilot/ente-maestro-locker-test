@@ -24,10 +24,7 @@ for public_path in \
     locker/manifests/empty.json \
     locker/stack/compose.yaml \
     .github/workflows/locker-android-seeded.yml \
-    .github/workflows/locker-single-account-proof.yml \
-    scripts/run-locker-single-account-proof.sh \
     tools/locker-seed/Cargo.toml \
-    tools/locker-seed/src/baseline.rs \
     tools/locker-seed/src/main.rs; do
     if git check-ignore --quiet --no-index "$public_path"; then
         echo "Expected source asset to remain visible: $public_path" >&2
@@ -78,7 +75,7 @@ done < <(find scripts -type f -name 'run-*.sh' -print)
 create_account_scripts="$(grep --files-with-matches --extended-regexp \
     '(^|[[:space:]])create-account([[:space:]\\]|$)' \
     scripts/run-*.sh 2>/dev/null || true)"
-expected_create_account_scripts=$'scripts/run-locker-seeded-suite.sh\nscripts/run-locker-single-account-proof.sh'
+expected_create_account_scripts='scripts/run-locker-seeded-suite.sh'
 if [[ "$create_account_scripts" != "$expected_create_account_scripts" ]]; then
     echo "Only audited single-account runners may orchestrate account creation" >&2
     exit 1
@@ -118,20 +115,6 @@ if grep --recursive --quiet --extended-regexp \
     'locker-seed (create-account|apply)|locker/stack/compose\.yaml' \
     .github/workflows; then
     echo "Hosted workflows must call the audited proof runner instead of assembling seeded commands directly" >&2
-    exit 1
-fi
-
-if grep --quiet --extended-regexp \
-    'maestro/locker/seeded|adb |maestro test|matrix:' \
-    .github/workflows/locker-single-account-proof.yml; then
-    echo "The hosted infrastructure proof must not run product YAML, Android, or a job matrix" >&2
-    exit 1
-fi
-
-if ! grep --quiet --fixed-strings \
-    'scripts/run-locker-single-account-proof.sh' \
-    .github/workflows/locker-single-account-proof.yml; then
-    echo "The hosted proof workflow must use the audited single-account runner" >&2
     exit 1
 fi
 

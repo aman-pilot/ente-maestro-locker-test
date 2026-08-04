@@ -8,7 +8,7 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 | Layer | Purpose | Current state |
 | --- | --- | --- |
 | Published smoke | Account-free onboarding and other public startup behavior. | Hosted API 34 x86_64 proof passed. |
-| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Canonical YAML and hosted reset passed; exact-APK product proof remains pending. |
+| Online product lane | One synthetic online account and one shared encrypted fixture per isolated run, with no intra-lane backend reset. | Static/mocked validation pending; exact-APK hosted proof must be rerun. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 
@@ -40,7 +40,8 @@ in a compatible published Locker nightly.
 Authenticated product flows live under `maestro/locker/online/` and are
 classified by `locker/product-flows.v1.json`. They intentionally contain no
 login, endpoint, or credential setup. Their runner must create one account
-before the suite and preserve that identity across every profile.
+before the suite, apply the shared fixture once, and preserve that identity and
+backend state across the ordered lane.
 
 Registration validation fails when a smoke flow is not reachable from a
 selected hosted suite. Shared helpers should remain small and must not escape
@@ -57,11 +58,10 @@ Changes to shared helpers, workflows, selectors, or nightly resolution select
 the full Locker matrix. Platform-local paths intentionally select no hosted
 suite.
 
-A future seeded job may create one synthetic account because it owns one fresh,
-isolated backend stack. The same job must reset and reuse that account between
-all profiles. A different job may create its own account on its own isolated
-stack; this job boundary must not be modeled as profile, flow, retry, or shard
-account assignment. Reset failure ends the job without an additional account.
+An online job creates one synthetic account because it owns one fresh, isolated
+backend stack. It applies the shared fixture once and reuses the account and
+backend state for every ordered flow. A different job owns a different
+disposable stack; flow, retry, and shard account assignment remain unsupported.
 
 The workflow pins external actions and Maestro to immutable revisions, records
 APK provenance in the job summary, uploads JUnit output for seven days, and
@@ -82,8 +82,7 @@ complete run on the default branch using an exact recorded APK digest.
 Catalog `historicalEvidence` is noncanonical import context. It may guide later
 assertion work but cannot promote seeded coverage or prove single-account reuse.
 
-The current local single-account proof is also not product coverage. It proves
-that four representative manifests can reuse one account after complete
-backend restoration. Product promotion still requires app-data clearing before
-each private login, a separate credential-free product invocation, and an exact
-published APK run.
+The retired reset proof is historical infrastructure evidence, not product
+coverage for the online-only lane. Product promotion requires the one-fixture
+runner, private login only at cold-client boundaries, credential-free product
+invocations, and an exact published APK run.

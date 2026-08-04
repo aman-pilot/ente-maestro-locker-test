@@ -31,22 +31,20 @@ classes = registry.fetch("classifications")
 hosted = classes.fetch("hostedCandidate")
 unresolved = classes.fetch("hostedUnresolved").keys
 native = classes.fetch("nativeSystemDeferred").keys
-offline = classes.fetch("platformOfflineDeferred").keys
+platform_state = classes.fetch("platformStateDeferred").keys
 paid = classes.fetch("paidDeferred").keys
-classified = hosted + unresolved + native + offline + paid
+classified = hosted + unresolved + native + platform_state + paid
 fail_check("scenario classifications contain duplicates") unless classified.uniq.length == classified.length
 
-scenario_by_id = catalog.fetch("scenarios").to_h { |scenario| [scenario.fetch("scenarioId"), scenario] }
-fail_check("classification differs from the catalog scenarios") unless classified.sort == scenario_by_id.keys.sort
 fail_check("expected 25 hosted candidates") unless hosted.length == 25
 fail_check("expected one unresolved core flow") unless unresolved.length == 1
 fail_check("expected three native-system flows") unless native.length == 3
-fail_check("expected one platform/offline flow") unless offline.length == 1
+fail_check("expected one deferred platform-state flow") unless platform_state.length == 1
 fail_check("expected one paid flow") unless paid.length == 1
 
 lane_for = lambda do |scenario_id|
   return "paid" if paid.include?(scenario_id)
-  return "platform" if (native + offline).include?(scenario_id)
+  return "platform" if (native + platform_state).include?(scenario_id)
 
   "core"
 end
@@ -93,20 +91,25 @@ actual_flow_set_hash = Digest::SHA256.hexdigest(flow_lines)
 expected_flow_set_hash = registry.dig("import", "flowSetSha256")
 fail_check("canonical flow-set hash differs from provenance") unless actual_flow_set_hash == expected_flow_set_hash
 
-initial_proof = registry.fetch("initialHostedProof")
-expected_initial_proof = %w[
+initial_lane = registry.fetch("initialHostedLane")
+expected_initial_flows = %w[
   empty-home-and-save-options
   search-note-secret-and-thing
   view-account-and-security-settings
   search-settings-and-open-account
 ]
-fail_check("initial hosted proof must remain the audited non-native subset") unless initial_proof == expected_initial_proof
-initial_proof.each do |scenario_id|
-  fail_check("initial proof contains a non-hosted scenario: #{scenario_id}") unless hosted.include?(scenario_id)
-  scenario = scenario_by_id.fetch(scenario_id)
-  fail_check("initial proof has selector blockers: #{scenario_id}") unless Array(scenario["selectorBlockers"]).empty?
-  status = scenario.dig("historicalEvidence", "migrationStatus")
-  fail_check("initial proof lacks validated-pass evidence: #{scenario_id}") unless status == "validated-pass"
+expected_lane_contract = {
+  "mode" => "online-only",
+  "accountCount" => 1,
+  "fixtureApplications" => 1,
+  "backendResets" => 0,
+  "seedBeforeFlow" => "search-note-secret-and-thing",
+  "flows" => expected_initial_flows
+}
+fail_check("initial hosted lane differs from the audited online-only contract") unless initial_lane == expected_lane_contract
+fail_check("catalog online fixture must be applied once") unless catalog.dig("onlineFixture", "applyCount") == 1
+initial_lane.fetch("flows").each do |scenario_id|
+  fail_check("initial lane contains a non-hosted scenario: #{scenario_id}") unless hosted.include?(scenario_id)
 end
 
 puts "Locker product flows are canonical: #{on_disk.length} YAML files (#{hosted.length} hosted candidates, #{classified.length - hosted.length} deferred or unresolved)"

@@ -9,9 +9,10 @@ that the untracked YAML or manifests existed in that commit.
 
 - all 22 Locker fixture manifests;
 - both public synthetic fixture files;
-- all eight Rust seeder source modules plus regenerated Cargo metadata;
+- the Rust E2EE seeder plus regenerated Cargo metadata;
 - Museum configuration and a new self-contained Compose stack;
-- all 20 fixture profiles and 31 scenario-to-profile relationships;
+- one active online fixture contract, with the remaining manifests preserved as
+  future reference inputs;
 - all 31 product Maestro flows under the canonical `maestro/locker/online/`
   owner, with runtime `APP_ID` selection and no login or credentials;
 - explicit hosted-candidate, unresolved, platform, and paid classifications;
@@ -19,15 +20,13 @@ that the untracked YAML or manifests existed in that commit.
 - fixture, provenance, private-boundary, Cargo, Compose, and workflow static
   validation.
 
-The Rust seeder was adapted so account creation is external to `apply`. The
-catalog keeps scenario knowledge independent of product YAML and now declares
-the orchestration invariant: one isolated run creates one synthetic account,
-then resets and reuses that same identity for every profile.
+The Rust seeder keeps account creation external to `apply`. The catalog now
+declares one online account and one shared fixture application for the ordered
+lane; it contains no scenario-to-profile mapping.
 
-The standalone implementation adds a backend baseline module, local and hosted
-proof runners, an Auth-aligned private login prelude, and a manual exact-APK
-seeded workflow. Product YAML stays credential-free and executes separately
-from that private runtime prelude.
+The standalone implementation adds an Auth-aligned private login prelude and a
+manual exact-APK online workflow. Product YAML stays credential-free and
+executes separately from that private runtime prelude.
 
 ## Intentionally not imported
 
@@ -41,5 +40,5 @@ from that private runtime prelude.
   ignored evidence.
 
 These are omissions by design, not lost coverage. Product YAML ownership is
-closed in this repository. Flow-, profile-, shard-, retry-, and pool-specific
-accounts remain outside the supported architecture.
+closed in this repository. Flow-, shard-, retry-, and pool-specific accounts
+remain outside the supported architecture.

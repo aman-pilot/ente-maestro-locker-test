@@ -13,11 +13,11 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "0aea4259a583805248da87e159e84543c40492ceff5106aad83051eb9e3166d9",
+    "flowSetSha256": "07f274a653e48c64b01b3b87236bed48ce433718e107f7bb26db10f2bf0ab186",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
-      "Normalize comments that described the discarded fresh-account-per-flow lifecycle to the single-account reset contract.",
+      "Normalize lifecycle comments to the single-account, one-fixture online lane contract.",
       "Use Locker's explicit right-swipe drawer gesture for the initial hosted proof instead of a release-dependent menu semantics label.",
       "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action."
     ]
@@ -58,17 +58,24 @@
       "prevent-duplicate-document-open": "Depends on the system document preview.",
       "upload-and-permanently-delete-document": "Targets the native iOS picker and still needs an explicit device-file setup contract."
     },
-    "platformOfflineDeferred": {
+    "platformStateDeferred": {
       "toggle-document-offline": "Requires dedicated platform and offline-state validation."
     },
     "paidDeferred": {
       "manage-collection-public-link": "Requires a deliberate paid-product and public-link test environment."
     }
   },
-  "initialHostedProof": [
-    "empty-home-and-save-options",
-    "search-note-secret-and-thing",
-    "view-account-and-security-settings",
-    "search-settings-and-open-account"
-  ]
+  "initialHostedLane": {
+    "mode": "online-only",
+    "accountCount": 1,
+    "fixtureApplications": 1,
+    "backendResets": 0,
+    "seedBeforeFlow": "search-note-secret-and-thing",
+    "flows": [
+      "empty-home-and-save-options",
+      "search-note-secret-and-thing",
+      "view-account-and-security-settings",
+      "search-settings-and-open-account"
+    ]
+  }
 }

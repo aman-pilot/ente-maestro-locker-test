@@ -427,7 +427,7 @@ async fn verify_seed(
         .collect::<std::collections::HashSet<_>>();
     if actual_collection_ids != expected_collection_ids {
         bail!(
-            "account collection inventory differs from the required manifest baseline: expected {:?}, found {:?}",
+            "account collection inventory differs from the one-time online fixture: expected {:?}, found {:?}",
             expected_collection_ids,
             actual_collection_ids
         );
@@ -465,7 +465,7 @@ async fn verify_seed(
         .collect::<std::collections::HashSet<_>>();
     if actual_trash_ids != expected_trash_ids {
         bail!(
-            "account trash inventory differs from the required manifest baseline: expected {:?}, found {:?}",
+            "account trash inventory differs from the one-time online fixture: expected {:?}, found {:?}",
             expected_trash_ids,
             actual_trash_ids
         );
@@ -490,7 +490,7 @@ async fn verify_seed(
     }
     if actual_active_ids != expected_active_ids {
         bail!(
-            "account active inventory differs from the required manifest baseline: expected {:?}, found {:?}",
+            "account active inventory differs from the one-time online fixture: expected {:?}, found {:?}",
             expected_active_ids,
             actual_active_ids
         );

@@ -1,132 +1,88 @@
 # Ente Locker Maestro tests
 
-Standalone test infrastructure for published Ente Locker Android builds. The
-repository is being proven separately before its Locker-owned paths are merged
+Standalone Maestro infrastructure for published Ente Locker Android builds.
+The repository is proven independently before its Locker-owned paths are merged
 beside Auth coverage in `aman-pilot/ente-maestro-tests`.
 
 ## Current scope
 
-Two independent layers are present:
+Locker is an online-only product in this repository. The authenticated runtime
+uses one disposable backend stack, one synthetic account, and one shared E2EE
+fixture application per lane. Product flows reuse that backend state in a
+deliberate order; there is no profile-per-flow account reset.
 
-- a published-build, account-free onboarding smoke flow;
-- single-account seeded-test infrastructure: 22 manifests, 20 fixture
-  profiles, 31 scenario records, binary fixtures, a Rust E2EE seeder, and a
-  digest-pinned Museum/PostgreSQL/MinIO stack.
+The repository owns all 31 canonical product YAML flows: 25 hosted candidates,
+one unresolved core flow, three native-system flows, one platform-state
+validation flow, and one paid flow. Native, paid, and network-state validation
+remain deferred; Locker itself has no offline account mode.
 
-The repository owns all 31 canonical product Maestro YAML flows. They are
-classified as 25 hosted candidates, one unresolved core flow, three native
-system flows, one platform/offline flow, and one paid flow. Importing YAML does
-not itself constitute hosted coverage: the seeded Android runner and exact
-published-APK proof remain separate promotion gates. The runtime contract is
-fixed: one isolated run creates exactly one temporary synthetic account and
-reuses that same identity for every profile, resetting it to the required
-baseline before each scenario.
+The initial hosted lane is intentionally small:
+
+1. Log into the empty online account and verify empty home.
+2. Apply the shared search fixture once.
+3. Clear app data, log back into the same account, and verify seeded search.
+4. Reuse that session and backend state for the two settings flows.
+5. Remove the entire disposable stack when the job ends.
 
 ## Repository layout
 
 | Path | Owns |
 | --- | --- |
-| `locker/catalog.v1.json` | YAML-free fixture profiles and scenario-to-fixture knowledge. |
-| `locker/product-flows.v1.json` | Canonical YAML provenance, classifications, and the first hosted proof subset. |
+| `locker/catalog.v1.json` | The single online fixture contract and preserved reference manifests. |
+| `locker/product-flows.v1.json` | Canonical YAML provenance, classifications, and ordered online lane. |
 | `locker/provenance.v1.json` | Ente revision, image digests, and fixture hashes. |
-| `locker/manifests/` | Encrypted starting-state descriptions for Locker. |
+| `locker/manifests/` | The active online fixture plus preserved future fixture inputs. |
 | `locker/fixtures/` | Public synthetic files used by document fixtures. |
-| `locker/stack/` | Self-contained digest-pinned local backend stack. |
-| `tools/locker-seed/` | Rust manifest validation, explicit account-context creation, E2EE seeding, and read-back verification. |
-| `maestro/locker/smoke/` | Public, account-free published-build smoke flows. |
-| `maestro/locker/online/` | Canonical authenticated product flows split into core, platform, and paid lanes. |
-| `scripts/` | Static contracts, nightly resolution, download, selection, and local Android execution. |
-| `.github/workflows/` | Static validation plus manual account-free, backend, and exact-APK seeded proofs. |
-
-The Locker-owned paths avoid Auth's top-level `museum/` and fixture-generator
-paths so the repositories can be merged without renaming either implementation.
+| `locker/stack/` | Self-contained digest-pinned Museum/PostgreSQL/MinIO stack. |
+| `tools/locker-seed/` | Rust manifest validation, account creation, E2EE seeding, and read-back verification. |
+| `maestro/locker/smoke/` | Public account-free startup coverage. |
+| `maestro/locker/online/` | Canonical authenticated core, platform, and paid flows. |
+| `scripts/` | Static contracts, APK resolution, local execution, and the online lane runner. |
 
 ## Validate locally
 
 The complete static gate validates shell and YAML syntax, workflow security,
-fixture/catalog integrity, provenance hashes, Cargo dependencies and tests, and
-the rendered Compose model. It does not start Docker, create an account, run
-Maestro, or require credentials.
+fixture/catalog integrity, provenance hashes, Cargo tests, and Compose rendering.
+It does not start Docker, create an account, or run Maestro.
 
 ```sh
 scripts/check-static.sh
 ```
 
-Resolve the current published Locker build without downloading it:
-
-```sh
-scripts/resolve-nightly-apk.sh --app locker
-```
-
-Run the account-free onboarding suite on one connected Android device:
-
-```sh
-apk_path=$(scripts/download-locker-nightly.sh)
-scripts/run-locker-android-local.sh --apk "$apk_path" --suite onboarding
-```
-
-## Seeded infrastructure boundary
-
-The seeder takes a private account context for `apply`. Runtime orchestration
-may call the low-level `create-account` command exactly once at the start of an
-isolated run. It then captures an empty PostgreSQL account template and every
-later profile uses the same email, user ID, and private context after a
-fail-closed backend restore. Both the backend-only proof and the manual
-exact-APK seeded proof run on hosted x86_64.
+Validate the active online fixture directly:
 
 ```sh
 cargo run --manifest-path tools/locker-seed/Cargo.toml -- \
   validate --manifest locker/manifests/search-note-secret-and-thing.json
 ```
 
-Private account contexts and run records must stay outside source control. The
-repository ignores `locker/runs/`, and future orchestration should prefer the
-runner's temporary directory.
-
-See [docs/seeded-runtime-decisions.md](docs/seeded-runtime-decisions.md) for the
-fixed identity lifecycle and selected reset mechanism. The complete local
-proof and timings are recorded in
-[docs/single-account-proof.md](docs/single-account-proof.md).
-
-Run the same-account fixture proof locally with Docker Desktop running:
+Run account-free onboarding on one connected Android device:
 
 ```sh
-scripts/run-locker-single-account-proof.sh
+apk_path=$(scripts/download-locker-nightly.sh)
+scripts/run-locker-android-local.sh --apk "$apk_path" --suite onboarding
 ```
 
-The script owns a unique Compose project, creates one account, applies four
-representative manifests sequentially, resets between them, and removes its
-private directory and Docker volumes through an exit trap. The dedicated
-Museum and MinIO ports bind to `127.0.0.1` only.
+The authenticated hosted workflow calls
+`scripts/run-locker-seeded-suite.sh`. Private credentials, account contexts,
+Maestro login arguments, run records, and debug output remain outside uploaded
+artifacts.
 
 ## Verification status
 
 The account-free onboarding flow passed hosted API 34 x86_64 against
 `locker-v1.0.8-beta`, asset `500679355`, SHA-256
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
-with Maestro 2.6.1. The digest-pinned backend and four-profile single-account
-proof also passed on hosted x86: one account, three verified resets, and
-unchanged identity across structured items, documents/thumbnails, Trash, and
-multiple memberships. This proves hosted smoke and fixture reset/reuse; it does
-not yet promote all authenticated product YAML against the published APK.
+with Maestro 2.6.1.
 
-The manual exact-APK gate now reaches product YAML with one account, private
-login separated from product execution, app data cleared between scenarios,
-and the local endpoint preseed through Android shared preferences. Against the
-same `locker-v1.0.8-beta` asset, `empty-home-and-save-options` and
-`view-account-and-security-settings` pass. Two product blockers remain:
+The earlier four-flow run used the retired reset-per-profile orchestration and
+is historical evidence only. It reached all four product YAML files: empty home
+and account/security passed, while two app-side blockers remained:
 
-- `search-note-secret-and-thing`: Museum apply/read-back succeeds, but the
-  published app stays on its empty home and never exposes `Search your
-  documents`;
-- `search-settings-and-open-account`: the published app predates the
-  `Search settings` accessibility tooltip used by the canonical flow.
+- seeded collections/files were not visible after login, so the home search UI
+  did not appear;
+- the published APK predated the `Search settings` accessibility tooltip.
 
-The latest classified run is
-[GitHub Actions run 30888541387](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/30888541387).
-Native-system, offline/platform, paid, and unresolved rename/move flows remain
-deferred until the core published-APK gate is green.
-
-Historical prototype results retained in the catalog are explicitly
-noncanonical: the prototype's account behavior and pass counts do not satisfy
-or prove this repository's single-account runtime.
+The online-only lane must be rerun against an exact published APK after those
+two app contracts are available. Historical prototype and reset-proof results
+do not prove the new one-fixture lane.

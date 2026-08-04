@@ -79,7 +79,7 @@ appId: ${APP_ID}
     timeout: 10000
 
 # Exercise delete-to-Trash and permanent deletion for the file just uploaded.
-# The runner restores the same account baseline before the next scenario.
+# The disposable lane keeps backend history until its complete stack is removed.
 - longPressOn: "Home Insurance Policy\\.pdf"
 - extendedWaitUntil:
     visible: Delete

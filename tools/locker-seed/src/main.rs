@@ -1,6 +1,5 @@
 mod api;
 mod auth;
-mod baseline;
 mod manifest;
 mod run_record;
 mod seeder;
@@ -48,16 +47,6 @@ enum Command {
         )]
         endpoint: String,
     },
-    /// Capture the empty backend baseline for the run's single account.
-    Baseline {
-        #[command(subcommand)]
-        action: BaselineAction,
-    },
-    /// Restore the run's single account to its captured empty baseline.
-    Reset {
-        #[arg(long)]
-        account_context: PathBuf,
-    },
     /// Validate one manifest without starting Docker or accessing an account.
     Validate {
         #[arg(long)]
@@ -97,15 +86,7 @@ enum Command {
 enum StackAction {
     Up,
     Status,
-    Reset,
-}
-
-#[derive(Subcommand)]
-enum BaselineAction {
-    Capture {
-        #[arg(long)]
-        account_context: PathBuf,
-    },
+    Down,
 }
 
 #[tokio::main]
@@ -115,7 +96,7 @@ async fn main() -> Result<()> {
         Command::Stack { action, endpoint } => match action {
             StackAction::Up => stack::up(&endpoint).await,
             StackAction::Status => stack::status(&endpoint).await,
-            StackAction::Reset => stack::reset(),
+            StackAction::Down => stack::down(),
         },
         Command::CreateAccount {
             label,
@@ -133,20 +114,6 @@ async fn main() -> Result<()> {
             };
             context.write_secure(&account_context)?;
             println!("Created Locker account: {}", context.redacted_identity());
-            Ok(())
-        }
-        Command::Baseline { action } => match action {
-            BaselineAction::Capture { account_context } => {
-                let context = AccountContext::load(&account_context)?;
-                let report = baseline::capture(&context, &account_context).await?;
-                println!("{}", serde_json::to_string_pretty(&report)?);
-                Ok(())
-            }
-        },
-        Command::Reset { account_context } => {
-            let context = AccountContext::load(&account_context)?;
-            let report = baseline::restore(&context, &account_context).await?;
-            println!("{}", serde_json::to_string_pretty(&report)?);
             Ok(())
         }
         Command::Validate { manifest } => {

@@ -83,14 +83,6 @@ printf '%s\n' \
     '    chmod 600 "$context"' \
     '    echo "seeder create-account" >> "$LOCKER_EVENT_LOG"' \
     '    ;;' \
-    '  baseline)' \
-    '    printf "%s\n" "{\"identity\":\"sha256:test\",\"collectionRecordCount\":0,\"trashRecordCount\":0,\"bucketObjectCount\":0}"' \
-    '    echo "seeder baseline" >> "$LOCKER_EVENT_LOG"' \
-    '    ;;' \
-    '  reset)' \
-    '    printf "%s\n" "{\"identity\":\"sha256:test\",\"databaseRestored\":true,\"collectionRecordCount\":0,\"trashRecordCount\":0,\"bucketObjectCount\":0}"' \
-    '    echo "seeder reset" >> "$LOCKER_EVENT_LOG"' \
-    '    ;;' \
     '  apply)' \
     '    run_dir=""; scenario=""; previous=""' \
     '    for argument in "$@"; do' \
@@ -138,17 +130,17 @@ output_dir="$temp_dir/public-pass"
 run_suite "$output_dir" env
 
 [[ "$(grep -c 'seeder create-account' "$temp_dir/logs/events.log")" -eq 1 ]]
-[[ "$(grep -c '^seeder reset$' "$temp_dir/logs/events.log")" -eq 3 ]]
-[[ "$(grep -c '^seeder apply ' "$temp_dir/logs/events.log")" -eq 4 ]]
-[[ "$(grep -c '^seeder finish ' "$temp_dir/logs/events.log")" -eq 4 ]]
-[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 4 ]]
+[[ "$(grep -c '^seeder reset$' "$temp_dir/logs/events.log" || true)" -eq 0 ]]
+[[ "$(grep -c '^seeder apply online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 [[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 4 ]]
-[[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 8 ]]
-[[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 9 ]]
-[[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 8 ]]
+[[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
+[[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 4 ]]
+[[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
 grep --quiet --fixed-strings \
-    'seeded_suite status=pass accounts_created=1 scenarios=4 failures=0 identity_unchanged=true' \
+    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=4 failures=0 identity_unchanged=true' \
     "$output_dir/summary.txt"
 [[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 4 ]]
 if grep --recursive --quiet --extended-regexp \
@@ -184,7 +176,7 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
     exit 1
 fi
 [[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 4 ]]
-[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 8 ]]
+[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
     echo "Product JUnit exists even though private login failed" >&2
     exit 1

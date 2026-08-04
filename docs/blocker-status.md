@@ -15,16 +15,13 @@ Snapshot: 2026-08-04
 | Legacy checkout paths | Static boundaries reject Ente source-tree and old test-worktree references. |
 | Fixture drift | Catalog structure, manifest references, public files, hashes, and Compose provenance are statically checked. |
 | Private state leakage | Account contexts, run records, evidence, Cargo targets, and downloaded artifacts are ignored and rejected from active workflow wiring. |
-| Account lifecycle decision | Catalog and runtime policy require exactly one synthetic account per isolated run, reused across all profiles with no fallback account. |
-| Reset mechanism | PostgreSQL template restore plus MinIO object/version/incomplete-upload clearing preserves the account while removing fixture rows, diffs, sequences, and objects. |
-| Single-account runtime proof | One account sequentially passed structured-item, document/thumbnail, multi-membership, and Trash manifests with three verified resets. |
-| Seeder runtime | Four representative manifests passed encrypted apply, download/decrypt verification, and inspection against the local pinned stack. |
-| Hosted x86 stack and reset | The pinned stack and four-profile one-account proof passed on hosted Ubuntu x86 with three verified resets. |
+| Account lifecycle decision | Catalog and runtime policy require one online account, one shared fixture application, and no intra-lane backend reset. |
+| Seeder runtime | The active online fixture has encrypted apply/read-back support; inactive manifests remain reference inputs for later promotion. |
 | Hosted account-free Android | API 34 x86_64 passed onboarding against published asset `500679355` with its exact SHA-256. |
 | Product YAML ownership | This repository canonically owns all 31 flows, their source snapshot hashes, and their core/platform/paid classifications. |
-| Fresh-account-per-flow text | Imported comments now describe the same-account reset fixture instead of the discarded multiple-account lifecycle. |
-| Seeded Android orchestration | Static and mocked tests prove app-data clearing, reverse-port checks, mode-0600 private login arguments, separate credential-free product invocation, one account, and three resets. |
-| Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`, all four scenarios can log into the same generated account, and a bounded retry reuses that identity instead of creating another account. |
+| Profile/reset orchestration | Scenario-to-profile mappings, baseline capture/restore code, and the reset-only hosted proof were removed. |
+| Seeded Android orchestration | Static and mocked tests prove one account, one fixture apply, zero backend resets, two cold-login boundaries, private login arguments, and credential-free product invocation. |
+| Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`; bounded retries reuse the same identity and never create another account. |
 | Exact-APK product entry | The manual workflow resolves and verifies the exact published APK, produces leakage-scanned JUnit, and has reached canonical product YAML for all four initial scenarios. |
 
 ## Open decisions and runtime proofs
@@ -45,10 +42,8 @@ catalog `historicalEvidence` came from the source prototype and do not prove
 this repository, current manifests, current APK, hosted execution, or the
 single-account-per-run contract. That evidence is historical and noncanonical.
 
-Product YAML is present and the hosted exact-APK gate has current partial
-coverage. Run `30888541387` used one account, preserved its identity through
-three resets, and produced four product JUnit files. The empty-home and
-account/security flows passed; seeded search visibility and settings-search
-semantics failed at the product phase. Private login logs, credentials, account
-context, and run records were not uploaded. The overall gate correctly remains
-red until all four scenarios pass.
+Product YAML is present. Run `30888541387` used the retired reset-per-profile
+runner and is historical evidence only. It produced four product JUnit files:
+empty-home and account/security passed, while seeded search visibility and
+settings-search semantics failed. The new online-only one-fixture lane has not
+yet been hosted-proven and remains red until all four flows pass.

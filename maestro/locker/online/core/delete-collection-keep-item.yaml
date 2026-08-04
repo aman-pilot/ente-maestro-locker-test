@@ -40,7 +40,7 @@ appId: ${APP_ID}
     timeout: 20000
 - assertNotVisible: "Office Equipment\\n.*items"
 
-# The item must remain on the reset account after deleting only its collection.
+# The item must remain on the shared online account after deleting only its collection.
 - tapOn: Back
 - extendedWaitUntil:
     visible: Spare Monitor
