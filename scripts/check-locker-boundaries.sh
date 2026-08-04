@@ -23,6 +23,7 @@ for public_path in \
     locker/fixtures/locker-seed.pdf \
     locker/manifests/empty.json \
     locker/stack/compose.yaml \
+    .github/workflows/locker-android-seeded.yml \
     .github/workflows/locker-single-account-proof.yml \
     scripts/run-locker-single-account-proof.sh \
     tools/locker-seed/Cargo.toml \
@@ -131,6 +132,27 @@ if ! grep --quiet --fixed-strings \
     'scripts/run-locker-single-account-proof.sh' \
     .github/workflows/locker-single-account-proof.yml; then
     echo "The hosted proof workflow must use the audited single-account runner" >&2
+    exit 1
+fi
+
+if grep --quiet --extended-regexp \
+    'matrix:|USER_EMAIL|USER_PASSWORD|MUSEUM_ENDPOINT|maestro test|adb ' \
+    .github/workflows/locker-android-seeded.yml; then
+    echo "The hosted seeded proof must remain sequential and delegate private runtime work" >&2
+    exit 1
+fi
+
+if ! grep --quiet --fixed-strings \
+    'scripts/run-locker-seeded-suite.sh' \
+    .github/workflows/locker-android-seeded.yml; then
+    echo "The hosted seeded proof must use the audited Android runner" >&2
+    exit 1
+fi
+
+if grep --quiet --extended-regexp \
+    '(debug|account-context|run\.json|baseline).*(path:|upload-artifact)|path:.*(debug|account-context|run\.json|baseline)' \
+    .github/workflows/locker-android-seeded.yml; then
+    echo "The hosted seeded proof must not upload private runtime state" >&2
     exit 1
 fi
 

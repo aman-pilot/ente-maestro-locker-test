@@ -1,0 +1,197 @@
+name: "Locker Android seeded proof"
+
+# Keep this manual until the exact published-nightly proof passes on hosted
+# x86_64. The job is deliberately sequential: one stack, one account, one APK.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: locker-android-seeded-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    APP_ID: io.ente.locker.independent
+    LOCKER_APK_DIR: ${{ github.workspace }}/artifacts/locker
+    MAESTRO_CLI_NO_ANALYTICS: 1
+    MAESTRO_VERSION: 2.6.1
+    MAESTRO_SHA256: 3440825f514f537c6a96bcf5de995780c2a4a7f83a43208fdc95d4f1fecfad3b
+
+jobs:
+    resolve:
+        name: Resolve seeded proof inputs
+        runs-on: ubuntu-latest
+        outputs:
+            apk_asset_id: ${{ steps.release.outputs.apk_asset_id }}
+            apk_created_at: ${{ steps.release.outputs.apk_created_at }}
+            apk_name: ${{ steps.release.outputs.apk_name }}
+            apk_sha256: ${{ steps.release.outputs.apk_sha256 }}
+            channel: ${{ steps.release.outputs.channel }}
+            release_tag: ${{ steps.release.outputs.release_tag }}
+            source_repository: ${{ steps.release.outputs.source_repository }}
+        steps:
+            - name: Checkout tests
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Validate seeded proof configuration
+              run: scripts/check-static.sh
+
+            - name: Resolve latest Locker nightly
+              id: release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"
+
+    seeded-proof:
+        name: Published Locker seeded proof
+        needs: resolve
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        env:
+            LOCKER_COMPOSE_PROJECT: ente-locker-seeded-${{ github.run_id }}-${{ github.run_attempt }}
+            LOCKER_SEEDED_OUTPUT_DIR: ${{ github.workspace }}/artifacts/maestro/seeded-proof
+            LOCKER_SEED_BIN: ${{ github.workspace }}/tools/locker-seed/target/release/locker-seed
+        steps:
+            - name: Checkout tests
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  persist-credentials: false
+
+            - name: Set up Java
+              uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+              with:
+                  distribution: temurin
+                  java-version: 17
+
+            - name: Download resolved Locker nightly
+              env:
+                  APK_ASSET_ID: ${{ needs.resolve.outputs.apk_asset_id }}
+                  APK_CREATED_AT: ${{ needs.resolve.outputs.apk_created_at }}
+                  APK_NAME: ${{ needs.resolve.outputs.apk_name }}
+                  APK_SHA256: ${{ needs.resolve.outputs.apk_sha256 }}
+                  GH_TOKEN: ${{ github.token }}
+                  LOCKER_CHANNEL: ${{ needs.resolve.outputs.channel }}
+                  LOCKER_RELEASE_TAG: ${{ needs.resolve.outputs.release_tag }}
+                  SOURCE_REPOSITORY: ${{ needs.resolve.outputs.source_repository }}
+              run: |
+                  mkdir -p "$LOCKER_APK_DIR"
+                  apk_path="$LOCKER_APK_DIR/$APK_NAME"
+                  gh api \
+                      -H 'Accept: application/octet-stream' \
+                      "repos/$SOURCE_REPOSITORY/releases/assets/$APK_ASSET_ID" > "$apk_path"
+
+                  expected_sha256="${APK_SHA256#sha256:}"
+                  actual_sha256=$(sha256sum "$apk_path" | awk '{print $1}')
+                  if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+                      echo "Downloaded Locker APK does not match the resolved release asset" >&2
+                      exit 1
+                  fi
+
+                  echo "LOCKER_APK_PATH=$apk_path" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_ASSET_ID=$APK_ASSET_ID" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_CREATED_AT=$APK_CREATED_AT" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_NAME=$APK_NAME" >> "$GITHUB_ENV"
+                  echo "LOCKER_APK_SHA256=$expected_sha256" >> "$GITHUB_ENV"
+                  echo "LOCKER_CHANNEL=$LOCKER_CHANNEL" >> "$GITHUB_ENV"
+                  echo "LOCKER_RELEASE_TAG=$LOCKER_RELEASE_TAG" >> "$GITHUB_ENV"
+
+            - name: Install pinned Maestro
+              run: |
+                  curl --fail --location --silent --show-error \
+                      "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip" \
+                      --output "$RUNNER_TEMP/maestro.zip"
+                  echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum --check -
+                  mkdir -p "$HOME/.maestro"
+                  unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro"
+                  maestro_bin="$HOME/.maestro/maestro/bin/maestro"
+                  installed_version=$("$maestro_bin" --version)
+                  if [[ "$installed_version" != "$MAESTRO_VERSION" ]]; then
+                      echo "Expected Maestro $MAESTRO_VERSION, installed $installed_version" >&2
+                      exit 1
+                  fi
+                  echo "$HOME/.maestro/maestro/bin" >> "$GITHUB_PATH"
+
+            - name: Build pinned Locker seeder
+              run: cargo build --release --locked --manifest-path tools/locker-seed/Cargo.toml
+
+            - name: Enable KVM
+              run: |
+                  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                  sudo udevadm control --reload-rules
+                  sudo udevadm trigger --name-match=kvm
+
+            - name: Run exact-APK seeded proof
+              id: seeded-tests
+              uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+              with:
+                  api-level: 34
+                  target: default
+                  arch: x86_64
+                  profile: pixel_5
+                  cores: 4
+                  emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -memory 6144
+                  disable-animations: true
+                  script: scripts/run-locker-seeded-suite.sh --apk "$LOCKER_APK_PATH"
+
+            - name: Summarize seeded proof
+              if: always() && steps.seeded-tests.outcome != 'skipped'
+              env:
+                  TEST_OUTCOME: ${{ steps.seeded-tests.outcome }}
+              run: |
+                  {
+                      echo "### Locker Android seeded proof: $TEST_OUTCOME"
+                      echo
+                      echo "- Release: \`$LOCKER_RELEASE_TAG\`"
+                      echo "- Channel: \`$LOCKER_CHANNEL\`"
+                      echo "- Build: \`$LOCKER_APK_NAME\`"
+                      echo "- Asset created: \`$LOCKER_APK_CREATED_AT\`"
+                      echo "- Asset ID: \`$LOCKER_APK_ASSET_ID\`"
+                      echo "- Locker APK SHA-256: \`$LOCKER_APK_SHA256\`"
+                      echo "- Android API: \`34\` x86_64"
+                      echo "- Maestro: \`$MAESTRO_VERSION\`"
+                      echo "- Account contract: one account, sequential reset between four scenarios"
+                      echo
+                      if [[ -f "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" ]]; then
+                          sed 's/^/- `/' "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" | sed 's/$/`/'
+                      else
+                          echo "- The runner stopped before producing a public redacted summary."
+                      fi
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Upload leakage-scanned seeded results
+              if: always() && steps.seeded-tests.outcome != 'skipped'
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: locker-seeded-proof-results
+                  path: |
+                      artifacts/maestro/seeded-proof/results/*.xml
+                      artifacts/maestro/seeded-proof/summary.txt
+                  if-no-files-found: warn
+                  retention-days: 7
+
+            - name: Remove dedicated seeded stack
+              if: always()
+              run: |
+                  if [[ -x "$LOCKER_SEED_BIN" ]]; then
+                      LOCKER_COMPOSE_PROJECT="$LOCKER_COMPOSE_PROJECT" \
+                          "$LOCKER_SEED_BIN" stack reset --endpoint http://127.0.0.1:8080
+                  fi
+
+    locker-seeded-gate:
+        name: Locker seeded proof gate
+        if: always()
+        needs: [resolve, seeded-proof]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify seeded proof
+              env:
+                  RESOLVE_RESULT: ${{ needs.resolve.result }}
+                  SEEDED_RESULT: ${{ needs.seeded-proof.result }}
+              run: |
+                  test "$RESOLVE_RESULT" = success
+                  test "$SEEDED_RESULT" = success

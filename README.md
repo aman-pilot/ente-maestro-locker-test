@@ -36,7 +36,7 @@ baseline before each scenario.
 | `maestro/locker/smoke/` | Public, account-free published-build smoke flows. |
 | `maestro/locker/online/` | Canonical authenticated product flows split into core, platform, and paid lanes. |
 | `scripts/` | Static contracts, nightly resolution, download, selection, and local Android execution. |
-| `.github/workflows/` | Static validation and manual published-nightly Android smoke. |
+| `.github/workflows/` | Static validation plus manual account-free, backend, and exact-APK seeded proofs. |
 
 The Locker-owned paths avoid Auth's top-level `museum/` and fixture-generator
 paths so the repositories can be merged without renaming either implementation.
@@ -101,17 +101,14 @@ Museum and MinIO ports bind to `127.0.0.1` only.
 
 ## Verification status
 
-The account-free onboarding flow passed locally against
-`locker-v1.0.8-beta`, asset `499393890`, SHA-256
-`65df6d18b9ee7837c28b0b13ac75c863fa47a44efcf3d64bb6f306d2a8c8cc3f`,
-on an API 35 ARM emulator with Maestro 2.6.1. This is local evidence, not a
-hosted-coverage claim. The digest-pinned backend stack also passed a local
-runtime check: PostgreSQL became healthy, MinIO created all required buckets,
-Museum returned `pong`, and socat started; its dedicated containers and volumes
-were then removed. No account was created during that backend-only check. The
-standalone seeder has since passed a four-profile single-account proof for
-structured items, documents and thumbnails, multiple memberships, and Trash.
-This proves fixture reset/reuse only; it does not prove product Maestro flows.
+The account-free onboarding flow passed hosted API 34 x86_64 against
+`locker-v1.0.8-beta`, asset `500679355`, SHA-256
+`1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
+with Maestro 2.6.1. The digest-pinned backend and four-profile single-account
+proof also passed on hosted x86: one account, three verified resets, and
+unchanged identity across structured items, documents/thumbnails, Trash, and
+multiple memberships. This proves hosted smoke and fixture reset/reuse; it does
+not yet prove authenticated product YAML against the published APK.
 
 Historical prototype results retained in the catalog are explicitly
 noncanonical: the prototype's account behavior and pass counts do not satisfy

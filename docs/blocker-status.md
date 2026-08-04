@@ -19,16 +19,17 @@ Snapshot: 2026-08-04
 | Reset mechanism | PostgreSQL template restore plus MinIO object/version/incomplete-upload clearing preserves the account while removing fixture rows, diffs, sequences, and objects. |
 | Single-account runtime proof | One account sequentially passed structured-item, document/thumbnail, multi-membership, and Trash manifests with three verified resets. |
 | Seeder runtime | Four representative manifests passed encrypted apply, download/decrypt verification, and inspection against the local pinned stack. |
+| Hosted x86 stack and reset | The pinned stack and four-profile one-account proof passed on hosted Ubuntu x86 with three verified resets. |
+| Hosted account-free Android | API 34 x86_64 passed onboarding against published asset `500679355` with its exact SHA-256. |
 | Product YAML ownership | This repository canonically owns all 31 flows, their source snapshot hashes, and their core/platform/paid classifications. |
 | Fresh-account-per-flow text | Imported comments now describe the same-account reset fixture instead of the discarded multiple-account lifecycle. |
+| Seeded Android orchestration | Static and mocked tests prove app-data clearing, reverse-port checks, mode-0600 private login arguments, separate credential-free product invocation, one account, and three resets. |
 
 ## Open decisions and runtime proofs
 
 | Blocker | Required handling |
 | --- | --- |
-| Hosted stack architecture | Repeat the pinned-stack proof on the eventual hosted x86 runner before enabling seeded CI. |
-| Hosted x86 proof | Run the manual account-free workflow from the default branch after publication approval. |
-| Seeded Android orchestration | Clear app data, restore/apply a fixture, log in privately, and run product YAML as separate Maestro invocations. |
+| Exact-APK seeded proof | Run the manual four-flow seeded workflow on hosted API 34 x86_64 and classify any published-nightly compatibility failure. |
 | Product/nightly compatibility | Required collection, Trash, selector, and rename/move behavior must reach a published APK. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 

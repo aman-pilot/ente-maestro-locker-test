@@ -7,8 +7,8 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 
 | Layer | Purpose | Current state |
 | --- | --- | --- |
-| Published smoke | Account-free onboarding and other public startup behavior. | Scaffolded for local and hosted execution. |
-| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Product YAML is canonical; hosted reset and exact-APK product proof remain pending. |
+| Published smoke | Account-free onboarding and other public startup behavior. | Hosted API 34 x86_64 proof passed. |
+| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Canonical YAML and hosted reset passed; exact-APK product proof remains pending. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 

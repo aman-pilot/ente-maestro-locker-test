@@ -85,11 +85,12 @@ for the redacted timing table.
 
 ## What remains
 
-1. `cargo test --locked` and `cargo check --locked` from a clean checkout.
-2. Repeat the successful local stack startup on the eventual hosted x86 runner.
-3. Repeat the same-account proof on the eventual hosted x86 runner.
-4. Add fail-closed app-data clearing and private login orchestration.
-5. Run the audited four-flow subset against an exact published Locker APK.
+The static gate, hosted x86 stack/reset proof, canonical YAML import, and
+fail-closed Android orchestration are complete. The next promotion gate is the
+manual four-flow hosted run against an exact published Locker APK. Any failure
+there must be classified as runner, selector, or published-nightly
+compatibility without weakening the canonical assertion. Native-system,
+platform/offline, paid, and unresolved rename/move flows remain deferred.
 
 ## Known product/runtime boundary
 
