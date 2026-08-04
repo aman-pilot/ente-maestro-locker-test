@@ -41,6 +41,10 @@ printf '%s\n' \
     '  grep --quiet --fixed-strings -- "--env=USER_EMAIL=seeded-android-proof-test@example.org" "$args_file"' \
     '  grep --quiet --fixed-strings -- "--env=USER_PASSWORD=Locker-test!Aa1" "$args_file"' \
     '  echo "maestro login" >> "$LOCKER_EVENT_LOG"' \
+    '  if [[ ${LOCKER_TEST_LOGIN_FAIL:-false} == true ]]; then' \
+    '    echo "Assert that Developer settings is visible ... FAILED"' \
+    '    exit 1' \
+    '  fi' \
     '  exit 0' \
     'fi' \
     'output=""' \
@@ -165,6 +169,18 @@ if run_suite "$leak_output" env LOCKER_TEST_LEAK=true > /dev/null 2>&1; then
 fi
 if [[ -e "$leak_output" ]]; then
     echo "Credential-bearing public output was not removed" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+login_failure_output="$temp_dir/public-login-failure"
+if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null 2>&1; then
+    echo "Expected private login failure to fail the seeded suite" >&2
+    exit 1
+fi
+[[ "$(grep -c 'failure_phase=login failure_category=developer-settings' "$login_failure_output/summary.txt")" -eq 4 ]]
+if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
+    echo "Product JUnit exists even though private login failed" >&2
     exit 1
 fi
 

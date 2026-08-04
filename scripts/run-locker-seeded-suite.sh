@@ -268,6 +268,8 @@ run_private_login() {
     local login_root="$private_maestro/login-$scenario"
     local args_file="$login_root/maestro.args"
     local status=0
+    local failure_label=""
+    login_failure_category=none
 
     mkdir -p "$login_root"
     printf '%s\n' \
@@ -283,6 +285,18 @@ run_private_login() {
     chmod 600 "$args_file"
 
     "$maestro_bin" test "@$args_file" > "$login_root/console.log" 2>&1 || status=$?
+    if [[ $status -ne 0 ]]; then
+        failure_label=$(awk '/\.\.\. FAILED$/ { print; exit }' "$login_root/console.log")
+        case "$failure_label" in
+            *"Developer settings"*) login_failure_category=developer-settings ;;
+            *"Login to existing account"*) login_failure_category=login-screen ;;
+            *"Email"*|*"email"*) login_failure_category=email-field ;;
+            *"Password"*|*"password"*) login_failure_category=password-field ;;
+            *"Add item"*|*"Save to Locker"*) login_failure_category=post-login-readiness ;;
+            *"Input text"*) login_failure_category=private-input ;;
+            *) login_failure_category=unclassified ;;
+        esac
+    fi
     rm -rf -- "$login_root"
     return "$status"
 }
@@ -350,6 +364,8 @@ for index in "${!scenarios[@]}"; do
     flow=${flows[$index]}
     run_dir="$private_runs/$scenario"
     scenario_status=pass
+    failure_phase=none
+    failure_category=none
 
     clear_app_data
     if [[ $index -gt 0 ]]; then
@@ -383,8 +399,12 @@ for index in "${!scenarios[@]}"; do
     configure_reverse
     if ! run_private_login "$scenario" "$email" "$password"; then
         scenario_status=fail
+        failure_phase=login
+        failure_category=$login_failure_category
     elif ! run_product_flow "$scenario" "$flow"; then
         scenario_status=fail
+        failure_phase=product
+        failure_category=canonical-yaml
     fi
 
     if ! "$seeder_bin" finish --run-dir "$run_dir" --status "$scenario_status" \
@@ -397,8 +417,8 @@ for index in "${!scenarios[@]}"; do
     if [[ "$scenario_status" == "fail" ]]; then
         failure_count=$((failure_count + 1))
     fi
-    printf 'scenario=%s status=%s flow_sha256=%s manifest_sha256=%s\n' \
-        "$scenario" "$scenario_status" \
+    printf 'scenario=%s status=%s failure_phase=%s failure_category=%s flow_sha256=%s manifest_sha256=%s\n' \
+        "$scenario" "$scenario_status" "$failure_phase" "$failure_category" \
         "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$flow")" \
         "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")" \
         >> "$records_file"
