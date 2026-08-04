@@ -10,7 +10,8 @@ seeder, and a self-contained backend stack.
   login orchestration.
 - Fixture profiles describe exact required starting inventory.
 - `locker-seed apply` consumes a caller-supplied private account context.
-- Account creation is an explicit local capability and is not wired into CI.
+- Account creation is invoked only by the audited isolated runner, exactly once
+  per local or manual hosted job.
 - Each isolated seeded run creates exactly one temporary synthetic account.
 - Every profile and scenario in that run reuses the same email, credentials,
   and user ID after a deterministic reset.
@@ -85,12 +86,15 @@ for the redacted timing table.
 
 ## What remains
 
-The static gate, hosted x86 stack/reset proof, canonical YAML import, and
-fail-closed Android orchestration are complete. The next promotion gate is the
-manual four-flow hosted run against an exact published Locker APK. Any failure
-there must be classified as runner, selector, or published-nightly
-compatibility without weakening the canonical assertion. Native-system,
-platform/offline, paid, and unresolved rename/move flows remain deferred.
+The static gate, hosted x86 stack/reset proof, canonical YAML import,
+fail-closed Android orchestration, and exact-APK product entry are complete.
+The manual four-flow hosted gate currently passes empty-home and
+account/security, while seeded info fixtures remain invisible in the published
+app and settings search lacks the canonical accessibility tooltip in that
+asset. The next promotion input is a published Locker APK that fixes or
+confirms both app-side contracts; then the same four-flow gate must be rerun
+without weakening assertions. Native-system, platform/offline, paid, and
+unresolved rename/move flows remain deferred.
 
 ## Known product/runtime boundary
 

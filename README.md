@@ -71,8 +71,8 @@ The seeder takes a private account context for `apply`. Runtime orchestration
 may call the low-level `create-account` command exactly once at the start of an
 isolated run. It then captures an empty PostgreSQL account template and every
 later profile uses the same email, user ID, and private context after a
-fail-closed backend restore. The reset proof is local only; no hosted seeded
-runtime is enabled yet.
+fail-closed backend restore. Both the backend-only proof and the manual
+exact-APK seeded proof run on hosted x86_64.
 
 ```sh
 cargo run --manifest-path tools/locker-seed/Cargo.toml -- \
@@ -108,7 +108,24 @@ with Maestro 2.6.1. The digest-pinned backend and four-profile single-account
 proof also passed on hosted x86: one account, three verified resets, and
 unchanged identity across structured items, documents/thumbnails, Trash, and
 multiple memberships. This proves hosted smoke and fixture reset/reuse; it does
-not yet prove authenticated product YAML against the published APK.
+not yet promote all authenticated product YAML against the published APK.
+
+The manual exact-APK gate now reaches product YAML with one account, private
+login separated from product execution, app data cleared between scenarios,
+and the local endpoint preseed through Android shared preferences. Against the
+same `locker-v1.0.8-beta` asset, `empty-home-and-save-options` and
+`view-account-and-security-settings` pass. Two product blockers remain:
+
+- `search-note-secret-and-thing`: Museum apply/read-back succeeds, but the
+  published app stays on its empty home and never exposes `Search your
+  documents`;
+- `search-settings-and-open-account`: the published app predates the
+  `Search settings` accessibility tooltip used by the canonical flow.
+
+The latest classified run is
+[GitHub Actions run 30888541387](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/30888541387).
+Native-system, offline/platform, paid, and unresolved rename/move flows remain
+deferred until the core published-APK gate is green.
 
 Historical prototype results retained in the catalog are explicitly
 noncanonical: the prototype's account behavior and pass counts do not satisfy

@@ -24,13 +24,15 @@ catalog keeps scenario knowledge independent of product YAML and now declares
 the orchestration invariant: one isolated run creates one synthetic account,
 then resets and reuses that same identity for every profile.
 
-The standalone implementation adds a backend baseline module and a local proof
-runner. Product YAML is now imported, but the private login prelude and seeded
-Android runner remain runtime-only work.
+The standalone implementation adds a backend baseline module, local and hosted
+proof runners, an Auth-aligned private login prelude, and a manual exact-APK
+seeded workflow. Product YAML stays credential-free and executes separately
+from that private runtime prelude.
 
 ## Intentionally not imported
 
-- the private login prelude;
+- the source prototype's private login prelude (a new bounded runtime-only
+  prelude is authored here instead);
 - suite lists and source-checkout inventory snapshots;
 - historical runtime scripts whose control flow created an account for every
   YAML run; that behavior is noncanonical and explicitly rejected here;

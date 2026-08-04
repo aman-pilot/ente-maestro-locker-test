@@ -24,13 +24,17 @@ Snapshot: 2026-08-04
 | Product YAML ownership | This repository canonically owns all 31 flows, their source snapshot hashes, and their core/platform/paid classifications. |
 | Fresh-account-per-flow text | Imported comments now describe the same-account reset fixture instead of the discarded multiple-account lifecycle. |
 | Seeded Android orchestration | Static and mocked tests prove app-data clearing, reverse-port checks, mode-0600 private login arguments, separate credential-free product invocation, one account, and three resets. |
+| Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`, all four scenarios can log into the same generated account, and a bounded retry reuses that identity instead of creating another account. |
+| Exact-APK product entry | The manual workflow resolves and verifies the exact published APK, produces leakage-scanned JUnit, and has reached canonical product YAML for all four initial scenarios. |
 
 ## Open decisions and runtime proofs
 
 | Blocker | Required handling |
 | --- | --- |
-| Exact-APK seeded proof | Run the manual four-flow seeded workflow on hosted API 34 x86_64 and classify any published-nightly compatibility failure. |
-| Product/nightly compatibility | Required collection, Trash, selector, and rename/move behavior must reach a published APK. |
+| Seeded info visibility | `search-note-secret-and-thing` remains on the empty home after a verified Museum apply/read-back, so the published APK never exposes `Search your documents`. Diagnose app collection/file sync against the exact asset or publish a compatible Locker build; do not weaken the fixture assertion. |
+| Settings-search semantics | `locker-v1.0.8-beta` predates the `Search settings` tooltip present in newer source. Publish an APK with that accessibility contract, then rerun the canonical selector. |
+| Exact-APK seeded gate | Rerun the manual four-flow workflow after the two published-app blockers above are available in one exact asset. |
+| Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally only after the four-flow core gate passes. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
 ## Current evidence boundary
@@ -41,7 +45,10 @@ catalog `historicalEvidence` came from the source prototype and do not prove
 this repository, current manifests, current APK, hosted execution, or the
 single-account-per-run contract. That evidence is historical and noncanonical.
 
-Product YAML is present but has not been promoted to product-flow coverage. No
-login prelude, account credentials, run record, seeded Android workflow, or
-seeded-result artifact has been imported. The local single-account proof is
-seeder evidence, not product-flow coverage.
+Product YAML is present and the hosted exact-APK gate has current partial
+coverage. Run `30888541387` used one account, preserved its identity through
+three resets, and produced four product JUnit files. The empty-home and
+account/security flows passed; seeded search visibility and settings-search
+semantics failed at the product phase. Private login logs, credentials, account
+context, and run records were not uploaded. The overall gate correctly remains
+red until all four scenarios pass.
