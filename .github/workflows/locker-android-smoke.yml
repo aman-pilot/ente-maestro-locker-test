@@ -159,18 +159,7 @@ jobs:
                   profile: pixel_5
                   emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
                   disable-animations: true
-                  script: |
-                      mkdir -p artifacts/maestro/debug
-                      adb shell settings put system screen_off_timeout 2147483647
-                      adb install -r "$LOCKER_APK_PATH"
-                      maestro test \
-                          --no-ansi \
-                          -e "APP_ID=$APP_ID" \
-                          --format JUNIT \
-                          --output artifacts/maestro/results.xml \
-                          --debug-output artifacts/maestro/debug \
-                          --flatten-debug-output \
-                          ${{ matrix.flows }}
+                  script: LOCKER_MAESTRO_OUTPUT_DIR=artifacts/maestro scripts/run-locker-android-local.sh --apk "$LOCKER_APK_PATH" --suite "${{ matrix.suite }}"
 
             - name: Summarize Locker smoke tests
               if: always() && steps.smoke-tests.outcome != 'skipped'
@@ -202,7 +191,7 @@ jobs:
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: locker-${{ matrix.suite }}-results
-                  path: artifacts/maestro/results.xml
+                  path: artifacts/maestro/${{ matrix.suite }}-results.xml
                   if-no-files-found: warn
                   retention-days: 7
 
@@ -211,7 +200,7 @@ jobs:
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: locker-${{ matrix.suite }}-diagnostics
-                  path: artifacts/maestro/debug
+                  path: artifacts/maestro/${{ matrix.suite }}-debug
                   if-no-files-found: warn
                   retention-days: 3
 
