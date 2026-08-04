@@ -1,0 +1,432 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+umask 077
+
+readonly workspace_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly endpoint="${LOCKER_MUSEUM_ENDPOINT:-http://127.0.0.1:8080}"
+readonly catalog="$workspace_root/locker/catalog.v1.json"
+readonly flow_registry="$workspace_root/locker/product-flows.v1.json"
+readonly login_flow="$workspace_root/maestro/locker/runtime/login-seeded-account.yaml"
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/run-locker-seeded-suite.sh --apk <path> [options]
+
+Run the audited four-flow Locker proof on one account and one Android device.
+The backend is restored between scenarios; login and product behavior are
+separate Maestro invocations.
+
+Options:
+  --apk <path>          Exact Locker APK to install once (required).
+  --seeder <path>       locker-seed executable. Defaults to LOCKER_SEED_BIN or
+                        builds the workspace debug binary.
+  --maestro <path>      Maestro executable. Defaults to MAESTRO_BIN or maestro.
+  --serial <serial>     adb serial. Defaults to ANDROID_SERIAL or the only device.
+  --app-id <id>         Defaults to io.ente.locker.independent.
+  --output-dir <path>   New public redacted-output directory. Defaults to
+                        LOCKER_SEEDED_OUTPUT_DIR or artifacts/maestro/seeded-proof.
+  -h, --help            Show this help.
+EOF
+}
+
+apk_path=""
+seeder_bin="${LOCKER_SEED_BIN:-}"
+maestro_bin="${MAESTRO_BIN:-maestro}"
+serial="${ANDROID_SERIAL:-}"
+app_id="io.ente.locker.independent"
+output_dir="${LOCKER_SEEDED_OUTPUT_DIR:-$workspace_root/artifacts/maestro/seeded-proof}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --apk)
+            apk_path="${2:?--apk requires a path}"
+            shift 2
+            ;;
+        --seeder)
+            seeder_bin="${2:?--seeder requires a path}"
+            shift 2
+            ;;
+        --maestro)
+            maestro_bin="${2:?--maestro requires a path}"
+            shift 2
+            ;;
+        --serial)
+            serial="${2:?--serial requires a serial}"
+            shift 2
+            ;;
+        --app-id)
+            app_id="${2:?--app-id requires an application ID}"
+            shift 2
+            ;;
+        --output-dir)
+            output_dir="${2:?--output-dir requires a path}"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'Unknown option: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [[ -z "$apk_path" || ! -f "$apk_path" ]]; then
+    printf 'An existing --apk path is required\n' >&2
+    exit 2
+fi
+if [[ "$endpoint" != "http://127.0.0.1:8080" ]]; then
+    printf 'The seeded suite requires http://127.0.0.1:8080 with adb reverse\n' >&2
+    exit 2
+fi
+if [[ "$app_id" != "io.ente.locker.independent" && "$app_id" != "io.ente.locker.dev" ]]; then
+    printf 'Unsupported Locker application ID: %s\n' "$app_id" >&2
+    exit 2
+fi
+if [[ -e "$output_dir" ]]; then
+    printf 'Output directory must not already exist: %s\n' "$output_dir" >&2
+    exit 2
+fi
+
+for command in adb docker jq ruby; do
+    if ! command -v "$command" > /dev/null; then
+        printf 'Required command is not available: %s\n' "$command" >&2
+        exit 2
+    fi
+done
+if ! "$maestro_bin" --version > /dev/null; then
+    printf 'Maestro executable is not runnable: %s\n' "$maestro_bin" >&2
+    exit 2
+fi
+
+if [[ -z "$serial" ]]; then
+    devices=()
+    while IFS= read -r device; do
+        devices+=("$device")
+    done < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+    if [[ ${#devices[@]} -ne 1 ]]; then
+        printf 'Set --serial or ANDROID_SERIAL when zero or multiple devices are attached\n' >&2
+        exit 2
+    fi
+    serial=${devices[0]}
+fi
+if [[ "$(adb -s "$serial" get-state)" != "device" ]]; then
+    printf 'adb device is not ready: %s\n' "$serial" >&2
+    exit 2
+fi
+
+if [[ -z "$seeder_bin" ]]; then
+    if ! command -v cargo > /dev/null; then
+        printf 'Required command is not available: cargo\n' >&2
+        exit 2
+    fi
+    seeder_bin="$workspace_root/tools/locker-seed/target/debug/locker-seed"
+    cargo build --quiet --locked --manifest-path "$workspace_root/tools/locker-seed/Cargo.toml"
+fi
+if [[ ! -x "$seeder_bin" ]]; then
+    printf 'locker-seed executable is not runnable: %s\n' "$seeder_bin" >&2
+    exit 2
+fi
+
+private_parent="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+private_parent="${private_parent%/}"
+[[ -n "$private_parent" ]] || private_parent=/
+readonly private_parent
+readonly private_root="$(mktemp -d "${private_parent%/}/locker-seeded-suite.XXXXXX")"
+readonly private_nonce="${private_root##*.}"
+compose_project="${LOCKER_COMPOSE_PROJECT:-ente-locker-seeded-${PPID}-$(printf '%s' "$private_nonce" | tr '[:upper:]' '[:lower:]')}"
+if [[ ! "$compose_project" =~ ^ente-locker-seeded-[a-z0-9-]+$ ]]; then
+    printf 'Invalid dedicated Compose project name\n' >&2
+    rm -rf -- "$private_root"
+    exit 2
+fi
+readonly compose_project
+readonly account_context="$private_root/account-context.json"
+readonly private_logs="$private_root/logs"
+readonly private_runs="$private_root/runs"
+readonly private_maestro="$private_root/maestro"
+readonly results_dir="$output_dir/results"
+readonly summary_file="$output_dir/summary.txt"
+
+stack_requested=false
+cleanup_started=false
+output_owned=false
+
+remove_private_root() {
+    case "$private_root" in
+        "${private_parent%/}"/locker-seeded-suite.*)
+            rm -rf -- "$private_root"
+            ;;
+        *)
+            printf 'Refusing to remove an unexpected private suite path\n' >&2
+            return 1
+            ;;
+    esac
+}
+
+clear_app_data() {
+    local clear_output
+    adb -s "$serial" shell am force-stop "$app_id" > /dev/null
+    clear_output=$(adb -s "$serial" shell pm clear "$app_id" | tr -d '\r')
+    if [[ "$clear_output" != "Success" ]]; then
+        printf 'Locker app-data clearing failed\n' >&2
+        return 1
+    fi
+    adb -s "$serial" wait-for-device > /dev/null
+}
+
+cleanup() {
+    local original_status=$?
+    local cleanup_status=0
+
+    if [[ "$cleanup_started" == true ]]; then
+        return
+    fi
+    cleanup_started=true
+    trap - EXIT INT TERM
+
+    clear_app_data > /dev/null 2>&1 || true
+    if [[ "$stack_requested" == true ]]; then
+        if ! LOCKER_COMPOSE_PROJECT="$compose_project" \
+            "$seeder_bin" stack reset --endpoint "$endpoint" \
+            > "$private_logs/stack-cleanup.log" 2>&1; then
+            printf 'Seeded suite cleanup failed while removing the dedicated stack\n' >&2
+            cleanup_status=1
+        fi
+    fi
+    remove_private_root || cleanup_status=1
+
+    if [[ $original_status -ne 0 ]]; then
+        exit "$original_status"
+    fi
+    exit "$cleanup_status"
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+mkdir -p "$private_logs" "$private_runs" "$private_maestro" "$results_dir"
+output_owned=true
+
+scenarios=()
+while IFS= read -r scenario; do
+    [[ -n "$scenario" ]] && scenarios+=("$scenario")
+done < <(jq --exit-status --raw-output '.initialHostedProof[]' "$flow_registry")
+if [[ ${#scenarios[@]} -ne 4 ]]; then
+    printf 'The audited seeded proof must contain exactly four scenarios\n' >&2
+    exit 2
+fi
+
+declare -a manifests=()
+declare -a flows=()
+for scenario in "${scenarios[@]}"; do
+    profile=$(jq --exit-status --raw-output --arg id "$scenario" \
+        '.scenarios[] | select(.scenarioId == $id) | .fixtureProfile' "$catalog")
+    manifest_relative=$(jq --exit-status --raw-output --arg profile "$profile" \
+        '.fixtureProfiles[$profile].manifest' "$catalog")
+    manifest="$workspace_root/locker/$manifest_relative"
+    flow="$workspace_root/maestro/locker/online/core/$scenario.yaml"
+    if [[ ! -f "$manifest" || ! -f "$flow" ]]; then
+        printf 'Missing canonical assets for scenario=%s\n' "$scenario" >&2
+        exit 2
+    fi
+    manifests+=("$manifest")
+    flows+=("$flow")
+done
+
+if [[ -n "$(docker ps --all --quiet --filter "label=com.docker.compose.project=$compose_project")" ]] ||
+    [[ -n "$(docker volume ls --quiet --filter "label=com.docker.compose.project=$compose_project")" ]] ||
+    [[ -n "$(docker network ls --quiet --filter "label=com.docker.compose.project=$compose_project")" ]]; then
+    printf 'Refusing to reuse Docker resources for the seeded suite\n' >&2
+    exit 2
+fi
+
+configure_reverse() {
+    local reverse_list
+    adb -s "$serial" reverse --remove tcp:8080 > /dev/null 2>&1 || true
+    adb -s "$serial" reverse --remove tcp:3200 > /dev/null 2>&1 || true
+    adb -s "$serial" reverse tcp:8080 tcp:8080 > /dev/null
+    adb -s "$serial" reverse tcp:3200 tcp:3200 > /dev/null
+    reverse_list=$(adb -s "$serial" reverse --list)
+    if ! grep --quiet --extended-regexp 'tcp:8080[[:space:]]+tcp:8080' <<< "$reverse_list" ||
+        ! grep --quiet --extended-regexp 'tcp:3200[[:space:]]+tcp:3200' <<< "$reverse_list"; then
+        printf 'Required adb reverse mappings are missing\n' >&2
+        return 1
+    fi
+}
+
+run_private_login() {
+    local scenario=$1
+    local email=$2
+    local password=$3
+    local login_root="$private_maestro/login-$scenario"
+    local args_file="$login_root/maestro.args"
+    local status=0
+
+    mkdir -p "$login_root"
+    printf '%s\n' \
+        "--udid=$serial" \
+        '--no-ansi' \
+        "--debug-output=$login_root/debug" \
+        "--test-output-dir=$login_root/output" \
+        "--env=APP_ID=$app_id" \
+        "--env=USER_EMAIL=$email" \
+        "--env=USER_PASSWORD=$password" \
+        "--env=MUSEUM_ENDPOINT=$endpoint" \
+        "$login_flow" > "$args_file"
+    chmod 600 "$args_file"
+
+    "$maestro_bin" test "@$args_file" > "$login_root/console.log" 2>&1 || status=$?
+    rm -rf -- "$login_root"
+    return "$status"
+}
+
+run_product_flow() {
+    local scenario=$1
+    local flow=$2
+    local result_file="$results_dir/$scenario.xml"
+    local product_root="$private_maestro/product-$scenario"
+
+    mkdir -p "$product_root"
+    "$maestro_bin" test \
+        --udid "$serial" \
+        --no-ansi \
+        -e "APP_ID=$app_id" \
+        --format JUNIT \
+        --output "$result_file" \
+        --debug-output "$product_root/debug" \
+        --flatten-debug-output \
+        "$flow" > "$product_root/console.log" 2>&1
+}
+
+stack_requested=true
+LOCKER_COMPOSE_PROJECT="$compose_project" \
+    "$seeder_bin" stack up --endpoint "$endpoint" \
+    > "$private_logs/stack-up.log" 2>&1
+
+LOCKER_COMPOSE_PROJECT="$compose_project" \
+    "$seeder_bin" create-account \
+        --label seeded-android-proof \
+        --account-context "$account_context" \
+        --endpoint "$endpoint" \
+        > "$private_logs/create-account.log" 2>&1
+if [[ ! -f "$account_context" ]]; then
+    printf 'Account creation did not produce a private context\n' >&2
+    exit 1
+fi
+
+email=$(jq --exit-status --raw-output '.email' "$account_context")
+password=$(jq --exit-status --raw-output '.password' "$account_context")
+baseline_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$account_context")
+if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+    printf '::add-mask::%s\n' "$email"
+    printf '::add-mask::%s\n' "$password"
+fi
+
+LOCKER_COMPOSE_PROJECT="$compose_project" \
+    "$seeder_bin" baseline capture --account-context "$account_context" \
+    > "$private_logs/baseline-capture.json" 2>&1
+jq --exit-status \
+    '.collectionRecordCount == 0 and .trashRecordCount == 0 and .bucketObjectCount == 0' \
+    "$private_logs/baseline-capture.json" > /dev/null
+
+adb -s "$serial" uninstall "$app_id" > /dev/null 2>&1 || true
+adb -s "$serial" install -r "$apk_path" > "$private_logs/apk-install.log"
+adb -s "$serial" shell settings put system screen_off_timeout 2147483647 > /dev/null
+
+failure_count=0
+records_file="$private_root/scenario-records.txt"
+: > "$records_file"
+
+for index in "${!scenarios[@]}"; do
+    scenario=${scenarios[$index]}
+    manifest=${manifests[$index]}
+    flow=${flows[$index]}
+    run_dir="$private_runs/$scenario"
+    scenario_status=pass
+
+    clear_app_data
+    if [[ $index -gt 0 ]]; then
+        if ! LOCKER_COMPOSE_PROJECT="$compose_project" \
+            "$seeder_bin" reset --account-context "$account_context" \
+            > "$private_logs/reset-$scenario.json" 2>&1; then
+            printf 'Verified account reset failed before scenario=%s\n' "$scenario" >&2
+            exit 1
+        fi
+        jq --exit-status \
+            '.databaseRestored == true and .collectionRecordCount == 0 and .trashRecordCount == 0 and .bucketObjectCount == 0' \
+            "$private_logs/reset-$scenario.json" > /dev/null
+    fi
+
+    "$seeder_bin" apply \
+        --scenario "$scenario" \
+        --manifest "$manifest" \
+        --run-dir "$run_dir" \
+        --account-context "$account_context" \
+        > "$private_logs/apply-$scenario.log" 2>&1
+
+    observed_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$run_dir/run.json")
+    observed_email=$(jq --exit-status --raw-output '.email' "$run_dir/run.json")
+    if [[ "$observed_user_id" != "$baseline_user_id" || "$observed_email" != "$email" ]]; then
+        printf 'Account identity changed for scenario=%s\n' "$scenario" >&2
+        exit 1
+    fi
+    "$seeder_bin" inspect --run-dir "$run_dir" > "$private_logs/inspect-$scenario.json" 2>&1
+
+    clear_app_data
+    configure_reverse
+    if ! run_private_login "$scenario" "$email" "$password"; then
+        scenario_status=fail
+    elif ! run_product_flow "$scenario" "$flow"; then
+        scenario_status=fail
+    fi
+
+    if ! "$seeder_bin" finish --run-dir "$run_dir" --status "$scenario_status" \
+        > "$private_logs/finish-$scenario.json" 2>&1; then
+        printf 'Scenario finalization failed for scenario=%s\n' "$scenario" >&2
+        exit 1
+    fi
+    clear_app_data
+
+    if [[ "$scenario_status" == "fail" ]]; then
+        failure_count=$((failure_count + 1))
+    fi
+    printf 'scenario=%s status=%s flow_sha256=%s manifest_sha256=%s\n' \
+        "$scenario" "$scenario_status" \
+        "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$flow")" \
+        "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")" \
+        >> "$records_file"
+done
+
+suite_status=pass
+if [[ $failure_count -ne 0 ]]; then
+    suite_status=fail
+fi
+{
+    printf 'seeded_suite status=%s accounts_created=1 scenarios=%s failures=%s identity_unchanged=true\n' \
+        "$suite_status" "${#scenarios[@]}" "$failure_count"
+    cat "$records_file"
+} > "$summary_file"
+
+if grep --recursive --fixed-strings --quiet -- "$email" "$output_dir" ||
+    grep --recursive --fixed-strings --quiet -- "$password" "$output_dir"; then
+    printf 'Credential leakage detected in public seeded output; output removed\n' >&2
+    if [[ "$output_owned" == true ]]; then
+        rm -rf -- "$results_dir"
+        rm -f -- "$summary_file"
+        rmdir -- "$output_dir" 2> /dev/null || true
+    fi
+    exit 1
+fi
+
+printf 'seeded_suite status=%s accounts_created=1 scenarios=%s failures=%s identity_unchanged=true\n' \
+    "$suite_status" "${#scenarios[@]}" "$failure_count"
+if [[ "$suite_status" == "fail" ]]; then
+    exit 1
+fi

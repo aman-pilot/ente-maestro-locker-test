@@ -77,8 +77,9 @@ done < <(find scripts -type f -name 'run-*.sh' -print)
 create_account_scripts="$(grep --files-with-matches --extended-regexp \
     '(^|[[:space:]])create-account([[:space:]\\]|$)' \
     scripts/run-*.sh 2>/dev/null || true)"
-if [[ "$create_account_scripts" != "scripts/run-locker-single-account-proof.sh" ]]; then
-    echo "Only the single-account proof runner may orchestrate account creation" >&2
+expected_create_account_scripts=$'scripts/run-locker-seeded-suite.sh\nscripts/run-locker-single-account-proof.sh'
+if [[ "$create_account_scripts" != "$expected_create_account_scripts" ]]; then
+    echo "Only audited single-account runners may orchestrate account creation" >&2
     exit 1
 fi
 

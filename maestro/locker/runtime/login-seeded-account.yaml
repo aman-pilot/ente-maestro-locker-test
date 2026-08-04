@@ -1,0 +1,66 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: Login to existing account
+    timeout: 30000
+
+# Open Locker's hidden developer endpoint page. The bounded retry is isolated
+# here because taps can be dropped immediately after app-data clearing.
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- tapOn: { point: "50%,20%" }
+- runFlow:
+    when:
+      notVisible: Developer settings
+    commands:
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+      - tapOn: { point: "50%,20%" }
+- extendedWaitUntil:
+    visible: Developer settings
+    timeout: 10000
+- tapOn: "Yes"
+- extendedWaitUntil:
+    visible: Save
+    timeout: 10000
+- tapOn:
+    point: "50%,15%"
+- inputText: ${MUSEUM_ENDPOINT}
+- tapOn:
+    text: done
+    optional: true
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Login to existing account
+    timeout: 30000
+
+- tapOn: Login to existing account
+- extendedWaitUntil:
+    visible: |-
+      Email
+      Enter your email id
+    timeout: 15000
+- tapOn: |-
+    Email
+    Enter your email id
+- inputText: ${USER_EMAIL}
+- tapOn:
+    text: Done
+- extendedWaitUntil:
+    visible: ".*Password.*"
+    timeout: 15000
+- inputText: ${USER_PASSWORD}
+- tapOn:
+    text: Done
+- extendedWaitUntil:
+    visible: ".*(Add item|Save to Locker).*"
+    timeout: 90000

@@ -67,6 +67,20 @@ on_disk.each do |relative_path|
   fail_check("#{relative_path} references an external Maestro flow") if body.match?(/runFlow:\s*\n\s+file:/)
 end
 
+login_path = ROOT.join("maestro/locker/runtime/login-seeded-account.yaml")
+fail_check("missing private runtime login flow") unless login_path.file?
+login_body = login_path.read
+fail_check("runtime login must use the runtime APP_ID") unless login_body.start_with?("appId: ${APP_ID}\n---\n")
+fail_check("runtime login must not clear state inside Maestro") if login_body.match?(/clearState\s*:/)
+%w[USER_EMAIL USER_PASSWORD MUSEUM_ENDPOINT].each do |variable|
+  fail_check("runtime login is missing #{variable}") unless login_body.include?("${#{variable}}")
+end
+
+credential_yaml = Dir.glob(ROOT.join("maestro/locker/**/*.yaml")).select do |path|
+  File.read(path).match?(/USER_EMAIL|USER_PASSWORD|MUSEUM_ENDPOINT/)
+end
+fail_check("credentials escaped the single private login flow") unless credential_yaml == [login_path.to_s]
+
 flow_lines = on_disk.map do |relative_path|
   "#{Digest::SHA256.file(ROOT.join(relative_path)).hexdigest}  #{relative_path}\n"
 end.join
