@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fs,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
@@ -20,6 +20,11 @@ use crate::{
 
 const UNCATEGORIZED_REF: &str = "__uncategorized";
 const IMPORTANT_REF: &str = "__important";
+const LOCKER_DEFAULT_COLLECTIONS: [(&str, &str); 3] = [
+    ("Documents", "folder"),
+    ("Important", "favorites"),
+    ("Uncategorized", "uncategorized"),
+];
 
 #[derive(Clone)]
 struct SeededCollection {
@@ -425,9 +430,9 @@ async fn verify_seed(
         .filter(|collection| !collection.is_deleted)
         .map(|collection| collection.id)
         .collect::<std::collections::HashSet<_>>();
-    if actual_collection_ids != expected_collection_ids {
+    if !expected_collection_ids.is_subset(&actual_collection_ids) {
         bail!(
-            "account collection inventory differs from the one-time online fixture: expected {:?}, found {:?}",
+            "account collection inventory is missing one-time online fixture collections: expected {:?}, found {:?}",
             expected_collection_ids,
             actual_collection_ids
         );
@@ -436,6 +441,18 @@ async fn verify_seed(
         .iter()
         .map(|collection| (collection.id, collection))
         .collect::<HashMap<_, _>>();
+
+    let mut additional_collections = BTreeSet::new();
+    for collection in remote_collections.iter().filter(|collection| {
+        !collection.is_deleted && !expected_collection_ids.contains(&collection.id)
+    }) {
+        let key = MuseumClient::decrypt_collection_key(collection, master_key)?;
+        let name = MuseumClient::decrypt_collection_name(collection, &key)?;
+        if !additional_collections.insert((name, collection.collection_type.clone())) {
+            bail!("account has duplicate non-fixture collection identities");
+        }
+    }
+    validate_additional_collections(&additional_collections)?;
 
     for collection in collections.values() {
         let remote = remote_by_id
@@ -616,6 +633,25 @@ async fn verify_seed(
     Ok(())
 }
 
+fn validate_additional_collections(collections: &BTreeSet<(String, String)>) -> Result<()> {
+    if collections.is_empty() {
+        return Ok(());
+    }
+
+    let expected = LOCKER_DEFAULT_COLLECTIONS
+        .into_iter()
+        .map(|(name, collection_type)| (name.to_owned(), collection_type.to_owned()))
+        .collect::<BTreeSet<_>>();
+    if collections != &expected {
+        bail!(
+            "account has collections outside the online fixture and Locker defaults: expected {:?}, found {:?}",
+            expected,
+            collections
+        );
+    }
+    Ok(())
+}
+
 fn verify_metadata(file_id: i64, metadata: &Value, expected_file_type: i64) -> Result<()> {
     if metadata.get("fileType").and_then(Value::as_i64) != Some(expected_file_type)
         || metadata
@@ -772,6 +808,24 @@ mod tests {
         let mut value = json!({"name": "Thing"});
         insert_optional(&mut value, "notes", &Some(String::new()));
         assert!(value.get("notes").is_none());
+    }
+
+    #[test]
+    fn accepts_only_complete_locker_default_collection_set() {
+        let defaults = LOCKER_DEFAULT_COLLECTIONS
+            .into_iter()
+            .map(|(name, collection_type)| (name.to_owned(), collection_type.to_owned()))
+            .collect::<BTreeSet<_>>();
+
+        validate_additional_collections(&BTreeSet::new()).unwrap();
+        validate_additional_collections(&defaults).unwrap();
+
+        let partial = defaults.iter().take(2).cloned().collect::<BTreeSet<_>>();
+        assert!(validate_additional_collections(&partial).is_err());
+
+        let mut unexpected = defaults;
+        unexpected.insert(("Residue".to_owned(), "folder".to_owned()));
+        assert!(validate_additional_collections(&unexpected).is_err());
     }
 
     #[test]

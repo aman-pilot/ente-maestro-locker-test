@@ -46,7 +46,8 @@ Future flow promotion must preserve the single-fixture model:
 - use unique names for data that is not intentionally shared;
 - run logout last or explicitly cold-login afterward.
 
-The current exact published APK still has two independent app blockers: seeded
-collections/files are not visible after login, and settings search lacks its
-canonical accessibility tooltip. Neither blocker is solved by resetting the
-backend.
+The current source-built independent APK passes the complete four-flow lane,
+including seeded collection/file visibility and settings-search semantics. The
+remaining release gate is to publish those app changes in one immutable APK and
+repeat the proof against that exact asset; resetting the backend is not part of
+that validation.

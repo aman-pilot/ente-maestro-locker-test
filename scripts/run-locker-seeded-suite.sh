@@ -159,6 +159,7 @@ readonly summary_file="$output_dir/summary.txt"
 stack_requested=false
 cleanup_started=false
 output_owned=false
+current_phase=initialization
 
 remove_private_root() {
     case "$private_root" in
@@ -247,6 +248,7 @@ cleanup() {
     remove_private_root || cleanup_status=1
 
     if [[ $original_status -ne 0 ]]; then
+        printf 'Seeded suite failed during phase=%s\n' "$current_phase" >&2
         exit "$original_status"
     fi
     exit "$cleanup_status"
@@ -362,11 +364,13 @@ run_product_flow() {
         "$flow" > "$product_root/console.log" 2>&1
 }
 
+current_phase=stack-up
 stack_requested=true
 LOCKER_COMPOSE_PROJECT="$compose_project" \
     "$seeder_bin" stack up --endpoint "$endpoint" \
     > "$private_logs/stack-up.log" 2>&1
 
+current_phase=create-account
 LOCKER_COMPOSE_PROJECT="$compose_project" \
     "$seeder_bin" create-account \
         --label seeded-android-proof \
@@ -386,6 +390,7 @@ if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
     printf '::add-mask::%s\n' "$password"
 fi
 
+current_phase=install-apk
 adb -s "$serial" uninstall "$app_id" > /dev/null 2>&1 || true
 adb -s "$serial" install -r "$apk_path" > "$private_logs/apk-install.log"
 require_rootable_emulator
@@ -400,6 +405,7 @@ fixture_apply_count=0
 login_ready=true
 login_failure_category=none
 
+current_phase=empty-account-login
 prepare_locker_app_data
 configure_reverse
 if ! run_private_login "empty-account" "$email" "$password"; then
@@ -426,12 +432,20 @@ for index in "${!scenarios[@]}"; do
     fi
 
     if [[ "$scenario_status" == "pass" && "$scenario" == "$seed_before_flow" ]]; then
-        "$seeder_bin" apply \
+        current_phase=apply-online-fixture
+        if ! "$seeder_bin" apply \
             --scenario online-fixture \
             --manifest "$manifest" \
             --run-dir "$online_run_dir" \
             --account-context "$account_context" \
-            > "$private_logs/apply-online-fixture.log" 2>&1
+            > "$private_logs/apply-online-fixture.log" 2>&1; then
+            printf 'Online fixture apply failed:\n' >&2
+            DIAG_EMAIL="$email" DIAG_PASSWORD="$password" ruby -pe '
+              gsub(ENV.fetch("DIAG_EMAIL"), "[REDACTED_EMAIL]")
+              gsub(ENV.fetch("DIAG_PASSWORD"), "[REDACTED_PASSWORD]")
+            ' "$private_logs/apply-online-fixture.log" | tail -n 20 >&2
+            exit 1
+        fi
         fixture_applied=true
         fixture_apply_count=1
 
@@ -443,6 +457,7 @@ for index in "${!scenarios[@]}"; do
         fi
         "$seeder_bin" inspect --run-dir "$online_run_dir" > "$private_logs/inspect-online-fixture.json" 2>&1
 
+        current_phase=seeded-account-login
         prepare_locker_app_data
         configure_reverse
         if ! run_private_login "seeded-account" "$email" "$password"; then
@@ -462,6 +477,7 @@ for index in "${!scenarios[@]}"; do
         failure_phase=product
         failure_category=canonical-yaml
     fi
+    current_phase="product-$scenario"
 
     if [[ "$scenario_status" == "fail" ]]; then
         failure_count=$((failure_count + 1))
@@ -477,6 +493,7 @@ for index in "${!scenarios[@]}"; do
         >> "$records_file"
 done
 
+current_phase=finalize
 suite_status=pass
 if [[ $failure_count -ne 0 ]]; then
     suite_status=fail

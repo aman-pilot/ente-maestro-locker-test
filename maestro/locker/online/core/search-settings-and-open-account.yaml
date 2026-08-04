@@ -3,12 +3,9 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 30000
-- swipe:
-    start: "10%,50%"
-    end: "70%,50%"
-    duration: 500
+- tapOn: Open navigation menu
 - extendedWaitUntil:
     visible: Search settings
     timeout: 10000
@@ -36,5 +33,5 @@ appId: ${APP_ID}
 - back
 - back
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000

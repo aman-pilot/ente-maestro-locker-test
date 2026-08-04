@@ -3,12 +3,9 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 30000
-- swipe:
-    start: "10%,50%"
-    end: "70%,50%"
-    duration: 500
+- tapOn: Open navigation menu
 
 # Sensitive mutations require local authentication, but their account surface
 # can be verified safely with the disposable seeded account.
@@ -35,5 +32,5 @@ appId: ${APP_ID}
 - tapOn: Back
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000

@@ -23,14 +23,14 @@ Snapshot: 2026-08-04
 | Seeded Android orchestration | Static and mocked tests prove one account, one fixture apply, zero backend resets, two cold-login boundaries, private login arguments, and credential-free product invocation. |
 | Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`; bounded retries reuse the same identity and never create another account. |
 | Exact-APK product entry | The manual workflow resolves and verifies the exact published APK, produces leakage-scanned JUnit, and has reached canonical product YAML for all four initial scenarios. |
+| Source-built seeded visibility | The four-flow online lane passed locally on API 35 ARM with source-built independent APK SHA-256 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`; seeded Note, Secret, and Thing search is visible after cold login. |
+| Source-built settings semantics | The same four-flow proof passed `Open navigation menu` and `Search settings` against the current Locker source build. |
 
 ## Open decisions and runtime proofs
 
 | Blocker | Required handling |
 | --- | --- |
-| Seeded info visibility | `search-note-secret-and-thing` remains on the empty home after a verified Museum apply/read-back, so the published APK never exposes `Search your documents`. Diagnose app collection/file sync against the exact asset or publish a compatible Locker build; do not weaken the fixture assertion. |
-| Settings-search semantics | `locker-v1.0.8-beta` predates the `Search settings` tooltip present in newer source. Publish an APK with that accessibility contract, then rerun the canonical selector. |
-| Exact-APK seeded gate | Rerun the manual four-flow workflow after the two published-app blockers above are available in one exact asset. |
+| Exact published seeded gate | Publish one Locker APK containing the proven collection-sync and semantics changes, then rerun the same four-flow workflow against that immutable asset. The local source-built pass is not release provenance. |
 | Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally only after the four-flow core gate passes. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
@@ -45,5 +45,7 @@ single-account-per-run contract. That evidence is historical and noncanonical.
 Product YAML is present. Run `30888541387` used the retired reset-per-profile
 runner and is historical evidence only. It produced four product JUnit files:
 empty-home and account/security passed, while seeded search visibility and
-settings-search semantics failed. The new online-only one-fixture lane has not
-yet been hosted-proven and remains red until all four flows pass.
+settings-search semantics failed on that historical APK. The online-only
+one-fixture lane now passes locally against the current source-built independent
+APK on API 35 ARM. It remains unproven against an immutable published asset and
+on the hosted x86_64 runner.
