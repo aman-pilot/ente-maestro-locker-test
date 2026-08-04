@@ -9,10 +9,8 @@ appId: ${APP_ID}
     start: "10%,50%"
     end: "70%,50%"
     duration: 500
-- extendedWaitUntil:
-    visible: Search settings
-    timeout: 10000
-- tapOn: Search settings
+- tapOn:
+    point: "90%,6%"
 - extendedWaitUntil:
     visible: Suggestions
     timeout: 10000
