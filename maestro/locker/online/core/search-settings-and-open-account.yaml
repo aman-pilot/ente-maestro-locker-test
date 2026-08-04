@@ -5,7 +5,10 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Save to Locker
     timeout: 30000
-- tapOn: Open navigation menu
+- swipe:
+    start: "10%,50%"
+    end: "70%,50%"
+    duration: 500
 - extendedWaitUntil:
     visible: Search settings
     timeout: 10000
