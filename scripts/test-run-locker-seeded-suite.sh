@@ -23,6 +23,9 @@ printf '%s\n' \
     'printf "adb %s\n" "$*" >> "$LOCKER_TEST_LOG/adb.log"' \
     'case "$*" in' \
     '  *"get-state"*) echo device ;;' \
+    '  *"shell id -u"*) echo 0 ;;' \
+    '  *"shell am get-current-user"*) echo 0 ;;' \
+    '  *"shell stat -c"*) echo 10000:10000 ;;' \
     '  *"shell pm clear"*) echo Success; echo "adb pm-clear" >> "$LOCKER_EVENT_LOG" ;;' \
     '  *"reverse --list"*) printf "emulator-test tcp:8080 tcp:8080\nemulator-test tcp:3200 tcp:3200\n" ;;' \
     '  *"reverse tcp:"*) echo "adb reverse" >> "$LOCKER_EVENT_LOG" ;;' \
@@ -40,9 +43,10 @@ printf '%s\n' \
     '  [[ "$mode" == 600 ]]' \
     '  grep --quiet --fixed-strings -- "--env=USER_EMAIL=seeded-android-proof-test@example.org" "$args_file"' \
     '  grep --quiet --fixed-strings -- "--env=USER_PASSWORD=Locker-test!Aa1" "$args_file"' \
+    '  if grep --quiet --fixed-strings -- "MUSEUM_ENDPOINT" "$args_file"; then exit 1; fi' \
     '  echo "maestro login" >> "$LOCKER_EVENT_LOG"' \
     '  if [[ ${LOCKER_TEST_LOGIN_FAIL:-false} == true ]]; then' \
-    '    echo "Assert that Developer settings is visible ... FAILED"' \
+    '    echo "Assert that Login to existing account is visible ... FAILED"' \
     '    exit 1' \
     '  fi' \
     '  exit 0' \
@@ -141,6 +145,7 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 8 ]]
 [[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 9 ]]
+[[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 8 ]]
 
 grep --quiet --fixed-strings \
     'seeded_suite status=pass accounts_created=1 scenarios=4 failures=0 identity_unchanged=true' \
@@ -178,7 +183,7 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
     echo "Expected private login failure to fail the seeded suite" >&2
     exit 1
 fi
-[[ "$(grep -c 'failure_phase=login failure_category=developer-settings' "$login_failure_output/summary.txt")" -eq 4 ]]
+[[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 4 ]]
 if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
     echo "Product JUnit exists even though private login failed" >&2
     exit 1

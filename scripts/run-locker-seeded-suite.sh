@@ -16,7 +16,8 @@ Usage: scripts/run-locker-seeded-suite.sh --apk <path> [options]
 
 Run the audited four-flow Locker proof on one account and one Android device.
 The backend is restored between scenarios; login and product behavior are
-separate Maestro invocations.
+separate Maestro invocations. The Android device must be a rootable emulator so
+the local Museum endpoint can be restored after each app-data clear.
 
 Options:
   --apk <path>          Exact Locker APK to install once (required).
@@ -180,6 +181,48 @@ clear_app_data() {
     adb -s "$serial" wait-for-device > /dev/null
 }
 
+require_rootable_emulator() {
+    adb -s "$serial" root > /dev/null
+    adb -s "$serial" wait-for-device > /dev/null
+    if [[ "$(adb -s "$serial" shell id -u | tr -d '\r')" != "0" ]]; then
+        printf 'Seeded Locker logins require a rootable Android emulator\n' >&2
+        return 1
+    fi
+}
+
+prepare_locker_app_data() {
+    local app_data_dir app_owner current_user preferences_dir preferences_file
+
+    clear_app_data
+    current_user=$(adb -s "$serial" shell am get-current-user | tr -d '\r')
+    if [[ ! "$current_user" =~ ^[0-9]+$ ]]; then
+        printf 'Unable to determine the Android user: %s\n' "$current_user" >&2
+        return 1
+    fi
+    app_data_dir="/data/user/$current_user/$app_id"
+    preferences_dir="$app_data_dir/shared_prefs"
+    preferences_file="$preferences_dir/FlutterSharedPreferences.xml"
+    app_owner=$(adb -s "$serial" shell stat -c '%u:%g' "$app_data_dir" | tr -d '\r')
+    if [[ ! "$app_owner" =~ ^[0-9]+:[0-9]+$ ]]; then
+        printf 'Unable to determine the Locker app-data owner: %s\n' "$app_owner" >&2
+        return 1
+    fi
+
+    adb -s "$serial" shell "mkdir -p '$preferences_dir'"
+    adb -s "$serial" shell \
+        "printf '%s\\n' '<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>' '<map>' '    <string name=\"flutter.endpoint\">$endpoint</string>' '</map>' > '$preferences_file'"
+    adb -s "$serial" shell chown -R "$app_owner" "$preferences_dir"
+    adb -s "$serial" shell chmod 771 "$preferences_dir"
+    adb -s "$serial" shell chmod 660 "$preferences_file"
+    adb -s "$serial" shell restorecon "$preferences_dir"
+    adb -s "$serial" shell restorecon "$preferences_file"
+    if ! adb -s "$serial" shell \
+        "grep -q '<string name=\"flutter.endpoint\">$endpoint</string>' '$preferences_file'"; then
+        printf 'Unable to preseed the Locker Museum endpoint\n' >&2
+        return 1
+    fi
+}
+
 cleanup() {
     local original_status=$?
     local cleanup_status=0
@@ -280,7 +323,6 @@ run_private_login() {
         "--env=APP_ID=$app_id" \
         "--env=USER_EMAIL=$email" \
         "--env=USER_PASSWORD=$password" \
-        "--env=MUSEUM_ENDPOINT=$endpoint" \
         "$login_flow" > "$args_file"
     chmod 600 "$args_file"
 
@@ -288,12 +330,10 @@ run_private_login() {
     if [[ $status -ne 0 ]]; then
         failure_label=$(awk '/\.\.\. FAILED$/ { print; exit }' "$login_root/console.log")
         case "$failure_label" in
-            *"Developer settings"*) login_failure_category=developer-settings ;;
-            *"Login to existing account"*) login_failure_category=login-screen ;;
+            *"Login to existing account"*) login_failure_category=initial-login-screen ;;
             *"Email"*|*"email"*) login_failure_category=email-field ;;
             *"Password"*|*"password"*) login_failure_category=password-field ;;
             *"Add item"*|*"Save to Locker"*) login_failure_category=post-login-readiness ;;
-            *"Input text"*) login_failure_category=private-input ;;
             *) login_failure_category=unclassified ;;
         esac
     fi
@@ -352,6 +392,7 @@ jq --exit-status \
 
 adb -s "$serial" uninstall "$app_id" > /dev/null 2>&1 || true
 adb -s "$serial" install -r "$apk_path" > "$private_logs/apk-install.log"
+require_rootable_emulator
 adb -s "$serial" shell settings put system screen_off_timeout 2147483647 > /dev/null
 
 failure_count=0
@@ -395,7 +436,7 @@ for index in "${!scenarios[@]}"; do
     fi
     "$seeder_bin" inspect --run-dir "$run_dir" > "$private_logs/inspect-$scenario.json" 2>&1
 
-    clear_app_data
+    prepare_locker_app_data
     configure_reverse
     if ! run_private_login "$scenario" "$email" "$password"; then
         scenario_status=fail
