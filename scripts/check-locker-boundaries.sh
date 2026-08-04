@@ -22,6 +22,7 @@ for public_path in \
     locker/fixtures/locker-seed.pdf \
     locker/manifests/empty.json \
     locker/stack/compose.yaml \
+    .github/workflows/locker-single-account-proof.yml \
     scripts/run-locker-single-account-proof.sh \
     tools/locker-seed/Cargo.toml \
     tools/locker-seed/src/baseline.rs \
@@ -113,7 +114,21 @@ done < <(find . \
 if grep --recursive --quiet --extended-regexp \
     'locker-seed (create-account|apply)|locker/stack/compose\.yaml' \
     .github/workflows; then
-    echo "Seeded runtime must stay disabled in hosted workflows until reset proof and YAML import decisions are complete" >&2
+    echo "Hosted workflows must call the audited proof runner instead of assembling seeded commands directly" >&2
+    exit 1
+fi
+
+if grep --quiet --extended-regexp \
+    'maestro/locker/seeded|adb |maestro test|matrix:' \
+    .github/workflows/locker-single-account-proof.yml; then
+    echo "The hosted infrastructure proof must not run product YAML, Android, or a job matrix" >&2
+    exit 1
+fi
+
+if ! grep --quiet --fixed-strings \
+    'scripts/run-locker-single-account-proof.sh' \
+    .github/workflows/locker-single-account-proof.yml; then
+    echo "The hosted proof workflow must use the audited single-account runner" >&2
     exit 1
 fi
 
