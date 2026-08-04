@@ -1,7 +1,9 @@
 # Locker infrastructure import scope
 
-Source snapshot: Ente revision `390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e`
-on 2026-08-03.
+Source snapshot: untracked Locker prototype assets in `aman-pilot/ente`, based
+on Ente revision `390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e`, imported on
+2026-08-04. The base revision pins Rust dependencies; it is not a false claim
+that the untracked YAML or manifests existed in that commit.
 
 ## Imported and aligned
 
@@ -10,6 +12,9 @@ on 2026-08-03.
 - all eight Rust seeder source modules plus regenerated Cargo metadata;
 - Museum configuration and a new self-contained Compose stack;
 - all 20 fixture profiles and 31 scenario-to-profile relationships;
+- all 31 product Maestro flows under the canonical `maestro/locker/online/`
+  owner, with runtime `APP_ID` selection and no login or credentials;
+- explicit hosted-candidate, unresolved, platform, and paid classifications;
 - selector blockers, collection-action references, and historical result context;
 - fixture, provenance, private-boundary, Cargo, Compose, and workflow static
   validation.
@@ -20,11 +25,11 @@ the orchestration invariant: one isolated run creates one synthetic account,
 then resets and reuses that same identity for every profile.
 
 The standalone implementation adds a backend baseline module and a local proof
-runner. Neither imports product YAML or a login prelude.
+runner. Product YAML is now imported, but the private login prelude and seeded
+Android runner remain runtime-only work.
 
 ## Intentionally not imported
 
-- the 31 authenticated product Maestro YAML files;
 - the private login prelude;
 - suite lists and source-checkout inventory snapshots;
 - historical runtime scripts whose control flow created an account for every
@@ -33,7 +38,6 @@ runner. Neither imports product YAML or a login prelude.
 - local run records, credentials, screenshots, logs, Cargo targets, or other
   ignored evidence.
 
-These are omissions by design, not lost coverage. Product YAML import depends
-on a proven same-account reset, canonical YAML ownership, and platform scope.
-It does not depend on account grouping: flow-, profile-, shard-, retry-, and
-pool-specific accounts are outside the supported architecture.
+These are omissions by design, not lost coverage. Product YAML ownership is
+closed in this repository. Flow-, profile-, shard-, retry-, and pool-specific
+accounts remain outside the supported architecture.

@@ -1,0 +1,61 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Search your documents
+    timeout: 30000
+- tapOn: Search your documents
+- inputText: Dr. Maya Patel
+- extendedWaitUntil:
+    visible: Dr. Maya Patel
+    timeout: 10000
+- tapOn:
+    text: done
+    optional: true
+- tapOn:
+    text: Dr. Maya Patel
+    index: 1
+- extendedWaitUntil:
+    visible: Edit
+    timeout: 10000
+- assertVisible: +1 555 0100
+- assertVisible: Call during the fixture test
+
+# Emergency contacts are currently seeded because the Save sheet has no
+# creation entry for this supported wire type. Existing contacts remain fully
+# viewable and editable.
+- tapOn: Edit
+- extendedWaitUntil:
+    visible: Emergency contact
+    timeout: 10000
+- tapOn: Message for contact
+- eraseText
+- inputText: Call during the fixture test before travel
+- hideKeyboard
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Edit
+    timeout: 20000
+- assertVisible: Call during the fixture test before travel
+
+# Prove the encrypted update survives a cold app boundary.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Search your documents
+    timeout: 15000
+- tapOn: Search your documents
+- inputText: Dr. Maya Patel
+- extendedWaitUntil:
+    visible: Dr. Maya Patel
+    timeout: 10000
+- tapOn:
+    text: done
+    optional: true
+- tapOn:
+    text: Dr. Maya Patel
+    index: 1
+- extendedWaitUntil:
+    visible: Call during the fixture test before travel
+    timeout: 10000

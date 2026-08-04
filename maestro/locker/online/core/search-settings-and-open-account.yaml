@@ -1,0 +1,37 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 30000
+- tapOn: Open navigation menu
+- extendedWaitUntil:
+    visible: Search settings
+    timeout: 10000
+- tapOn: Search settings
+- extendedWaitUntil:
+    visible: Suggestions
+    timeout: 10000
+- assertVisible: ".*App lock.*"
+- assertVisible: ".*Appearance.*"
+- assertVisible: ".*Select language.*"
+- assertVisible: ".*Privacy.*"
+
+# Search a nested setting and verify that selecting it opens its owning page.
+- inputText: recovery
+- extendedWaitUntil:
+    visible: ".*Recovery key.*"
+    timeout: 10000
+- tapOn: ".*Recovery key.*"
+- extendedWaitUntil:
+    visible: Change email
+    timeout: 10000
+- assertVisible: Change password
+- assertVisible: Delete account
+- back
+- back
+- back
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000

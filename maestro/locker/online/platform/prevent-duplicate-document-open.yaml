@@ -1,0 +1,31 @@
+appId: ${APP_ID}
+---
+# Regression coverage for regular uploaded documents: opening the same file twice
+# quickly should not launch duplicate open/download work. This intentionally uses
+# a PDF document, not Locker info-file types like Note, Secret, or Thing.
+# The local seeded runner creates this regular encrypted document and verifies
+# its object read-back before Maestro starts. The native preview itself remains
+# platform coverage, but no picker upload is used as UI setup.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 15000
+
+# The regression trigger: double-tap the uploaded regular document.
+- doubleTapOn: "Home Insurance Policy\\.pdf"
+
+# Native preview may open. Return to Locker if the system exposes a Done button,
+# then relaunch to normalize back into the app.
+- runFlow:
+    when:
+      visible: Done
+    commands:
+      - tapOn: Done
+- launchApp
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 15000
+- assertVisible: "Home Insurance Policy\\.pdf"
+- assertNotVisible: Download failed
+- assertNotVisible: Oops

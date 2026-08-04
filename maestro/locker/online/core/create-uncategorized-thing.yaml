@@ -1,0 +1,51 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000
+- assertVisible: Save to Locker
+- tapOn: Save to Locker
+- extendedWaitUntil:
+    visible: |-
+      Thing
+      Save locations of real-world items.
+    timeout: 10000
+- tapOn: |-
+    Thing
+    Save locations of real-world items.
+- extendedWaitUntil:
+    visible: Name of the real-world item
+    timeout: 10000
+- inputText: Safe Deposit Key
+- pressKey: Enter
+- inputText: Blue folder / Shelf A
+- pressKey: Enter
+- inputText: "Warranty card + backup key !@#"
+- hideKeyboard
+- scrollUntilVisible:
+    element: Save
+    direction: DOWN
+    timeout: 10000
+
+# Save without choosing a collection. Locker should create/use Uncategorized
+# instead of keeping the editor open.
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Safe Deposit Key
+    timeout: 20000
+- tapOn: Filters
+- extendedWaitUntil:
+    visible: All collections
+    timeout: 10000
+- tapOn: "Uncategorized\nUncategorized"
+- back
+- extendedWaitUntil:
+    visible: Safe Deposit Key
+    timeout: 10000
+- tapOn: Safe Deposit Key
+- extendedWaitUntil:
+    visible: Edit
+    timeout: 10000
+- assertVisible: Blue folder / Shelf A
+- assertVisible: "Warranty card + backup key !@#"

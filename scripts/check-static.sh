@@ -20,6 +20,7 @@ scripts/test-run-locker-android-local.sh
 scripts/test-run-locker-single-account-proof.sh
 scripts/check-locker-boundaries.sh
 ruby scripts/check-locker-assets.rb
+ruby scripts/check-product-flows.rb
 
 cargo fmt --manifest-path tools/locker-seed/Cargo.toml --check
 cargo test --manifest-path tools/locker-seed/Cargo.toml --locked

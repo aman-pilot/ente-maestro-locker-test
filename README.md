@@ -13,26 +13,28 @@ Two independent layers are present:
   profiles, 31 scenario records, binary fixtures, a Rust E2EE seeder, and a
   digest-pinned Museum/PostgreSQL/MinIO stack.
 
-The 31 product Maestro YAML flows are intentionally not imported. No hosted
-workflow creates accounts, starts the seeded stack, or runs the seeder. The
-catalog records the starting inventory each future scenario needs but does not
-yet make those product scenarios runnable. The runtime contract is already
+The repository owns all 31 canonical product Maestro YAML flows. They are
+classified as 25 hosted candidates, one unresolved core flow, three native
+system flows, one platform/offline flow, and one paid flow. Importing YAML does
+not itself constitute hosted coverage: the seeded Android runner and exact
+published-APK proof remain separate promotion gates. The runtime contract is
 fixed: one isolated run creates exactly one temporary synthetic account and
 reuses that same identity for every profile, resetting it to the required
-baseline before each scenario. A flow, fixture profile, shard, or retry must
-never create an additional account.
+baseline before each scenario.
 
 ## Repository layout
 
 | Path | Owns |
 | --- | --- |
 | `locker/catalog.v1.json` | YAML-free fixture profiles and scenario-to-fixture knowledge. |
+| `locker/product-flows.v1.json` | Canonical YAML provenance, classifications, and the first hosted proof subset. |
 | `locker/provenance.v1.json` | Ente revision, image digests, and fixture hashes. |
 | `locker/manifests/` | Encrypted starting-state descriptions for Locker. |
 | `locker/fixtures/` | Public synthetic files used by document fixtures. |
 | `locker/stack/` | Self-contained digest-pinned local backend stack. |
 | `tools/locker-seed/` | Rust manifest validation, explicit account-context creation, E2EE seeding, and read-back verification. |
 | `maestro/locker/smoke/` | Public, account-free published-build smoke flows. |
+| `maestro/locker/online/` | Canonical authenticated product flows split into core, platform, and paid lanes. |
 | `scripts/` | Static contracts, nightly resolution, download, selection, and local Android execution. |
 | `.github/workflows/` | Static validation and manual published-nightly Android smoke. |
 

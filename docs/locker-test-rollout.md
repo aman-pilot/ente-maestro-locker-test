@@ -8,7 +8,7 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 | Layer | Purpose | Current state |
 | --- | --- | --- |
 | Published smoke | Account-free onboarding and other public startup behavior. | Scaffolded for local and hosted execution. |
-| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Local reset/reuse proof passed; hosted proof and product YAML remain pending. |
+| Seeded infrastructure | Encrypted fixture profiles on one synthetic account per isolated run, reset between scenarios. | Product YAML is canonical; hosted reset and exact-APK product proof remain pending. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 
@@ -37,10 +37,10 @@ in a compatible published Locker nightly.
    is added.
 7. Run `scripts/check-static.sh`.
 
-Authenticated product flows are not added in this phase. Their 31 scenario
-records live in `locker/catalog.v1.json` without YAML paths, runnable-suite
-status, or current product-coverage claims. Their future runner must create one
-account before the suite and preserve that identity across every profile.
+Authenticated product flows live under `maestro/locker/online/` and are
+classified by `locker/product-flows.v1.json`. They intentionally contain no
+login, endpoint, or credential setup. Their runner must create one account
+before the suite and preserve that identity across every profile.
 
 Registration validation fails when a smoke flow is not reachable from a
 selected hosted suite. Shared helpers should remain small and must not escape
@@ -84,5 +84,6 @@ assertion work but cannot promote seeded coverage or prove single-account reuse.
 
 The current local single-account proof is also not product coverage. It proves
 that four representative manifests can reuse one account after complete
-backend restoration. Product promotion still requires imported canonical YAML,
-app-data clearing before each profile login, and an exact published APK run.
+backend restoration. Product promotion still requires app-data clearing before
+each private login, a separate credential-free product invocation, and an exact
+published APK run.

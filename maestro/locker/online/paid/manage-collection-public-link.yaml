@@ -1,0 +1,68 @@
+appId: ${APP_ID}
+---
+# Seeded start state: Family Documents is an empty collection. This flow remains
+# deferred until local paid-product and public-link support are deliberately enabled.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 30000
+- tapOn: Open navigation menu
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: Collections
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: "Family Documents\\n.*items"
+- extendedWaitUntil:
+    visible: Family Documents
+    timeout: 10000
+- tapOn: Share collection
+- extendedWaitUntil:
+    visible: Share collection
+    timeout: 10000
+- assertVisible: Add email
+- assertVisible: Link
+- tapOn: Link
+- runFlow:
+    when:
+      visible: You need a paid subscription to share links
+    commands:
+      - assertVisible: You need a paid subscription to share links
+      - tapOn:
+          point: 92%,78%
+- runFlow:
+    when:
+      visible: Copy
+    commands:
+      - tapOn:
+          point: 50%,20%
+- extendedWaitUntil:
+    visible: Share collection
+    timeout: 10000
+- runFlow:
+    when:
+      visible: Manage link
+    commands:
+      - tapOn: Manage link
+      - extendedWaitUntil:
+          visible: Manage link
+          timeout: 10000
+      - assertVisible: "Link expiry.*"
+      - scrollUntilVisible:
+          element: Remove link
+          direction: DOWN
+          timeout: 10000
+          speed: 40
+      - tapOn: Remove link
+      - extendedWaitUntil:
+          visible: Remove public link
+          timeout: 10000
+      - tapOn: Yes, remove
+      - extendedWaitUntil:
+          visible: Share collection
+          timeout: 20000
+      - assertVisible: Link
+      - assertNotVisible: Manage link

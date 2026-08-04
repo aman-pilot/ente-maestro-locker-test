@@ -1,0 +1,33 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 30000
+
+# A fresh seeded account has no records, so the first screen should be stable
+# without deleting data through Maestro.
+- assertVisible: Setup your Legacy
+- assertVisible: Setup your Legacy so loved ones can access important information, in your absence
+- assertVisible: Save to Locker
+
+# Verify every user-creatable Locker item type from the empty-state entry.
+- tapOn: Save to Locker
+- extendedWaitUntil:
+    visible: |-
+      Document
+      Upload important docs.
+    timeout: 10000
+- assertVisible: |-
+    Document
+    Upload important docs.
+- assertVisible: |-
+    Note
+    Write down thoughts and instructions.
+- assertVisible: |-
+    Thing
+    Save locations of real-world items.
+- assertVisible: |-
+    Secret
+    Preserve account credentials.

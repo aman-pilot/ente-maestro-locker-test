@@ -1,0 +1,116 @@
+appId: ${APP_ID}
+---
+# Native picker/upload coverage. The manifest seeds the empty
+# Insurance Documents destination collection, but not the document: the picker
+# and Locker upload path remain the behavior under test. The local file is
+# provided by the device setup script.
+- stopApp
+- launchApp
+- runFlow:
+    when:
+      visible: Back
+    commands:
+      - tapOn: Back
+      - runFlow:
+          when:
+            visible: Discard
+          commands:
+            - tapOn: Discard
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 30000
+
+# Upload a deterministic real PDF file through the native iOS file picker.
+- tapOn: Save to Locker
+- extendedWaitUntil:
+    visible: |-
+      Document
+      Upload important docs.
+    timeout: 10000
+- tapOn: |-
+    Document
+    Upload important docs.
+- extendedWaitUntil:
+    visible: Browse
+    timeout: 15000
+- tapOn: Browse
+- extendedWaitUntil:
+    visible: On My iPhone
+    timeout: 10000
+- tapOn: On My iPhone
+- extendedWaitUntil:
+    visible: Home Insurance Policy
+    timeout: 10000
+- tapOn: Home Insurance Policy
+- tapOn: Open
+- extendedWaitUntil:
+    visible: Upload items
+    timeout: 15000
+- assertVisible: "Home Insurance Policy\\.pdf"
+- scrollUntilVisible:
+    element: |-
+      Insurance Documents
+      Insurance Documents
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: |-
+      Insurance Documents
+      Insurance Documents
+    selected: false
+- assertVisible:
+    text: |-
+      Insurance Documents
+      Insurance Documents
+    selected: true
+- tapOn: Save
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 45000
+- assertVisible: Search your documents
+- tapOn: Filters
+- tapOn: All collections
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: "Insurance Documents\\n.*items"
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 10000
+
+# Exercise delete-to-Trash and permanent deletion for the file just uploaded.
+# The runner restores the same account baseline before the next scenario.
+- longPressOn: "Home Insurance Policy\\.pdf"
+- extendedWaitUntil:
+    visible: Delete
+    timeout: 10000
+- tapOn: Delete
+- extendedWaitUntil:
+    visible: Yes, delete item
+    timeout: 10000
+- tapOn: Yes, delete item
+- extendedWaitUntil:
+    visible: Item deleted successfully
+    timeout: 20000
+- assertNotVisible: "Home Insurance Policy\\.pdf"
+- tapOn: Open navigation menu
+- tapOn: Trash
+- extendedWaitUntil:
+    visible: Trash
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Home Insurance Policy\\.pdf"
+- longPressOn: "Home Insurance Policy\\.pdf"
+- extendedWaitUntil:
+    visible: Delete
+    timeout: 10000
+- tapOn: Delete
+- extendedWaitUntil:
+    visible: Permanently delete
+    timeout: 10000
+- assertVisible: This item will be permanently deleted and cannot be recovered.
+- tapOn: Yes, delete
+- extendedWaitUntil:
+    notVisible: "Home Insurance Policy\\.pdf"
+    timeout: 20000
+- assertNotVisible: "Home Insurance Policy\\.pdf"

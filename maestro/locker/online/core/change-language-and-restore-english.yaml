@@ -1,0 +1,35 @@
+appId: ${APP_ID}
+---
+- launchApp
+- tapOn: Open navigation menu
+- tapOn: General
+- extendedWaitUntil:
+    visible: Select language
+    timeout: 10000
+- tapOn: Select language
+- extendedWaitUntil:
+    visible: "Deutsch.*"
+    timeout: 10000
+- assertVisible: "English.*"
+- assertVisible: "Deutsch.*"
+- assertVisible: "Espa.*"
+- tapOn: "Deutsch.*"
+- extendedWaitUntil:
+    visible: Sprache auswählen
+    timeout: 10000
+- tapOn: "English.*"
+- extendedWaitUntil:
+    visible: Select language
+    timeout: 10000
+- tapOn: Back
+- extendedWaitUntil:
+    visible: General
+    timeout: 10000
+- tapOn: Back
+- extendedWaitUntil:
+    visible: General
+    timeout: 10000
+- tapOn: Back
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000

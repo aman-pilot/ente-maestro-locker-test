@@ -1,8 +1,13 @@
 {
   "schemaVersion": 1,
   "importedAt": "2026-08-03",
-  "importSource": "aman-pilot/ente at 390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
+  "importSource": "aman-pilot/ente untracked Locker fixture snapshot based on 390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
   "enteGitRevision": "390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
+  "sourceSnapshot": {
+    "worktreeState": "untracked-source-assets",
+    "manifestSetSha256": "7d52727512ac8d2231c5c19e5c3efe52267fc961451232568fc80c0577ea5f56",
+    "note": "The Ente revision pins Rust dependencies and is only the base revision for the untracked fixture snapshot."
+  },
   "images": {
     "museum": "ghcr.io/ente/server@sha256:e9e06eb01834c38f41a3a09f9a64885b631346ce0005ccff2153faea403bd6e2",
     "postgres": "postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f",

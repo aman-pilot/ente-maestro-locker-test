@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "canonicalOwner": "aman-pilot/ente-maestro-locker-test",
+  "sourceSnapshot": {
+    "repository": "aman-pilot/ente",
+    "baseRevision": "390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e",
+    "worktreeState": "untracked-source-assets",
+    "flowRoot": "mobile/mobile-tests/locker/flows",
+    "flowSetSha256": "1dbd9000ede9714eb429adf3628aab51a36a4062604ff1d9bde4d1cdf72250f3",
+    "fixtureMapPath": "locker-maestro-worktree/suite-fixture-map.v1.json",
+    "fixtureMapSha256": "533f5cf1e617ee231e51bc671ee90f00a427f7b26ebdc06221f898be8f04c505",
+    "manifestSetSha256": "7d52727512ac8d2231c5c19e5c3efe52267fc961451232568fc80c0577ea5f56"
+  },
+  "import": {
+    "root": "maestro/locker/online",
+    "flowSetSha256": "137eb84660148c5ad15ae25dc1daf9b75b618f302a098dba39a3becef87dfffe",
+    "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
+    "transformations": [
+      "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
+      "Normalize comments that described the discarded fresh-account-per-flow lifecycle to the single-account reset contract."
+    ]
+  },
+  "classifications": {
+    "hostedCandidate": [
+      "add-item-to-multiple-collections",
+      "bulk-add-delete-and-restore-items",
+      "change-language-and-restore-english",
+      "create-edit-move-delete-and-restore-secret",
+      "create-edit-move-delete-and-restore-thing",
+      "create-uncategorized-secret",
+      "create-uncategorized-thing",
+      "delete-collection-keep-item",
+      "edit-emergency-contact",
+      "empty-collection",
+      "empty-home-and-save-options",
+      "empty-trash",
+      "filter-items-by-collection",
+      "logout",
+      "mark-and-unmark-important",
+      "permanently-delete-note",
+      "rename-and-delete-collections",
+      "search-note-secret-and-thing",
+      "search-settings-and-open-account",
+      "search-with-no-results",
+      "select-all-and-mark-important",
+      "view-about-and-support-settings",
+      "view-account-and-security-settings",
+      "view-collection-and-item-action-menus",
+      "view-theme-options"
+    ],
+    "hostedUnresolved": {
+      "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move."
+    },
+    "nativeSystemDeferred": {
+      "download-document": "Targets the native iOS Files save and replace surface.",
+      "prevent-duplicate-document-open": "Depends on the system document preview.",
+      "upload-and-permanently-delete-document": "Targets the native iOS picker and still needs an explicit device-file setup contract."
+    },
+    "platformOfflineDeferred": {
+      "toggle-document-offline": "Requires dedicated platform and offline-state validation."
+    },
+    "paidDeferred": {
+      "manage-collection-public-link": "Requires a deliberate paid-product and public-link test environment."
+    }
+  },
+  "initialHostedProof": [
+    "empty-home-and-save-options",
+    "search-note-secret-and-thing",
+    "view-account-and-security-settings",
+    "search-settings-and-open-account"
+  ]
+}

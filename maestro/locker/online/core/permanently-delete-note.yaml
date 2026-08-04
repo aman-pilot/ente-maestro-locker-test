@@ -1,0 +1,59 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+# The reset fixture seeds exactly one target so the destructive action
+# is deterministic and never relies on data from a previous run.
+- extendedWaitUntil:
+    visible: Expired Lease Checklist
+    timeout: 30000
+
+# Delete the fresh Note to Trash.
+- longPressOn: Expired Lease Checklist
+- extendedWaitUntil:
+    visible: Delete
+    timeout: 10000
+- tapOn: Delete
+- extendedWaitUntil:
+    visible: Yes, delete item
+    timeout: 10000
+- tapOn: Yes, delete item
+- extendedWaitUntil:
+    visible: Item deleted successfully
+    timeout: 10000
+- assertNotVisible: Expired Lease Checklist
+
+# Permanently delete only the fresh Note from Trash.
+- tapOn: Open navigation menu
+- tapOn: Trash
+- scrollUntilVisible:
+    element:
+      text: Expired Lease Checklist
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+- longPressOn: Expired Lease Checklist
+- extendedWaitUntil:
+    visible: Delete
+    timeout: 10000
+- tapOn: Delete
+- extendedWaitUntil:
+    visible: Permanently delete
+    timeout: 10000
+- assertVisible: This item will be permanently deleted and cannot be recovered.
+- tapOn: Yes, delete
+- extendedWaitUntil:
+    visible: 1 item deleted permanently
+    timeout: 20000
+- assertNotVisible: Expired Lease Checklist
+
+# Return home and verify the note is absent.
+- tapOn: Back
+- extendedWaitUntil:
+    visible: General
+    timeout: 10000
+- tapOn: Back
+- extendedWaitUntil:
+    visible: ".*(Add item|Save to Locker).*"
+    timeout: 10000
+- assertNotVisible: Expired Lease Checklist

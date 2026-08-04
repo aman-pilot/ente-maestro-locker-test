@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+---
+# The local seeded runner provides one regular encrypted PDF named
+# Home Insurance Policy.pdf. This flow deliberately exercises only Locker's
+# Download action and the platform save surface; it does not use the picker to
+# manufacture its precondition.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 15000
+
+# Tap raw Download and dismiss any native share/save surface it opens.
+- longPressOn: "Home Insurance Policy\\.pdf"
+- extendedWaitUntil:
+    visible: |-
+      1 selected
+      close
+    timeout: 10000
+- assertVisible: Download
+- tapOn: Download
+# Native iOS Files save sheet. Save is not exposed as a stable text selector here.
+- tapOn:
+    point: 88%,14%
+- runFlow:
+    when:
+      visible: Cancel
+    commands:
+      # If the file already exists, the native "Replace Existing Items?" dialog
+      # exposes only Cancel in hierarchy; this point is the Replace button.
+      - tapOn:
+          point: 50%,55%
+- launchApp
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 15000

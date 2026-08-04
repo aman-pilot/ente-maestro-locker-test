@@ -18,6 +18,7 @@ done
 
 for public_path in \
     locker/catalog.v1.json \
+    locker/product-flows.v1.json \
     locker/provenance.v1.json \
     locker/fixtures/locker-seed.pdf \
     locker/manifests/empty.json \
@@ -33,7 +34,7 @@ for public_path in \
     fi
 done
 
-if grep --recursive --line-number --binary-files=without-match --extended-regexp \
+if grep --recursive --line-number --binary-files=without-match --exclude=product-flows.v1.json --extended-regexp \
     'locker-maestro-worktree|mobile/mobile-tests/locker|\.\./\.\./rust/crates|server/compose\.yaml' \
     locker tools/locker-seed README.md docs; then
     echo "Legacy checkout path remains" >&2

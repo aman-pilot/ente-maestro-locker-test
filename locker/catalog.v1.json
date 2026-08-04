@@ -7,8 +7,8 @@
     "contract": "One synthetic account is created for an isolated test run and reset to the required fixture baseline before each scenario. No flow, profile, or shard may create an additional account."
   },
   "notes": [
-    "No product Maestro YAML is imported by this catalog.",
-    "Scenario records preserve fixture and selector knowledge without declaring a runnable suite or account policy.",
+    "Canonical product Maestro YAML and its execution classifications are registered in product-flows.v1.json.",
+    "Scenario records preserve fixture and selector knowledge without overriding the root account policy.",
     "Historical evidence is noncanonical import context only and is not a current CI result or evidence for the single-account-per-run contract."
   ],
   "fixtureProfiles": {

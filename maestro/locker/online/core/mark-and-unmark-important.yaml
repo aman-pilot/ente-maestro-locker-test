@@ -1,0 +1,48 @@
+appId: ${APP_ID}
+---
+# Seeded start state: Fireproof Document Box is not Important.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Fireproof Document Box
+    timeout: 30000
+- longPressOn: Fireproof Document Box
+- extendedWaitUntil:
+    visible: Important
+    timeout: 10000
+- tapOn: Important
+- extendedWaitUntil:
+    notVisible: Select all
+    timeout: 10000
+
+# Its Important membership is the durable success assertion.
+- tapOn: Filters
+- extendedWaitUntil:
+    visible: All collections
+    timeout: 10000
+- tapOn: "Important\nImportant"
+- back
+- extendedWaitUntil:
+    visible: Fireproof Document Box
+    timeout: 10000
+- assertVisible: Fireproof Document Box
+
+# Toggle back from the Important filtered view, then return to normal home state.
+- longPressOn: Fireproof Document Box
+- extendedWaitUntil:
+    visible: Unimportant
+    timeout: 10000
+- tapOn: Unimportant
+- extendedWaitUntil:
+    notVisible: Select all
+    timeout: 10000
+- assertNotVisible: Fireproof Document Box
+- tapOn: Filters
+- extendedWaitUntil:
+    visible: All collections
+    timeout: 10000
+- tapOn: Clear all
+- back
+- extendedWaitUntil:
+    visible: Fireproof Document Box
+    timeout: 10000

@@ -1,0 +1,26 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 30000
+- tapOn: Open navigation menu
+- tapOn: Collections
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Travel Archive\n.*items"
+- tapOn: "Travel Archive\n.*items"
+- extendedWaitUntil:
+    visible: Nothing to see here
+    timeout: 10000
+- assertVisible: Travel Archive
+- assertVisible: There are no items in this collection
+- back
+- back
+- back
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000

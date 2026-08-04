@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 30000
+- tapOn: Open navigation menu
+
+# Sensitive mutations require local authentication, but their account surface
+# can be verified safely with the disposable seeded account.
+- scrollUntilVisible:
+    element: Account
+- tapOn: Account
+- extendedWaitUntil:
+    visible: Change email
+    timeout: 10000
+- assertVisible: Recovery key
+- assertVisible: Change password
+- assertVisible: Delete account
+- tapOn: Back
+
+- scrollUntilVisible:
+    element: Security
+- tapOn: Security
+- extendedWaitUntil:
+    visible: Email verification
+    timeout: 10000
+- assertVisible: Passkey
+- assertVisible: App lock
+- assertVisible: View active sessions
+- tapOn: Back
+- tapOn: Back
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000

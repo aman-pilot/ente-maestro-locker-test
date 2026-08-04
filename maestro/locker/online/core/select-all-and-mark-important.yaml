@@ -1,0 +1,55 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Camping Stove
+    timeout: 30000
+- assertVisible: Sleeping Bag
+
+# Seeded start state: Camping Stove and Sleeping Bag are unimportant. Exercise
+# the selection controls independently before changing item state.
+- longPressOn: Camping Stove
+- extendedWaitUntil:
+    visible: |-
+      1 selected
+      close
+    timeout: 10000
+- tapOn: Select all
+- extendedWaitUntil:
+    visible: |-
+      2 selected
+      close
+    timeout: 10000
+- tapOn: Deselect all
+- extendedWaitUntil:
+    notVisible: Select all
+    timeout: 10000
+
+# Mark the entire seeded inventory Important in one action.
+- longPressOn: Camping Stove
+- tapOn: Select all
+- extendedWaitUntil:
+    visible: |-
+      2 selected
+      close
+    timeout: 10000
+- tapOn: Important
+- extendedWaitUntil:
+    visible: Filters
+    timeout: 20000
+
+# The success toast is intentionally not asserted because it is transient.
+# Verify both records through their durable Important membership instead.
+- tapOn: Filters
+- tapOn: All collections
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Important\n.*items"
+- tapOn: "Important\n.*items"
+- extendedWaitUntil:
+    visible: Camping Stove
+    timeout: 10000
+- assertVisible: Sleeping Bag

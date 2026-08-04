@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000
+- tapOn: Open navigation menu
+- scrollUntilVisible:
+    element: Logout
+- extendedWaitUntil:
+    visible: Logout
+    timeout: 10000
+- tapOn: Logout
+- extendedWaitUntil:
+    visible: Are you sure you want to logout?
+    timeout: 10000
+- tapOn: Yes, logout
+- extendedWaitUntil:
+    visible: Login to existing account
+    timeout: 20000
+- assertVisible: Login to existing account
+- assertNotVisible: Save to Locker

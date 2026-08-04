@@ -1,13 +1,13 @@
 # Seeded Locker runtime decisions
 
-The standalone repository now contains the non-YAML parts of the Locker seeded
-prototype: 22 manifests, 20 fixture profiles, 31 scenario records, public
-synthetic fixture files, the Rust E2EE seeder, and a self-contained backend
-stack.
+The standalone repository contains all 31 canonical product YAML flows plus 22
+manifests, 20 fixture profiles, public synthetic fixture files, the Rust E2EE
+seeder, and a self-contained backend stack.
 
 ## Decisions already made
 
-- Product Maestro YAML stays out of this phase.
+- Product Maestro YAML is canonical here and remains separate from private
+  login orchestration.
 - Fixture profiles describe exact required starting inventory.
 - `locker-seed apply` consumes a caller-supplied private account context.
 - Account creation is an explicit local capability and is not wired into CI.
@@ -88,8 +88,8 @@ for the redacted timing table.
 1. `cargo test --locked` and `cargo check --locked` from a clean checkout.
 2. Repeat the successful local stack startup on the eventual hosted x86 runner.
 3. Repeat the same-account proof on the eventual hosted x86 runner.
-4. Decide canonical ownership and import timing for authenticated product YAML.
-5. Add app-data clearing and login only when product YAML import is approved.
+4. Add fail-closed app-data clearing and private login orchestration.
+5. Run the audited four-flow subset against an exact published Locker APK.
 
 ## Known product/runtime boundary
 

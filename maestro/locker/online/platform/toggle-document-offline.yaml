@@ -1,0 +1,43 @@
+appId: ${APP_ID}
+---
+# The local seeded runner provides the encrypted regular PDF. Keep-offline is
+# meaningful only for an uploaded document, so seed it through Locker's real
+# API path instead of uploading it through the UI as setup.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Home Insurance Policy\\.pdf"
+    timeout: 15000
+
+# Verify uploaded-file actions: Download is visible, offline can be toggled on and off.
+- longPressOn: "Home Insurance Policy\\.pdf"
+- extendedWaitUntil:
+    visible: |-
+      1 selected
+      close
+    timeout: 10000
+- assertVisible: Keep offline
+- assertVisible: Download
+- tapOn: Keep offline
+- extendedWaitUntil:
+    visible: 1 file saved offline
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: Select all
+    timeout: 10000
+- longPressOn: "Home Insurance Policy\\.pdf"
+- extendedWaitUntil:
+    visible: |-
+      1 selected
+      close
+    timeout: 10000
+- assertVisible: Remove offline
+- assertVisible: Download
+- tapOn: Remove offline
+- extendedWaitUntil:
+    visible: 1 file removed from offline
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: Select all
+    timeout: 10000
+- assertVisible: "Home Insurance Policy\\.pdf"

@@ -1,0 +1,29 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 10000
+- assertVisible: Search your documents
+
+# Negative search does not mutate data and verifies empty result copy.
+- tapOn: Search your documents
+- inputText: Missing Concert Ticket
+- extendedWaitUntil:
+    visible: No matches found
+    timeout: 10000
+- assertVisible: Try searching for something else.
+- assertNotVisible: Passport Renewal Checklist
+- assertNotVisible: GitHub Recovery Codes
+- assertNotVisible: Blue Suitcase
+- tapOn:
+    text: done
+    optional: true
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 10000
+- assertVisible: Search your documents
+- assertVisible: Add item

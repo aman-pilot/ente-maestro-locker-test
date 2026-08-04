@@ -1,0 +1,19 @@
+appId: ${APP_ID}
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: Save to Locker
+    timeout: 10000
+
+# The verified empty baseline guarantees this precondition. Do not use a
+# product flow as cross-scenario cleanup: the runner resets this same account.
+- tapOn: Open navigation menu
+- tapOn: Trash
+- extendedWaitUntil:
+    visible: Trash
+    timeout: 10000
+- extendedWaitUntil:
+    visible: Your trash is empty
+    timeout: 10000
+- assertVisible: Your trash is empty
