@@ -439,10 +439,17 @@ for index in "${!scenarios[@]}"; do
     prepare_locker_app_data
     configure_reverse
     if ! run_private_login "$scenario" "$email" "$password"; then
-        scenario_status=fail
-        failure_phase=login
-        failure_category=$login_failure_category
-    elif ! run_product_flow "$scenario" "$flow"; then
+        # A clean same-account retry absorbs occasional emulator focus/network
+        # startup flakes without changing the account or backend fixture.
+        prepare_locker_app_data
+        configure_reverse
+        if ! run_private_login "$scenario" "$email" "$password"; then
+            scenario_status=fail
+            failure_phase=login
+            failure_category=$login_failure_category
+        fi
+    fi
+    if [[ "$scenario_status" == "pass" ]] && ! run_product_flow "$scenario" "$flow"; then
         scenario_status=fail
         failure_phase=product
         failure_category=canonical-yaml

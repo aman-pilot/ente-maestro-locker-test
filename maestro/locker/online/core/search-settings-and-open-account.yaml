@@ -10,7 +10,7 @@ appId: ${APP_ID}
     end: "70%,50%"
     duration: 500
 - tapOn:
-    point: "90%,6%"
+    point: "94%,6%"
 - extendedWaitUntil:
     visible: Suggestions
     timeout: 10000

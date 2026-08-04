@@ -184,6 +184,7 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
     exit 1
 fi
 [[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 4 ]]
+[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 8 ]]
 if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
     echo "Product JUnit exists even though private login failed" >&2
     exit 1

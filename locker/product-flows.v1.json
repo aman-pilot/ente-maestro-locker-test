@@ -13,13 +13,13 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "efca9a2d932c636012cde707cff94ef056542972a6865fd4a7b89cd184db1771",
+    "flowSetSha256": "13c0b6aa8167cc2e19e19ef0e26d82b9680b3ea0081cafec5d327488cc370612",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
       "Normalize comments that described the discarded fresh-account-per-flow lifecycle to the single-account reset contract.",
       "Use Locker's explicit right-swipe drawer gesture for the initial hosted proof instead of a release-dependent menu semantics label.",
-      "Open settings search from its stable header position because the published nightly predates the Search settings tooltip.",
+      "Open settings search from its top-right header action because the published nightly predates the Search settings tooltip.",
       "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action."
     ]
   },
