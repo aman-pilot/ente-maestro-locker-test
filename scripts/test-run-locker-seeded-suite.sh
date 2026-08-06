@@ -140,7 +140,7 @@ run_suite "$output_dir" env
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
 grep --quiet --fixed-strings \
-    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=4 failures=0 identity_unchanged=true' \
+    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=4 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
     "$output_dir/summary.txt"
 [[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 4 ]]
 if grep --recursive --quiet --extended-regexp \
@@ -177,6 +177,9 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
 fi
 [[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 4 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
+grep --quiet --fixed-strings \
+    'empty_login_attempts=2 seeded_login_attempts=0' \
+    "$login_failure_output/summary.txt"
 if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
     echo "Product JUnit exists even though private login failed" >&2
     exit 1

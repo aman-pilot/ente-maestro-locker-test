@@ -338,7 +338,7 @@ run_private_login() {
             *"Login to existing account"*) login_failure_category=initial-login-screen ;;
             *"Email"*|*"email"*) login_failure_category=email-field ;;
             *"Password"*|*"password"*) login_failure_category=password-field ;;
-            *"Add item"*|*"Save to Locker"*) login_failure_category=post-login-readiness ;;
+            *"Search your documents"*|*"Add item"*|*"Save to Locker"*) login_failure_category=post-login-readiness ;;
             *) login_failure_category=unclassified ;;
         esac
     fi
@@ -404,15 +404,19 @@ fixture_applied=false
 fixture_apply_count=0
 login_ready=true
 login_failure_category=none
+empty_login_attempts=0
+seeded_login_attempts=0
 
 current_phase=empty-account-login
 prepare_locker_app_data
 configure_reverse
+empty_login_attempts=$((empty_login_attempts + 1))
 if ! run_private_login "empty-account" "$email" "$password"; then
     # A clean same-account retry absorbs occasional emulator focus/network
     # startup flakes without changing the account or backend state.
     prepare_locker_app_data
     configure_reverse
+    empty_login_attempts=$((empty_login_attempts + 1))
     if ! run_private_login "empty-account" "$email" "$password"; then
         login_ready=false
     fi
@@ -460,9 +464,11 @@ for index in "${!scenarios[@]}"; do
         current_phase=seeded-account-login
         prepare_locker_app_data
         configure_reverse
+        seeded_login_attempts=$((seeded_login_attempts + 1))
         if ! run_private_login "seeded-account" "$email" "$password"; then
             prepare_locker_app_data
             configure_reverse
+            seeded_login_attempts=$((seeded_login_attempts + 1))
             if ! run_private_login "seeded-account" "$email" "$password"; then
                 login_ready=false
                 scenario_status=fail
@@ -507,8 +513,9 @@ if [[ "$fixture_applied" == true ]]; then
 fi
 clear_app_data
 {
-    printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true\n' \
-        "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count"
+    printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
+        "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count" \
+        "$empty_login_attempts" "$seeded_login_attempts"
     cat "$records_file"
 } > "$summary_file"
 
@@ -523,8 +530,9 @@ if grep --recursive --fixed-strings --quiet -- "$email" "$output_dir" ||
     exit 1
 fi
 
-printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true\n' \
-    "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count"
+printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
+    "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count" \
+    "$empty_login_attempts" "$seeded_login_attempts"
 if [[ "$suite_status" == "fail" ]]; then
     exit 1
 fi

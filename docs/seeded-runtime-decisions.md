@@ -48,6 +48,9 @@ Future flow promotion must preserve the single-fixture model:
 
 The current source-built independent APK passes the complete four-flow lane,
 including seeded collection/file visibility and settings-search semantics. The
-remaining release gate is to publish those app changes in one immutable APK and
-repeat the proof against that exact asset; resetting the backend is not part of
-that validation.
+2026-08-06 local proof completed both empty and seeded login on the first
+attempt. The shared login helper accepts the stable seeded-home search semantic
+as well as the empty-home save actions; a bounded same-account retry remains
+only as an observable emulator/network fallback. The remaining release gate is
+to publish those app changes in one immutable APK and repeat the proof against
+that exact asset; resetting the backend is not part of that validation.

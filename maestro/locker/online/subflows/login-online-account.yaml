@@ -15,5 +15,5 @@ appId: ${APP_ID}
 - inputText: ${USER_PASSWORD}
 - tapOn: done
 - extendedWaitUntil:
-    visible: ".*(Add item|Save to Locker).*"
+    visible: ".*(Search your documents|Add item|Save to Locker).*"
     timeout: 90000
