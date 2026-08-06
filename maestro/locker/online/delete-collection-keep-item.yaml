@@ -14,6 +14,10 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
+- scrollUntilVisible:
+    element: "Office Equipment\\n.*items"
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Office Equipment\\n.*items"
 - extendedWaitUntil:
     visible: Spare Monitor
@@ -24,6 +28,10 @@ appId: ${APP_ID}
     timeout: 10000
 
 # Delete only the seeded collection, retaining the seeded file.
+- scrollUntilVisible:
+    element: "Office Equipment\\n.*items"
+    direction: DOWN
+    timeout: 10000
 - longPressOn: "Office Equipment\\n.*items"
 - extendedWaitUntil:
     visible: Delete
@@ -40,7 +48,7 @@ appId: ${APP_ID}
     timeout: 20000
 - assertNotVisible: "Office Equipment\\n.*items"
 
-# The item must remain on the shared online account after deleting only its collection.
+# The item must remain on the single online account after deleting only its collection.
 - tapOn: Back
 - extendedWaitUntil:
     visible: Spare Monitor
@@ -53,6 +61,10 @@ appId: ${APP_ID}
 - tapOn: All collections
 - extendedWaitUntil:
     visible: Collections
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Uncategorized\\n.*items"
+    direction: DOWN
     timeout: 10000
 - tapOn: "Uncategorized\\n.*items"
 - extendedWaitUntil:

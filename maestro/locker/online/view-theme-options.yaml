@@ -3,7 +3,7 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
 
 # Open Settings > Appearance/Theme and assert the safe theme choices.
@@ -29,6 +29,6 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
-- assertVisible: Save to Locker
+- assertVisible: Search your documents

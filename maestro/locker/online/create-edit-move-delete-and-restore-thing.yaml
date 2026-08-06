@@ -3,12 +3,12 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
-- assertVisible: Save to Locker
+- assertVisible: Search your documents
 
 # Create a fresh deterministic lifecycle item to avoid existing duplicate Thing rows.
-- tapOn: Save to Locker
+- tapOn: Add item
 - extendedWaitUntil:
     visible: |-
       Thing
@@ -21,24 +21,28 @@ appId: ${APP_ID}
     visible: Name of the real-world item
     timeout: 10000
 - inputText: Travel Suitcase
-- pressKey: Enter
-- inputText: Blue folder / Shelf A
-- pressKey: Enter
-- inputText: "Warranty card + backup key !@#"
-- hideKeyboard
-# Home Inventory and Storage Archive are shared online fixture collections.
 - scrollUntilVisible:
-    element: "Home Inventory\nHome Inventory"
+    element: Where is this item kept?
     direction: DOWN
     timeout: 10000
-- assertVisible:
-    text: "Home Inventory\nHome Inventory"
-    selected: false
+- tapOn: Where is this item kept?
+- inputText: Blue folder / Shelf A
+- scrollUntilVisible:
+    element: Additional information about the item
+    direction: DOWN
+    timeout: 10000
+- tapOn: Additional information about the item
+- inputText: "Warranty card + backup key !@#"
+- hideKeyboard
+# Archive and Moving Plans are seeded online fixture collections.
+- scrollUntilVisible:
+    element: "Archive\nArchive"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
-    text: "Home Inventory\nHome Inventory"
-    selected: false
+    text: "Archive\nArchive"
 - assertVisible:
-    text: "Home Inventory\nHome Inventory"
+    text: "Archive\nArchive"
     selected: true
 - tapOn: Save
 - extendedWaitUntil:
@@ -50,55 +54,47 @@ appId: ${APP_ID}
     timeout: 10000
 - assertVisible: Blue folder / Shelf A
 
-# Rename, update notes, and move from Home Inventory to Storage Archive.
+# Rename, update notes, and move from Archive to Moving Plans.
 - tapOn: Edit
 - extendedWaitUntil:
     visible: Save
     timeout: 10000
 - eraseText
-- inputText: Blue Suitcase
+- inputText: Travel Suitcase Updated
 - pressKey: Enter
 - eraseText
 - inputText: Blue folder / Shelf A moved updated
 - hideKeyboard
 - extendedWaitUntil:
     visible:
-      text: "Home Inventory\nHome Inventory"
+      text: "Archive\nArchive"
       selected: true
     timeout: 10000
-- scrollUntilVisible:
-    element: "Storage Archive\nStorage Archive"
-    direction: DOWN
-    timeout: 10000
 - tapOn:
-    text: "Storage Archive\nStorage Archive"
+    text: "Moving Plans\nMoving Plans"
     selected: false
 - assertVisible:
-    text: "Storage Archive\nStorage Archive"
+    text: "Moving Plans\nMoving Plans"
     selected: true
-- scrollUntilVisible:
-    element: "Home Inventory\nHome Inventory"
-    direction: UP
-    timeout: 10000
 - tapOn:
-    text: "Home Inventory\nHome Inventory"
+    text: "Archive\nArchive"
     selected: true
 - assertVisible:
-    text: "Home Inventory\nHome Inventory"
+    text: "Archive\nArchive"
     selected: false
 - tapOn: Save
 - extendedWaitUntil:
     visible: Edit
     timeout: 10000
-- assertVisible: Blue Suitcase
+- assertVisible: Travel Suitcase Updated
 - assertVisible: ".*moved updated.*"
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Blue Suitcase
+    visible: Travel Suitcase Updated
     timeout: 10000
 
 # Delete the renamed Thing to trash.
-- longPressOn: Blue Suitcase
+- longPressOn: Travel Suitcase Updated
 - extendedWaitUntil:
     visible: Delete
     timeout: 10000
@@ -110,34 +106,30 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Item deleted successfully
     timeout: 10000
-- assertNotVisible: Blue Suitcase
+- assertNotVisible: Travel Suitcase Updated
 
 # Open Trash, verify the item is view-only, and restore it to Home Inventory.
 - tapOn: Open navigation menu
 - tapOn: Trash
 - extendedWaitUntil:
-    visible: Blue Suitcase
+    visible: Travel Suitcase Updated
     timeout: 10000
-- tapOn: Blue Suitcase
+- tapOn: Travel Suitcase Updated
 - extendedWaitUntil:
     visible: ".*moved updated.*"
     timeout: 10000
 - assertNotVisible: Edit
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Blue Suitcase
+    visible: Travel Suitcase Updated
     timeout: 10000
-- longPressOn: Blue Suitcase
+- longPressOn: Travel Suitcase Updated
 - extendedWaitUntil:
     visible: Restore
     timeout: 10000
 - tapOn: Restore
 - extendedWaitUntil:
     visible: Add to collection
-    timeout: 10000
-- scrollUntilVisible:
-    element: "Home Inventory\nHome Inventory"
-    direction: DOWN
     timeout: 10000
 - tapOn:
     text: "Home Inventory\nHome Inventory"
@@ -155,7 +147,7 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Blue Suitcase
+    visible: Travel Suitcase Updated
     timeout: 10000
 # Prove the restored item belongs to the selected destination collection.
 - tapOn: Filters
@@ -168,9 +160,9 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: "Home Inventory\\n.*items"
 - extendedWaitUntil:
-    visible: Blue Suitcase
+    visible: Travel Suitcase Updated
     timeout: 10000
-- tapOn: Blue Suitcase
+- tapOn: Travel Suitcase Updated
 - extendedWaitUntil:
     visible: ".*moved updated.*"
     timeout: 10000

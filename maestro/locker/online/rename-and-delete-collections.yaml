@@ -1,22 +1,26 @@
 appId: ${APP_ID}
 ---
-# Seeded start state: Receipts Inbox is empty; Outdoor Gear contains Camping Tent.
+# Seeded start state: Account Recovery is empty; Outdoor Gear contains Camping Tent.
 - stopApp
 - launchApp
 - extendedWaitUntil:
     visible: Add item
     timeout: 30000
-- tapOn: Open navigation menu
+- tapOn: Filters
 - extendedWaitUntil:
-    visible: Collections
+    visible: All collections
     timeout: 10000
-- tapOn: Collections
+- tapOn: All collections
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
 
 # Exercise rename and delete against the seeded empty collection.
-- longPressOn: "Receipts Inbox\\n.*items"
+- scrollUntilVisible:
+    element: "Account Recovery\\n.*items"
+    direction: UP
+    timeout: 10000
+- longPressOn: "Account Recovery\\n.*items"
 - extendedWaitUntil:
     visible: Edit
     timeout: 10000
@@ -36,10 +40,15 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Delete
 - extendedWaitUntil:
-    notVisible: "Archived Receipts\\n.*items"
-    timeout: 15000
+    visible: Collection deleted successfully
+    timeout: 20000
+- assertNotVisible: "Archived Receipts\\n.*items"
 
 # A non-empty seeded collection must show the destructive choice; cancel it.
+- scrollUntilVisible:
+    element: "Outdoor Gear\\n.*items"
+    direction: DOWN
+    timeout: 10000
 - longPressOn: "Outdoor Gear\\n.*items"
 - extendedWaitUntil:
     visible: Delete
@@ -52,6 +61,6 @@ appId: ${APP_ID}
 - assertVisible: Yes, delete collection
 - back
 - extendedWaitUntil:
-    visible: Collections
+    visible: "Outdoor Gear\\n.*items"
     timeout: 10000
 - assertVisible: "Outdoor Gear\\n.*items"

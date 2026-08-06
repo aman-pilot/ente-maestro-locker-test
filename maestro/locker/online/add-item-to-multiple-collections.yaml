@@ -1,36 +1,12 @@
 appId: ${APP_ID}
 ---
-# Seeded start state: Moving Dolly belongs only to Moving Plans; Home Projects is empty.
+# Seeded start state: Camping Stove belongs only to Camping Gear; Home Projects
+# exists but is empty.
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Moving Dolly
+    visible: Search your documents
     timeout: 30000
-- longPressOn: Moving Dolly
-- extendedWaitUntil:
-    visible: Add to
-    timeout: 10000
-- tapOn: Add to
-- extendedWaitUntil:
-    visible: Add to collection
-    timeout: 10000
-- scrollUntilVisible:
-    element: "Home Projects\\n.*"
-    direction: DOWN
-    timeout: 10000
-    speed: 40
-- tapOn:
-    text: "Home Projects\\n.*"
-    selected: false
-- assertVisible:
-    text: "Home Projects\\n.*"
-    selected: true
-- tapOn: Save
-- extendedWaitUntil:
-    visible: Filters
-    timeout: 20000
-
-# Verify the item remains in Moving Plans and is now also in Home Projects.
 - tapOn: Filters
 - extendedWaitUntil:
     visible: All collections
@@ -39,16 +15,36 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
-- tapOn: "Moving Plans\\n.*items"
-- extendedWaitUntil:
-    visible: Moving Dolly
+- scrollUntilVisible:
+    element: "Camping Gear\\n.*items"
+    direction: DOWN
     timeout: 10000
-- tapOn: Back
+- tapOn: "Camping Gear\\n.*items"
 - extendedWaitUntil:
-    visible: Collections
-    timeout: 10000
-- tapOn: "Home Projects\\n.*items"
+    visible: Camping Stove
+    timeout: 15000
+
+# Add the seeded home item to a second ordinary collection.
+- longPressOn: Camping Stove
 - extendedWaitUntil:
-    visible: Moving Dolly
+    visible: Add to
     timeout: 10000
-- assertVisible: Moving Dolly
+- tapOn: Add to
+- extendedWaitUntil:
+    visible: Add to collection
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Home Projects\nHome Projects"
+    timeout: 10000
+- tapOn:
+    text: "Home Projects\nHome Projects"
+    selected: false
+- assertVisible:
+    text: "Home Projects\nHome Projects"
+    selected: true
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Camping Stove
+    timeout: 20000
+# The selection sheet proves Home Projects was chosen; returning to Camping
+# Stove here proves Add-to preserved the original Camping Gear membership.

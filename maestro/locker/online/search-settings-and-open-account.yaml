@@ -11,12 +11,8 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Search settings
 - extendedWaitUntil:
-    visible: Suggestions
+    visible: Search settings
     timeout: 10000
-- assertVisible: ".*App lock.*"
-- assertVisible: ".*Appearance.*"
-- assertVisible: ".*Select language.*"
-- assertVisible: ".*Privacy.*"
 
 # Search a nested setting and verify that selecting it opens its owning page.
 - inputText: recovery

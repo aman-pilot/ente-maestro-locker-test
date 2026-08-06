@@ -22,9 +22,9 @@ Snapshot: 2026-08-06
 | Profile/reset orchestration | Scenario-to-profile mappings, baseline capture/restore code, and the reset-only hosted proof were removed. |
 | Seeded Android orchestration | Static and mocked tests prove one account, one fixture apply, zero backend resets, two cold-login boundaries, private login arguments, credential-free product invocation, and public per-boundary login-attempt counts. |
 | Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`; bounded retries reuse the same identity and never create another account. |
-| Exact-APK product entry | The manual workflow resolves and verifies the exact published APK, produces leakage-scanned JUnit, and has reached canonical product YAML for all four initial scenarios. |
-| Source-built seeded visibility | The four-flow online lane passed locally on API 35 ARM with source-built independent APK SHA-256 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`; seeded Note, Secret, and Thing search is visible after cold login, and both empty and seeded logins completed on attempt one. |
-| Source-built settings semantics | The same four-flow proof passed `Open navigation menu` and `Search settings` against the current Locker source build. |
+| Exact-APK product entry | The manual workflow resolves and verifies the exact published APK and produces leakage-scanned JUnit. |
+| Source-built seeded visibility | The narrowed 19-flow lane has green local evidence on API 35 ARM with source-built independent APK SHA-256 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`; the combined 19-flow rerun remains pending. |
+| Source-built settings semantics | The source proof passed `Open navigation menu` and `Search settings` against the current Locker source build. |
 | Published RC seeded visibility | Exact asset `502622451` (`locker-v1.0.8-rc`, SHA-256 `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`) passed empty home and seeded search locally on API 35 ARM, with both login boundaries completing on attempt one. |
 
 ## Open decisions and runtime proofs
@@ -32,7 +32,7 @@ Snapshot: 2026-08-06
 | Blocker | Required handling |
 | --- | --- |
 | Exact published seeded gate | Asset `502622451` contains the behavior needed for seeded search but not the `Open navigation menu` semantic needed by both settings flows. Publish a newer Locker APK containing the proven semantics change, rerun locally, then use the same immutable asset for hosted x86_64. |
-| Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally after the four-flow online gate. |
+| Product/nightly compatibility | Six normal flows remain targeted blockers, listed in `docs/normal-flow-status.md`; `rename-and-move-document` remains separately unresolved. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
 ## Current evidence boundary
@@ -47,12 +47,11 @@ Product YAML is present. Run `30888541387` used the retired reset-per-profile
 runner and is historical evidence only. It produced four product JUnit files:
 empty-home and account/security passed, while seeded search visibility and
 settings-search semantics failed on that historical APK. The online-only
-one-fixture lane now passes locally against the current source-built independent
-APK on API 35 ARM. The 2026-08-06 rerun recorded
-`empty_login_attempts=1` and `seeded_login_attempts=1`, confirming that the
-seeded-home readiness selector no longer needs the fallback retry. The complete
-lane remains unproven against a compatible immutable published asset and on the
-hosted x86_64 runner.
+one-fixture runner now owns a 19-flow proven lane against the current
+source-built independent APK on API 35 ARM. Its evidence combines the latest
+clean 19/25 execution with a later isolated Add-to pass; one final combined
+19-flow rerun remains pending. The complete lane also remains unproven against
+a compatible immutable published asset and on the hosted x86_64 runner.
 
 The 2026-08-06 local compatibility run against immutable published asset
 `502622451` passed empty home and seeded search, then failed both settings flows

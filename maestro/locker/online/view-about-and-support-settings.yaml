@@ -2,7 +2,7 @@ appId: ${APP_ID}
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
 
 # Open the Locker settings surface from home.
@@ -58,6 +58,6 @@ appId: ${APP_ID}
 # Return to home.
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
-- assertVisible: Save to Locker
+- assertVisible: Search your documents

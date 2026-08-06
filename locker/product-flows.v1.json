@@ -13,7 +13,7 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "1a516b8221edbe3f1ae102e5b1dd64a13ecfe68183926b41c598fc0bd83439ed",
+    "flowSetSha256": "796d5a68a6ab59cc776a0075b07844dcf8b21cd70d6f0b1275bdf99813e6feec",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
@@ -28,12 +28,7 @@
       "add-item-to-multiple-collections",
       "bulk-add-delete-and-restore-items",
       "change-language-and-restore-english",
-      "create-edit-move-delete-and-restore-secret",
-      "create-edit-move-delete-and-restore-thing",
-      "create-uncategorized-secret",
-      "create-uncategorized-thing",
       "delete-collection-keep-item",
-      "edit-emergency-contact",
       "empty-collection",
       "empty-home-and-save-options",
       "empty-trash",
@@ -41,7 +36,6 @@
       "logout",
       "mark-and-unmark-important",
       "permanently-delete-note",
-      "rename-and-delete-collections",
       "search-note-secret-and-thing",
       "search-settings-and-open-account",
       "search-with-no-results",
@@ -52,6 +46,12 @@
       "view-theme-options"
     ],
     "hostedUnresolved": {
+      "create-edit-move-delete-and-restore-secret": "Creation and collection-selection semantics still need an isolated green run.",
+      "create-edit-move-delete-and-restore-thing": "Creation and collection-selection semantics still need an isolated green run.",
+      "create-uncategorized-secret": "Save remained disabled during the latest local source-APK run.",
+      "create-uncategorized-thing": "Save remained disabled during the latest local source-APK run.",
+      "edit-emergency-contact": "The seeded edit form did not expose an enabled Save action in the latest local run.",
+      "rename-and-delete-collections": "Collection selection/navigation is locally flaky and has not repeated its earlier green result.",
       "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move."
     },
     "nativeSystemDeferred": {
@@ -66,7 +66,7 @@
       "manage-collection-public-link": "Requires a deliberate paid-product and public-link test environment."
     }
   },
-  "initialHostedLane": {
+  "hostedLane": {
     "mode": "online-only",
     "accountCount": 1,
     "fixtureApplications": 1,
@@ -74,9 +74,24 @@
     "seedBeforeFlow": "search-note-secret-and-thing",
     "flows": [
       "empty-home-and-save-options",
+      "empty-trash",
       "search-note-secret-and-thing",
+      "search-with-no-results",
       "view-account-and-security-settings",
-      "search-settings-and-open-account"
+      "search-settings-and-open-account",
+      "view-about-and-support-settings",
+      "view-theme-options",
+      "change-language-and-restore-english",
+      "empty-collection",
+      "filter-items-by-collection",
+      "view-collection-and-item-action-menus",
+      "add-item-to-multiple-collections",
+      "mark-and-unmark-important",
+      "select-all-and-mark-important",
+      "bulk-add-delete-and-restore-items",
+      "delete-collection-keep-item",
+      "permanently-delete-note",
+      "logout"
     ]
   }
 }

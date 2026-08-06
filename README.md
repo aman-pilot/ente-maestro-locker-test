@@ -43,6 +43,16 @@ scripts/run-locker-seeded-suite.sh \
   --serial emulator-5554
 ```
 
+While repairing one flow, run only that canonical YAML and leave the complete
+lane for the final gate:
+
+```sh
+scripts/run-locker-seeded-suite.sh \
+  --only-flow add-item-to-multiple-collections \
+  --apk /absolute/path/to/locker.apk \
+  --serial emulator-5554
+```
+
 The authenticated runner owns the disposable stack, app-data clearing, endpoint
 configuration, same-account login, one fixture application, product-flow order,
 credential redaction, and cleanup. Its public summary reports account, fixture,
@@ -54,23 +64,21 @@ gate.
 
 ## Latest verified coverage
 
-This is the post-run record of what is currently green.
+This is the post-run record of what is currently green. The exact per-flow list
+and deferred blockers are maintained in
+[Locker normal-flow status](docs/normal-flow-status.md).
 
 ### Local Android online coverage
 
 The latest clean authenticated run completed on 2026-08-06 using Android API 35
 ARM64, Maestro `2.6.1`, and source-built independent APK SHA-256
 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
-It created one account, applied one fixture, performed no backend resets, kept
-the same account identity, and completed both empty and seeded login on their
-first attempts.
-
-| Flow | Verified behavior |
-| --- | --- |
-| Empty online account | Signs into the empty account and verifies the empty home plus Locker save options. |
-| Seeded search | Applies the shared encrypted fixture once, clears only app data, signs back into the same account, and finds the expected note, secret, and thing. |
-| Account and Security settings | Reuses the seeded session and verifies the synchronized Account and Security settings surfaces. |
-| Settings search | Reuses the same backend state and opens Account through settings search semantics. |
+The latest clean combined execution passed 19 of 25 normal flows. A later
+isolated run made `add-item-to-multiple-collections` green. The default lane is
+therefore narrowed to the 19 flows with concrete green evidence; six flaky or
+unverified normal flows remain canonical but are classified as unresolved.
+Every run still creates one account, applies one fixture, performs no backend
+reset, and keeps the same account identity.
 
 ### Local Android published-build compatibility
 
@@ -91,7 +99,7 @@ The account-free onboarding flow passed hosted Android API 34 x86_64 against
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
 with Maestro `2.6.1`.
 
-The authenticated four-flow lane has not yet been claimed green on hosted
+The authenticated 19-flow lane has not yet been claimed green on hosted
 x86_64 or against an immutable published Locker APK. Publish a newer APK with
 the proven navigation-menu semantics before running the manual
 `Locker Android seeded proof` workflow. Once it passes, record the exact run
@@ -101,25 +109,28 @@ evidence format.
 ### Not yet green or intentionally deferred
 
 - Publish a Locker APK containing the proven `Open navigation menu` semantic,
-  rerun the four-flow lane locally, then repeat it on hosted Android API 34
+  rerun the proven lane locally, then repeat it on hosted Android API 34
   x86_64.
+- Complete the six targeted normal-flow fixes listed in
+  [Locker normal-flow status](docs/normal-flow-status.md).
 - `rename-and-move-document` remains unresolved because Museum recorded the
   collection move while the renamed value was absent after save and relaunch.
 - Native document picker/preview/download flows remain local platform work.
 - Network/platform-state validation and the paid public-link flow remain
   deferred. Locker has no offline account mode.
-- Expand the initial hosted lane only after the four-flow published-build gate
-  is green; all 31 canonical product YAML files are already preserved.
+- All 31 canonical product YAML files remain preserved even when a flow is not
+  in the proven hosted lane.
 
 ## Runtime model
 
-The initial authenticated lane is deliberately sequential:
+The authenticated lane is deliberately sequential:
 
 1. Log into the empty online account and verify empty home.
-2. Apply the shared search fixture once.
-3. Clear app data, log back into the same account, and verify seeded search.
-4. Reuse that session and backend state for the two settings flows.
-5. Remove the disposable stack when the job ends.
+2. Run all proven empty-account flows.
+3. Apply the shared online fixture once.
+4. Clear app data and log back into the same account.
+5. Run the ordered seeded product flows, with logout last.
+6. Remove the disposable stack when the job ends.
 
 There is no profile-per-flow account reset. Private credentials, account
 contexts, Maestro login arguments, run records, and debug output remain outside

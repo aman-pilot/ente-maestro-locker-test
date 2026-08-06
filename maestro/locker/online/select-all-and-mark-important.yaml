@@ -2,6 +2,19 @@ appId: ${APP_ID}
 ---
 - stopApp
 - launchApp
+# Scope Select all to the shared Camping Gear fixture so other hosted-fixture
+# items on the same account cannot change the expected selection count.
+- extendedWaitUntil:
+    visible: Filters
+    timeout: 30000
+- tapOn: Filters
+- extendedWaitUntil:
+    visible: All collections
+    timeout: 10000
+- tapOn: |-
+    Camping Gear
+    Camping Gear
+- back
 - extendedWaitUntil:
     visible: Camping Stove
     timeout: 30000
@@ -53,3 +66,19 @@ appId: ${APP_ID}
     visible: Camping Stove
     timeout: 10000
 - assertVisible: Sleeping Bag
+
+# Return to unfiltered home for the next flow in the same-account lane.
+- tapOn: Back
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: Back
+- runFlow:
+    when:
+      visible: All collections
+    commands:
+      - tapOn: Clear all
+      - back
+- extendedWaitUntil:
+    visible: Search your documents
+    timeout: 10000

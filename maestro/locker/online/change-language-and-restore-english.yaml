@@ -31,5 +31,5 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000

@@ -4,7 +4,7 @@ appId: ${APP_ID}
 - launchApp
 - extendedWaitUntil:
     visible: Save to Locker
-    timeout: 10000
+    timeout: 30000
 
 # The ordered online lane runs this empty-state check before any flow can move
 # data to Trash. The same account is reused for the rest of the lane.

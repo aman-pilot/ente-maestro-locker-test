@@ -17,3 +17,8 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: ".*(Search your documents|Add item|Save to Locker).*"
     timeout: 90000
+- extendedWaitUntil:
+    notVisible: "Syncing..."
+    timeout: 90000
+- assertNotVisible: Something went wrong
+- assertNotVisible: ".*collection sync cursor was not advanced.*"

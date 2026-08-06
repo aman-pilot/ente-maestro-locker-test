@@ -397,6 +397,35 @@ async fn ensure_special_collection(
         collections.insert(fixture_ref.to_owned(), existing);
         return Ok(());
     }
+
+    let mut matching_remote = client
+        .collections()
+        .await?
+        .into_iter()
+        .filter(|collection| {
+            !collection.is_deleted && collection.collection_type == collection_type
+        });
+    if let Some(remote) = matching_remote.next() {
+        if matching_remote.next().is_some() {
+            bail!("account has multiple active {collection_type} collections");
+        }
+        let key = MuseumClient::decrypt_collection_key(&remote, master_key)?;
+        let remote_name = MuseumClient::decrypt_collection_name(&remote, &key)?;
+        if remote_name != name {
+            bail!("existing {collection_type} collection is named {remote_name}, expected {name}");
+        }
+        collections.insert(
+            fixture_ref.to_owned(),
+            SeededCollection {
+                id: remote.id,
+                name: remote_name,
+                collection_type: remote.collection_type,
+                key,
+            },
+        );
+        return Ok(());
+    }
+
     let (id, key) = client
         .create_collection(name, collection_type, master_key)
         .await?;
@@ -460,7 +489,10 @@ async fn verify_seed(
             .ok_or_else(|| anyhow!("seeded collection {} was not returned", collection.id))?;
         let key = MuseumClient::decrypt_collection_key(remote, master_key)?;
         let name = MuseumClient::decrypt_collection_name(remote, &key)?;
-        if name != collection.name || remote.collection_type != collection.collection_type {
+        if name != collection.name
+            || remote.collection_type != collection.collection_type
+            || key.as_bytes() != collection.key.as_bytes()
+        {
             bail!(
                 "collection {} failed encrypted read-back verification",
                 collection.id
@@ -642,9 +674,9 @@ fn validate_additional_collections(collections: &BTreeSet<(String, String)>) -> 
         .into_iter()
         .map(|(name, collection_type)| (name.to_owned(), collection_type.to_owned()))
         .collect::<BTreeSet<_>>();
-    if collections != &expected {
+    if !collections.is_subset(&expected) {
         bail!(
-            "account has collections outside the online fixture and Locker defaults: expected {:?}, found {:?}",
+            "account has collections outside the online fixture and allowed Locker defaults: allowed {:?}, found {:?}",
             expected,
             collections
         );
@@ -811,7 +843,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_only_complete_locker_default_collection_set() {
+    fn accepts_any_lazily_created_locker_default_collection_subset() {
         let defaults = LOCKER_DEFAULT_COLLECTIONS
             .into_iter()
             .map(|(name, collection_type)| (name.to_owned(), collection_type.to_owned()))
@@ -821,7 +853,7 @@ mod tests {
         validate_additional_collections(&defaults).unwrap();
 
         let partial = defaults.iter().take(2).cloned().collect::<BTreeSet<_>>();
-        assert!(validate_additional_collections(&partial).is_err());
+        validate_additional_collections(&partial).unwrap();
 
         let mut unexpected = defaults;
         unexpected.insert(("Residue".to_owned(), "folder".to_owned()));

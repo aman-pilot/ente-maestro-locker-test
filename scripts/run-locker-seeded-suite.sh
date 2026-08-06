@@ -23,6 +23,8 @@ clears.
 
 Options:
   --apk <path>          Exact Locker APK to install once (required).
+  --only-flow <name>    Local debugging mode: run one registered product flow.
+                        Non-empty flows still get the combined fixture first.
   --seeder <path>       locker-seed executable. Defaults to LOCKER_SEED_BIN or
                         builds the workspace debug binary.
   --maestro <path>      Maestro executable. Defaults to MAESTRO_BIN or maestro.
@@ -35,6 +37,7 @@ EOF
 }
 
 apk_path=""
+only_flow=""
 seeder_bin="${LOCKER_SEED_BIN:-}"
 maestro_bin="${MAESTRO_BIN:-maestro}"
 serial="${ANDROID_SERIAL:-}"
@@ -45,6 +48,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --apk)
             apk_path="${2:?--apk requires a path}"
+            shift 2
+            ;;
+        --only-flow)
+            only_flow="${2:?--only-flow requires a scenario name}"
             shift 2
             ;;
         --seeder)
@@ -261,13 +268,37 @@ trap 'exit 143' TERM
 mkdir -p "$private_logs" "$private_runs" "$private_maestro" "$results_dir"
 output_owned=true
 
-scenarios=()
+registered_scenarios=()
 while IFS= read -r scenario; do
-    [[ -n "$scenario" ]] && scenarios+=("$scenario")
-done < <(jq --exit-status --raw-output '.initialHostedLane.flows[]' "$flow_registry")
-if [[ ${#scenarios[@]} -ne 4 ]]; then
-    printf 'The audited online lane must contain exactly four flows\n' >&2
+    [[ -n "$scenario" ]] && registered_scenarios+=("$scenario")
+done < <(jq --exit-status --raw-output '.hostedLane.flows[]' "$flow_registry")
+if [[ ${#registered_scenarios[@]} -ne 19 ]]; then
+    printf 'The audited online lane must contain all 19 proven hosted flows\n' >&2
     exit 2
+fi
+
+scenarios=("${registered_scenarios[@]}")
+if [[ -n "$only_flow" ]]; then
+    targetable_scenarios=()
+    while IFS= read -r scenario; do
+        [[ -n "$scenario" ]] && targetable_scenarios+=("$scenario")
+    done < <(
+        jq --exit-status --raw-output \
+            '.classifications.hostedCandidate[], (.classifications.hostedUnresolved | keys[])' \
+            "$flow_registry"
+    )
+    flow_registered=false
+    for scenario in "${targetable_scenarios[@]}"; do
+        if [[ "$scenario" == "$only_flow" ]]; then
+            flow_registered=true
+            break
+        fi
+    done
+    if [[ "$flow_registered" != true ]]; then
+        printf 'Unknown registered Locker flow: %s\n' "$only_flow" >&2
+        exit 2
+    fi
+    scenarios=("$only_flow")
 fi
 
 declare -a flows=()
@@ -280,12 +311,21 @@ for scenario in "${scenarios[@]}"; do
     flows+=("$flow")
 done
 
-readonly seed_before_flow="$(jq --exit-status --raw-output '.initialHostedLane.seedBeforeFlow' "$flow_registry")"
+registry_seed_before_flow="$(jq --exit-status --raw-output '.hostedLane.seedBeforeFlow' "$flow_registry")"
+seed_before_flow="$registry_seed_before_flow"
+if [[ -n "$only_flow" && "$only_flow" != "empty-home-and-save-options" && "$only_flow" != "empty-trash" ]]; then
+    seed_before_flow="$only_flow"
+fi
+readonly registry_seed_before_flow seed_before_flow
 readonly manifest_relative="$(jq --exit-status --raw-output '.onlineFixture.manifest' "$catalog")"
 readonly manifest="$workspace_root/locker/$manifest_relative"
 if [[ ! " ${scenarios[*]} " =~ " $seed_before_flow " ]] || [[ ! -f "$manifest" ]]; then
-    printf 'The online lane seed boundary or shared fixture is invalid\n' >&2
-    exit 2
+    if [[ -n "$only_flow" && ( "$only_flow" == "empty-home-and-save-options" || "$only_flow" == "empty-trash" ) && -f "$manifest" ]]; then
+        :
+    else
+        printf 'The online lane seed boundary or shared fixture is invalid\n' >&2
+        exit 2
+    fi
 fi
 
 if [[ -n "$(docker ps --all --quiet --filter "label=com.docker.compose.project=$compose_project")" ]] ||
@@ -407,18 +447,25 @@ login_failure_category=none
 empty_login_attempts=0
 seeded_login_attempts=0
 
-current_phase=empty-account-login
-prepare_locker_app_data
-configure_reverse
-empty_login_attempts=$((empty_login_attempts + 1))
-if ! run_private_login "empty-account" "$email" "$password"; then
-    # A clean same-account retry absorbs occasional emulator focus/network
-    # startup flakes without changing the account or backend state.
+requires_empty_login=true
+if [[ -n "$only_flow" && "$only_flow" != "empty-home-and-save-options" && "$only_flow" != "empty-trash" ]]; then
+    requires_empty_login=false
+fi
+
+if [[ "$requires_empty_login" == true ]]; then
+    current_phase=empty-account-login
     prepare_locker_app_data
     configure_reverse
     empty_login_attempts=$((empty_login_attempts + 1))
     if ! run_private_login "empty-account" "$email" "$password"; then
-        login_ready=false
+        # A clean same-account retry absorbs occasional emulator focus/network
+        # startup flakes without changing the account or backend state.
+        prepare_locker_app_data
+        configure_reverse
+        empty_login_attempts=$((empty_login_attempts + 1))
+        if ! run_private_login "empty-account" "$email" "$password"; then
+            login_ready=false
+        fi
     fi
 fi
 

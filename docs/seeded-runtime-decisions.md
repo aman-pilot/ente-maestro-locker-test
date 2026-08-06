@@ -17,23 +17,24 @@ fixture profile assigned per flow.
   deliberate order.
 - The complete disposable stack is removed at job completion.
 
-The catalog no longer maps scenarios to fixture profiles. The 21 inactive
-manifests are retained as reference inputs while later canonical flows are
-reworked to reuse the shared fixture or create their own uniquely named data.
+The catalog no longer maps scenarios to fixture profiles. Inactive manifests
+are retained as reference inputs while unresolved canonical flows are reworked
+to reuse the shared fixture or create their own uniquely named data.
 
-## Initial hosted lane
+## Proven hosted lane
 
-The first lane runs:
+The lane runs:
 
-1. `empty-home-and-save-options` on the empty account.
-2. Apply `manifests/search-note-secret-and-thing.json` once.
+1. The two proven empty-account flows.
+2. Apply `manifests/hosted-online.json` once.
 3. Clear app data and cold-login to the same account.
-4. `search-note-secret-and-thing`.
-5. `view-account-and-security-settings`.
-6. `search-settings-and-open-account`.
+4. The ordered seeded flows in `locker/product-flows.v1.json`, ending in
+   `logout`.
 
 There is no PostgreSQL template capture, MinIO reset, or account restoration
 between those flows. Backend state lives only for the duration of the job.
+The 19 included flows and six targeted normal-flow blockers are listed in
+[`normal-flow-status.md`](normal-flow-status.md).
 
 ## Expanding the lane
 
@@ -46,11 +47,11 @@ Future flow promotion must preserve the single-fixture model:
 - use unique names for data that is not intentionally shared;
 - run logout last or explicitly cold-login afterward.
 
-The current source-built independent APK passes the complete four-flow lane,
-including seeded collection/file visibility and settings-search semantics. The
-2026-08-06 local proof completed both empty and seeded login on the first
-attempt. The shared login helper accepts the stable seeded-home search semantic
-as well as the empty-home save actions; a bounded same-account retry remains
-only as an observable emulator/network fallback. The remaining release gate is
-to publish those app changes in one immutable APK and repeat the proof against
-that exact asset; resetting the backend is not part of that validation.
+The 2026-08-06 source-APK evidence proves the 19 flows in the narrowed lane,
+using a clean combined run plus an isolated green Add-to run. A combined rerun
+of the narrowed lane remains the next runtime gate. The shared login helper
+accepts the stable seeded-home search semantic as well as the empty-home save
+actions; a bounded same-account retry remains only as an observable
+emulator/network fallback. The later release gate is to publish the needed app
+semantics in one immutable APK and repeat the proof against that exact asset;
+resetting the backend is not part of that validation.

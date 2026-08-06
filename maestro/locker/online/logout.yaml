@@ -2,7 +2,7 @@ appId: ${APP_ID}
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Save to Locker
+    visible: Search your documents
     timeout: 10000
 - tapOn: Open navigation menu
 - scrollUntilVisible:
@@ -19,4 +19,4 @@ appId: ${APP_ID}
     visible: Login to existing account
     timeout: 20000
 - assertVisible: Login to existing account
-- assertNotVisible: Save to Locker
+- assertNotVisible: Search your documents

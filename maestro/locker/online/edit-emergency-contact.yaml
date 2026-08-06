@@ -33,6 +33,16 @@ appId: ${APP_ID}
 - eraseText
 - inputText: Call during the fixture test before travel
 - hideKeyboard
+- swipe:
+    direction: UP
+    duration: 800
+- tapOn: "Archive\nArchive"
+- assertVisible:
+    text: "Archive\nArchive"
+    selected: true
+- extendedWaitUntil:
+    visible: Save
+    timeout: 15000
 - tapOn: Save
 - extendedWaitUntil:
     visible: Edit

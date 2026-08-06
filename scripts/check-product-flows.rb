@@ -36,8 +36,8 @@ paid = classes.fetch("paidDeferred").keys
 classified = hosted + unresolved + native + platform_state + paid
 fail_check("scenario classifications contain duplicates") unless classified.uniq.length == classified.length
 
-fail_check("expected 25 hosted candidates") unless hosted.length == 25
-fail_check("expected one unresolved core flow") unless unresolved.length == 1
+fail_check("expected 19 proven hosted candidates") unless hosted.length == 19
+fail_check("expected seven unresolved core flows") unless unresolved.length == 7
 fail_check("expected three native-system flows") unless native.length == 3
 fail_check("expected one deferred platform-state flow") unless platform_state.length == 1
 fail_check("expected one paid flow") unless paid.length == 1
@@ -93,12 +93,27 @@ actual_flow_set_hash = Digest::SHA256.hexdigest(flow_lines)
 expected_flow_set_hash = registry.dig("import", "flowSetSha256")
 fail_check("canonical flow-set hash differs from provenance") unless actual_flow_set_hash == expected_flow_set_hash
 
-initial_lane = registry.fetch("initialHostedLane")
-expected_initial_flows = %w[
+hosted_lane = registry.fetch("hostedLane")
+expected_hosted_flows = %w[
   empty-home-and-save-options
+  empty-trash
   search-note-secret-and-thing
+  search-with-no-results
   view-account-and-security-settings
   search-settings-and-open-account
+  view-about-and-support-settings
+  view-theme-options
+  change-language-and-restore-english
+  empty-collection
+  filter-items-by-collection
+  view-collection-and-item-action-menus
+  add-item-to-multiple-collections
+  mark-and-unmark-important
+  select-all-and-mark-important
+  bulk-add-delete-and-restore-items
+  delete-collection-keep-item
+  permanently-delete-note
+  logout
 ]
 expected_lane_contract = {
   "mode" => "online-only",
@@ -106,12 +121,13 @@ expected_lane_contract = {
   "fixtureApplications" => 1,
   "backendResets" => 0,
   "seedBeforeFlow" => "search-note-secret-and-thing",
-  "flows" => expected_initial_flows
+  "flows" => expected_hosted_flows
 }
-fail_check("initial hosted lane differs from the audited online-only contract") unless initial_lane == expected_lane_contract
+fail_check("hosted lane differs from the audited online-only contract") unless hosted_lane == expected_lane_contract
 fail_check("catalog online fixture must be applied once") unless catalog.dig("onlineFixture", "applyCount") == 1
-initial_lane.fetch("flows").each do |scenario_id|
-  fail_check("initial lane contains a non-hosted scenario: #{scenario_id}") unless hosted.include?(scenario_id)
+fail_check("hosted lane must contain every hosted candidate exactly once") unless hosted_lane.fetch("flows").sort == hosted.sort
+hosted_lane.fetch("flows").each do |scenario_id|
+  fail_check("hosted lane contains a non-hosted scenario: #{scenario_id}") unless hosted.include?(scenario_id)
 end
 
 puts "Locker product flows are canonical: #{on_disk.length} YAML files (#{hosted.length} hosted candidates, #{classified.length - hosted.length} deferred or unresolved)"

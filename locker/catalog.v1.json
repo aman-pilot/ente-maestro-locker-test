@@ -6,17 +6,40 @@
     "contract": "One synthetic online account is created for an isolated run. The shared fixture is applied once, related flows reuse its backend state, and the disposable stack is removed after the lane."
   },
   "onlineFixture": {
-    "manifest": "manifests/search-note-secret-and-thing.json",
+    "manifest": "manifests/hosted-online.json",
     "applyCount": 1,
     "collections": [
+      "Account Recovery",
       "Archive",
+      "Camping Gear",
+      "Emergency Planning",
+      "Garage Equipment",
       "Home Inventory",
-      "Secure Archive"
+      "Home Projects",
+      "Moving Plans",
+      "Office Equipment",
+      "Outdoor Gear",
+      "Personal Records",
+      "Receipts Inbox",
+      "Secure Archive",
+      "Storage Archive",
+      "Travel Archive",
+      "Weekend Trips"
     ],
     "items": [
       "Blue Suitcase",
+      "Camping Stove",
+      "Camping Tent",
+      "Dr. Maya Patel",
+      "Expired Lease Checklist",
+      "Extension Ladder",
+      "Fireproof Document Box",
       "GitHub Recovery Codes",
-      "Passport Renewal Checklist"
+      "Home Warranty Index",
+      "Moving Dolly",
+      "Passport Renewal Checklist",
+      "Sleeping Bag",
+      "Spare Monitor"
     ]
   },
   "referenceManifests": [
@@ -35,6 +58,7 @@
     "manifests/permanently-delete-note.json",
     "manifests/rename-and-delete-collections.json",
     "manifests/rename-and-move-document.json",
+    "manifests/search-note-secret-and-thing.json",
     "manifests/search-with-no-results.json",
     "manifests/secret-actions.json",
     "manifests/thing-actions.json",
