@@ -25,12 +25,13 @@ Snapshot: 2026-08-06
 | Exact-APK product entry | The manual workflow resolves and verifies the exact published APK, produces leakage-scanned JUnit, and has reached canonical product YAML for all four initial scenarios. |
 | Source-built seeded visibility | The four-flow online lane passed locally on API 35 ARM with source-built independent APK SHA-256 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`; seeded Note, Secret, and Thing search is visible after cold login, and both empty and seeded logins completed on attempt one. |
 | Source-built settings semantics | The same four-flow proof passed `Open navigation menu` and `Search settings` against the current Locker source build. |
+| Published RC seeded visibility | Exact asset `502622451` (`locker-v1.0.8-rc`, SHA-256 `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`) passed empty home and seeded search locally on API 35 ARM, with both login boundaries completing on attempt one. |
 
 ## Open decisions and runtime proofs
 
 | Blocker | Required handling |
 | --- | --- |
-| Exact published seeded gate | Publish one Locker APK containing the proven collection-sync and semantics changes, then rerun the same four-flow workflow against that immutable asset. The local source-built pass is not release provenance. |
+| Exact published seeded gate | Asset `502622451` contains the behavior needed for seeded search but not the `Open navigation menu` semantic needed by both settings flows. Publish a newer Locker APK containing the proven semantics change, rerun locally, then use the same immutable asset for hosted x86_64. |
 | Product/nightly compatibility | Remaining collection, Trash, selector, and rename/move candidates must be promoted incrementally after the four-flow online gate. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
@@ -49,5 +50,11 @@ settings-search semantics failed on that historical APK. The online-only
 one-fixture lane now passes locally against the current source-built independent
 APK on API 35 ARM. The 2026-08-06 rerun recorded
 `empty_login_attempts=1` and `seeded_login_attempts=1`, confirming that the
-seeded-home readiness selector no longer needs the fallback retry. It remains
-unproven against an immutable published asset and on the hosted x86_64 runner.
+seeded-home readiness selector no longer needs the fallback retry. The complete
+lane remains unproven against a compatible immutable published asset and on the
+hosted x86_64 runner.
+
+The 2026-08-06 local compatibility run against immutable published asset
+`502622451` passed empty home and seeded search, then failed both settings flows
+at `Open navigation menu`. A hosted run was intentionally not started because
+it would exercise the same known-incompatible APK.

@@ -72,6 +72,18 @@ first attempts.
 | Account and Security settings | Reuses the seeded session and verifies the synchronized Account and Security settings surfaces. |
 | Settings search | Reuses the same backend state and opens Account through settings search semantics. |
 
+### Local Android published-build compatibility
+
+The same lane ran locally against exact published release-candidate
+`locker-v1.0.8-rc`, asset `502622451`, created 2026-08-05 12:56:34 UTC,
+filename `ente-locker-v1.0.8.apk`, SHA-256
+`a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`.
+Empty home and seeded search passed on their first login attempts. Both settings
+flows failed because that APK does not expose the expected
+`Open navigation menu` accessibility semantic. This result proves the fixture
+and synchronized search against a published build, but it is not a complete
+four-flow pass and is not hosted evidence.
+
 ### Hosted Android CI (published build)
 
 The account-free onboarding flow passed hosted Android API 34 x86_64 against
@@ -80,15 +92,17 @@ The account-free onboarding flow passed hosted Android API 34 x86_64 against
 with Maestro `2.6.1`.
 
 The authenticated four-flow lane has not yet been claimed green on hosted
-x86_64 or against an immutable published Locker APK. The manual
-`Locker Android seeded proof` workflow is the next release gate; once it passes,
-record the exact run URL, APK asset ID, creation time, and digest here, following
-the Auth README evidence format.
+x86_64 or against an immutable published Locker APK. Publish a newer APK with
+the proven navigation-menu semantics before running the manual
+`Locker Android seeded proof` workflow. Once it passes, record the exact run
+URL, APK asset ID, creation time, and digest here, following the Auth README
+evidence format.
 
 ### Not yet green or intentionally deferred
 
-- Repeat the four-flow authenticated proof against one exact published Locker
-  APK on hosted Android API 34 x86_64.
+- Publish a Locker APK containing the proven `Open navigation menu` semantic,
+  rerun the four-flow lane locally, then repeat it on hosted Android API 34
+  x86_64.
 - `rename-and-move-document` remains unresolved because Museum recorded the
   collection move while the renamed value was absent after save and relaunch.
 - Native document picker/preview/download flows remain local platform work.
