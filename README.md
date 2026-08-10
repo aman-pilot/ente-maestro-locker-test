@@ -120,17 +120,35 @@ The account-free onboarding flow passed hosted Android API 34 x86_64 against
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
 with Maestro `2.6.1`.
 
-The authenticated 20-flow lane is green locally but has not yet been claimed
-green on hosted x86_64 or against an immutable published Locker APK. The manual
-`Locker Android seeded proof` workflow is the next gate. Once it passes, record
-the exact run URL, APK asset ID, creation time, and digest here, following the
-Auth README evidence format.
+The latest authenticated hosted attempt used Android API 34 x86_64 and Maestro
+`2.6.1`. The reusable release tag is not sufficient provenance, so the exact
+asset timestamp, ID, and digest are recorded below.
+
+| Build name | Asset created | Asset ID | SHA-256 |
+| --- | --- | --- | --- |
+| `ente-locker-v1.0.8.apk` | 2026-08-05 12:56:34 UTC<br>2026-08-05 18:26:34 IST | `502622451` | `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4` |
+
+The manual published-build proof completed on 2026-08-10 UTC
+([run 31366400340](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31366400340)).
+It is a failed diagnostic run, not a green badge: 6 of 20 flows passed and 14
+failed. The runner still created one account, applied one fixture, performed no
+backend reset, preserved the identity, and completed both login boundaries on
+attempt one. Nine failures are caused by the RC lacking the canonical
+`Open navigation menu` semantic. The other five are published-build state or
+visibility mismatches in seeded search, collection actions, bulk lifecycle,
+delete-collection retention, and Emergency Contact.
+
+This proves that the exact-asset resolver, checksum verification, hosted
+emulator, disposable stack, account/fixture lifecycle, JUnit upload, and cleanup
+all execute on hosted x86_64. It does not prove the 20-flow product lane against
+a compatible published Locker build.
 
 ### Not yet green or intentionally deferred
 
 - Prove the same 20-flow lane against one immutable published Locker APK on
-  hosted Android API 34 x86_64. The older published RC lacked the locally
-  proven `Open navigation menu` semantic.
+  hosted Android API 34 x86_64. Run `31366400340` proves the current published
+  RC is incompatible: 6 flows passed and 14 failed, including 9 failures caused
+  by its missing `Open navigation menu` semantic.
 - Complete the five targeted normal-flow fixes listed in
   [Locker normal-flow status](docs/normal-flow-status.md).
 - `rename-and-move-document` remains unresolved because Museum recorded the

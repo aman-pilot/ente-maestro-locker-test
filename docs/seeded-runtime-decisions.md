@@ -53,5 +53,8 @@ no backend reset, unchanged identity, and both logins on attempt one. The shared
 accepts the stable seeded-home search semantic as well as the empty-home save
 actions; a bounded same-account retry remains only as an observable
 emulator/network fallback. The later release gate is to publish the needed app
-semantics in one immutable APK and repeat the proof against that exact asset;
-resetting the backend is not part of that validation.
+semantics in one immutable APK and repeat the proof against that exact asset.
+Hosted run `31366400340` confirmed that the currently resolved RC is not that
+asset: 6 of 20 flows passed and 14 failed on API 34 x86_64, while the one-account
+and one-fixture invariants held. Resetting the backend is not part of that
+validation.

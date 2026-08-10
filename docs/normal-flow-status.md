@@ -36,6 +36,31 @@ backend reset, kept the same identity, and completed both cold logins on attempt
 one. This is local evidence; hosted x86_64 and exact-published-APK proof remain
 separate gates.
 
+## Hosted published-build result
+
+Manual run
+[`31366400340`](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31366400340)
+executed all 20 flows on Android API 34 x86_64 with Maestro 2.6.1 against exact
+published asset `502622451`, SHA-256
+`a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`.
+Six flows passed:
+
+- `empty-home-and-save-options`
+- `search-with-no-results`
+- `filter-items-by-collection`
+- `add-item-to-multiple-collections`
+- `mark-and-unmark-important`
+- `select-all-and-mark-important`
+
+The remaining 14 failed. Nine require the canonical `Open navigation menu`
+semantic that is absent from this published RC. Seeded search readiness,
+collection action visibility, bulk item visibility, delete-collection item
+retention, and Emergency Contact also differed from the source-built proof.
+The account/fixture invariants remained valid: one account, one fixture
+application, zero backend resets, unchanged identity, and both login boundaries
+on attempt one. Treat this as hosted infrastructure proof and published-build
+compatibility evidence, not a green product lane.
+
 ## Normal flows deferred for targeted fixes
 
 | Flow | Current blocker |

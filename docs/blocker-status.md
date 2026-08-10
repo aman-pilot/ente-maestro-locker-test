@@ -31,7 +31,7 @@ Snapshot: 2026-08-10
 
 | Blocker | Required handling |
 | --- | --- |
-| Exact published seeded gate | Asset `502622451` contains the behavior needed for seeded search but not the `Open navigation menu` semantic needed by both settings flows. Publish a newer Locker APK containing the proven semantics change, rerun locally, then use the same immutable asset for hosted x86_64. |
+| Exact published seeded gate | Hosted run `31366400340` executed all 20 flows against asset `502622451` on API 34 x86_64. Six passed and 14 failed; nine failures came from the missing `Open navigation menu` semantic and five from other RC/state visibility mismatches. Publish a compatible Locker APK, prove it locally, then repeat the same immutable asset on hosted x86_64. |
 | Product/nightly compatibility | Five normal flows remain targeted blockers, listed in `docs/normal-flow-status.md`; `rename-and-move-document` remains separately unresolved. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
@@ -55,5 +55,8 @@ asset and on the hosted x86_64 runner.
 
 The 2026-08-06 local compatibility run against immutable published asset
 `502622451` passed empty home and seeded search, then failed both settings flows
-at `Open navigation menu`. A hosted run was intentionally not started because
-it would exercise the same known-incompatible APK.
+at `Open navigation menu`. A hosted run was initially deferred because it would
+exercise the same known-incompatible APK. Requested run `31366400340` later
+confirmed that incompatibility on API 34 x86_64: 6 of 20 flows passed and 14
+failed, while account creation, fixture application, identity preservation,
+result upload, and cleanup all completed correctly.
