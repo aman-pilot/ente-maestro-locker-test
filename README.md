@@ -73,10 +73,11 @@ and deferred blockers are maintained in
 The latest clean authenticated run completed on 2026-08-06 using Android API 35
 ARM64, Maestro `2.6.1`, and source-built independent APK SHA-256
 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
-The latest clean combined execution passed 19 of 25 normal flows. A later
-isolated run made `add-item-to-multiple-collections` green. The default lane is
-therefore narrowed to the 19 flows with concrete green evidence; six flaky or
-unverified normal flows remain canonical but are classified as unresolved.
+The latest clean combined execution passed 19 of 25 normal flows. Later
+isolated runs made `add-item-to-multiple-collections` and
+`edit-emergency-contact` green. The default lane is therefore narrowed to the
+20 flows with concrete green evidence; five flaky or unverified normal flows
+remain canonical but are classified as unresolved.
 Every run still creates one account, applies one fixture, performs no backend
 reset, and keeps the same account identity.
 
@@ -99,7 +100,7 @@ The account-free onboarding flow passed hosted Android API 34 x86_64 against
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
 with Maestro `2.6.1`.
 
-The authenticated 19-flow lane has not yet been claimed green on hosted
+The authenticated 20-flow lane has not yet been claimed green on hosted
 x86_64 or against an immutable published Locker APK. Publish a newer APK with
 the proven navigation-menu semantics before running the manual
 `Locker Android seeded proof` workflow. Once it passes, record the exact run
@@ -111,7 +112,7 @@ evidence format.
 - Publish a Locker APK containing the proven `Open navigation menu` semantic,
   rerun the proven lane locally, then repeat it on hosted Android API 34
   x86_64.
-- Complete the six targeted normal-flow fixes listed in
+- Complete the five targeted normal-flow fixes listed in
   [Locker normal-flow status](docs/normal-flow-status.md).
 - `rename-and-move-document` remains unresolved because Museum recorded the
   collection move while the renamed value was absent after save and relaunch.

@@ -36,8 +36,8 @@ paid = classes.fetch("paidDeferred").keys
 classified = hosted + unresolved + native + platform_state + paid
 fail_check("scenario classifications contain duplicates") unless classified.uniq.length == classified.length
 
-fail_check("expected 19 proven hosted candidates") unless hosted.length == 19
-fail_check("expected seven unresolved core flows") unless unresolved.length == 7
+fail_check("expected 20 proven hosted candidates") unless hosted.length == 20
+fail_check("expected six unresolved core flows") unless unresolved.length == 6
 fail_check("expected three native-system flows") unless native.length == 3
 fail_check("expected one deferred platform-state flow") unless platform_state.length == 1
 fail_check("expected one paid flow") unless paid.length == 1
@@ -112,6 +112,7 @@ expected_hosted_flows = %w[
   select-all-and-mark-important
   bulk-add-delete-and-restore-items
   delete-collection-keep-item
+  edit-emergency-contact
   permanently-delete-note
   logout
 ]

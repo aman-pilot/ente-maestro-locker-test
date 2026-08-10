@@ -150,15 +150,15 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^seeder apply online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
-[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 19 ]]
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 20 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 4 ]]
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
 grep --quiet --fixed-strings \
-    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=19 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
+    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=20 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
     "$output_dir/summary.txt"
-[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 19 ]]
+[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 20 ]]
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' "$output_dir"; then
     echo "Public seeded output leaked credentials" >&2
@@ -217,7 +217,7 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
     echo "Expected private login failure to fail the seeded suite" >&2
     exit 1
 fi
-[[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 19 ]]
+[[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 20 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 grep --quiet --fixed-strings \
     'empty_login_attempts=2 seeded_login_attempts=0' \

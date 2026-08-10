@@ -29,6 +29,7 @@
       "bulk-add-delete-and-restore-items",
       "change-language-and-restore-english",
       "delete-collection-keep-item",
+      "edit-emergency-contact",
       "empty-collection",
       "empty-home-and-save-options",
       "empty-trash",
@@ -48,9 +49,8 @@
     "hostedUnresolved": {
       "create-edit-move-delete-and-restore-secret": "Creation and collection-selection semantics still need an isolated green run.",
       "create-edit-move-delete-and-restore-thing": "Creation and collection-selection semantics still need an isolated green run.",
-      "create-uncategorized-secret": "Save remained disabled during the latest local source-APK run.",
-      "create-uncategorized-thing": "Save remained disabled during the latest local source-APK run.",
-      "edit-emergency-contact": "The seeded edit form did not expose an enabled Save action in the latest local run.",
+      "create-uncategorized-secret": "Creation succeeds, but the later Uncategorized filter selector is absent.",
+      "create-uncategorized-thing": "Creation succeeds, but the later Uncategorized filter selector is absent.",
       "rename-and-delete-collections": "Collection selection/navigation is locally flaky and has not repeated its earlier green result.",
       "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move."
     },
@@ -90,6 +90,7 @@
       "select-all-and-mark-important",
       "bulk-add-delete-and-restore-items",
       "delete-collection-keep-item",
+      "edit-emergency-contact",
       "permanently-delete-note",
       "logout"
     ]

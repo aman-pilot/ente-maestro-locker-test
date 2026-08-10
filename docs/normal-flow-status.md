@@ -4,7 +4,7 @@ Verified locally on 2026-08-06 with Maestro 2.6.1, Android API 35 ARM, the
 source-built independent Locker APK, one disposable online account, one shared
 fixture application, and no intra-lane backend reset.
 
-## Proven hosted lane (19 flows)
+## Proven hosted lane (20 flows)
 
 - `empty-home-and-save-options`
 - `empty-trash`
@@ -23,24 +23,25 @@ fixture application, and no intra-lane backend reset.
 - `select-all-and-mark-important`
 - `bulk-add-delete-and-restore-items`
 - `delete-collection-keep-item`
+- `edit-emergency-contact`
 - `permanently-delete-note`
 - `logout`
 
 The evidence set is the latest clean combined run, in which 19 of 25 normal
-flows passed, plus a later isolated green run for
-`add-item-to-multiple-collections` (`1` test, `0` failures, 49 seconds). The
-default hosted lane now contains only the flows with green evidence. A final
-combined run of this narrowed 19-flow lane remains the next runtime gate; it was
-not repeated while individual failures were being triaged.
+flows passed, plus later isolated green runs for
+`add-item-to-multiple-collections` (`1` test, `0` failures, 49 seconds) and
+`edit-emergency-contact` (`1` test, `0` failures, 58 seconds). The default
+hosted lane now contains only the flows with green evidence. A final combined
+run of this narrowed 20-flow lane remains the next runtime gate; it was not
+repeated while individual failures were being triaged.
 
 ## Normal flows deferred for targeted fixes
 
 | Flow | Current blocker |
 | --- | --- |
 | `rename-and-delete-collections` | Collection selection/navigation is flaky: an earlier combined run passed, but isolated reruns did not expose the expected selection or collection action surface. |
-| `edit-emergency-contact` | The seeded edit form did not expose an enabled Save action after the text change. |
-| `create-uncategorized-secret` | Save remained disabled during the latest local run. |
-| `create-uncategorized-thing` | Save remained disabled during the latest local run. |
+| `create-uncategorized-secret` | Creation succeeds, but the later `Uncategorized` filter selector is absent. |
+| `create-uncategorized-thing` | Creation succeeds, but the later `Uncategorized` filter selector is absent. |
 | `create-edit-move-delete-and-restore-secret` | Creation and collection-selection semantics still need an isolated green run. |
 | `create-edit-move-delete-and-restore-thing` | Creation and collection-selection semantics still need an isolated green run. |
 
@@ -61,6 +62,6 @@ The cursor-sync error seen once on the emulator has not reproduced after the
 seeder reused and verified Locker's existing encrypted special-collection key.
 Treat it as a blocker again only if it reappears in the narrowed end-to-end run.
 
-No Flutter or Dart application change is currently required for the 19-flow
+No Flutter or Dart application change is currently required for the 20-flow
 lane. The deferred failures are being held at the Maestro/fixture boundary
 until an isolated run proves an application defect.

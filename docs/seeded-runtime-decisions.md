@@ -33,7 +33,7 @@ The lane runs:
 
 There is no PostgreSQL template capture, MinIO reset, or account restoration
 between those flows. Backend state lives only for the duration of the job.
-The 19 included flows and six targeted normal-flow blockers are listed in
+The 20 included flows and five targeted normal-flow blockers are listed in
 [`normal-flow-status.md`](normal-flow-status.md).
 
 ## Expanding the lane
@@ -47,9 +47,10 @@ Future flow promotion must preserve the single-fixture model:
 - use unique names for data that is not intentionally shared;
 - run logout last or explicitly cold-login afterward.
 
-The 2026-08-06 source-APK evidence proves the 19 flows in the narrowed lane,
-using a clean combined run plus an isolated green Add-to run. A combined rerun
-of the narrowed lane remains the next runtime gate. The shared login helper
+The 2026-08-06 source-APK evidence proves the 20 flows in the narrowed lane,
+using a clean combined run plus isolated green Add-to and Emergency Contact
+runs. A combined rerun of the narrowed lane remains the next runtime gate. The
+shared login helper
 accepts the stable seeded-home search semantic as well as the empty-home save
 actions; a bounded same-account retry remains only as an observable
 emulator/network fallback. The later release gate is to publish the needed app
