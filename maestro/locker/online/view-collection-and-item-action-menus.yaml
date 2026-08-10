@@ -15,9 +15,12 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
+# Collection cards render a temporary `0 items` value while their async count
+# loads. Waiting for the seeded final count keeps the slower hosted x86 build
+# from tapping a semantics node while it is being rebuilt.
 - scrollUntilVisible:
-    element: "Home Inventory\n.*items"
-- tapOn: "Home Inventory\n.*items"
+    element: "Home Inventory\n2 items"
+- tapOn: "Home Inventory\n2 items"
 - extendedWaitUntil:
     visible: Blue Suitcase
     timeout: 10000
