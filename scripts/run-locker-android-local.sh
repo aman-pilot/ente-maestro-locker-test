@@ -5,6 +5,7 @@ set -euo pipefail
 app_id="io.ente.locker.independent"
 readonly workspace_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly selector="$workspace_root/scripts/select-locker-ci-suites.sh"
+readonly expected_maestro_version=2.6.1
 
 usage() {
     cat <<'EOF'
@@ -80,8 +81,12 @@ if [[ ! -f "$apk_path" ]]; then
     exit 2
 fi
 
-if ! "$maestro_bin" --version > /dev/null; then
+if ! maestro_version=$("$maestro_bin" --version); then
     echo "Maestro executable is not runnable: $maestro_bin" >&2
+    exit 2
+fi
+if [[ "$maestro_version" != "$expected_maestro_version" ]]; then
+    echo "Expected Maestro $expected_maestro_version, found $maestro_version" >&2
     exit 2
 fi
 

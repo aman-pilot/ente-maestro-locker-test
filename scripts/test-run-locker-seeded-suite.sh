@@ -29,7 +29,10 @@ printf '%s\n' \
     '  *"shell am force-stop"*) echo "adb force-stop" >> "$LOCKER_EVENT_LOG" ;;' \
     '  *"shell am get-current-user"*) echo 0 ;;' \
     '  *"shell stat -c"*) echo 10000:10000 ;;' \
-    '  *"shell pm clear"*) echo Success; echo "adb pm-clear" >> "$LOCKER_EVENT_LOG" ;;' \
+    '  *"shell pm clear"*)' \
+    '    if [[ ${LOCKER_TEST_FINAL_CLEAR_FAIL:-false} == true && -f "$LOCKER_TEST_LOG/final-clear-ready" ]]; then echo Failure; else echo Success; fi' \
+    '    echo "adb pm-clear" >> "$LOCKER_EVENT_LOG"' \
+    '    ;;' \
     '  *"reverse --list"*) printf "emulator-test tcp:8080 tcp:8080\nemulator-test tcp:3200 tcp:3200\n" ;;' \
     '  *"reverse tcp:"*) echo "adb reverse" >> "$LOCKER_EVENT_LOG" ;;' \
     'esac' \
@@ -40,6 +43,18 @@ printf '%s\n' \
     'set -euo pipefail' \
     'if [[ ${1:-} == --version ]]; then echo 2.6.1; exit 0; fi' \
     'printf "maestro %s\n" "$*" >> "$LOCKER_TEST_LOG/maestro.log"' \
+    'if [[ " $* " == *" hierarchy "* ]]; then' \
+    '  echo "maestro hierarchy" >> "$LOCKER_EVENT_LOG"' \
+    '  if [[ ${LOCKER_TEST_HIERARCHY_FAIL:-false} == true ]]; then exit 1; fi' \
+    '  if [[ ${LOCKER_TEST_HIERARCHY_HANG:-false} == true ]]; then sleep 30; fi' \
+    '  if [[ ${LOCKER_TEST_HIERARCHY_MALFORMED:-false} == true ]]; then echo malformed; exit 0; fi' \
+    '  printf "%s\n" \' \
+    '    "element_num,depth,attributes,parent_num" \' \
+    '    "0,0,\"bounds=[0,0][1080,2340]; enabled=true\"," \' \
+    '    "1,1,\"clickable=true; bounds=[800,180][940,320]; enabled=true\",0" \' \
+    '    "2,1,\"text=seeded-android-proof-test@example.org; accessibilityText=Locker-test!Aa1; bounds=[40,400][900,520]\",0"' \
+    '  exit 0' \
+    'fi' \
     'if [[ ${2:-} == @* ]]; then' \
     '  args_file=${2#@}' \
     '  mode=$(stat -c %a "$args_file" 2>/dev/null || stat -f %Lp "$args_file")' \
@@ -64,7 +79,8 @@ printf '%s\n' \
     'echo "maestro product $scenario" >> "$LOCKER_EVENT_LOG"' \
     'mkdir -p "$(dirname "$output")"' \
     'if [[ ${LOCKER_TEST_PRODUCT_FAIL:-false} == true ]]; then' \
-    '  printf "<testsuite name=\"%s\" tests=\"1\" failures=\"1\"><testcase><failure>forced product failure</failure></testcase></testsuite>\n" "$scenario" > "$output"' \
+    '  failure_message=${LOCKER_TEST_PRODUCT_FAILURE_MESSAGE:-forced product failure}' \
+    '  printf "<testsuite name=\"%s\" tests=\"1\" failures=\"1\"><testcase><failure>%s</failure></testcase></testsuite>\n" "$scenario" "$failure_message" > "$output"' \
     '  exit 1' \
     'fi' \
     'if [[ ${LOCKER_TEST_LEAK:-false} == true && "$scenario" == search-note-secret-and-thing ]]; then' \
@@ -108,14 +124,52 @@ printf '%s\n' \
     '  finish)' \
     '    run_dir=""; previous=""' \
     '    for argument in "$@"; do [[ "$previous" == --run-dir ]] && run_dir="$argument"; previous="$argument"; done' \
+    '    if [[ ${LOCKER_TEST_FINISH_FAIL:-false} == true ]]; then exit 1; fi' \
     '    rm -f "$run_dir/run.json"' \
     '    echo "{}"' \
     '    echo "seeder finish $(basename "$run_dir")" >> "$LOCKER_EVENT_LOG"' \
+    '    if [[ ${LOCKER_TEST_FINAL_CLEAR_FAIL:-false} == true ]]; then touch "$LOCKER_TEST_LOG/final-clear-ready"; fi' \
     '    ;;' \
     'esac' \
     > "$temp_dir/bin/locker-seed"
 
 chmod +x "$temp_dir/bin/adb" "$temp_dir/bin/docker" "$temp_dir/bin/locker-seed" "$temp_dir/bin/maestro"
+
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'echo 2.5.1' \
+    > "$temp_dir/bin/wrong-maestro"
+chmod +x "$temp_dir/bin/wrong-maestro"
+
+if PATH="$temp_dir/bin:$PATH" \
+    LOCKER_SEED_BIN="$temp_dir/bin/locker-seed" \
+    "$runner" \
+        --apk "$temp_dir/locker.apk" \
+        --maestro "$temp_dir/bin/wrong-maestro" \
+        --serial emulator-test \
+        --output-dir "$temp_dir/wrong-maestro-output" \
+        > /dev/null 2>&1; then
+    echo "Expected a mismatched Maestro version to fail the seeded runner" >&2
+    exit 1
+fi
+
+mkdir -p "$temp_dir/existing-output"
+touch "$temp_dir/existing-output/user-file"
+if PATH="$temp_dir/bin:$PATH" \
+    LOCKER_SEED_BIN="$temp_dir/bin/locker-seed" \
+    "$runner" \
+        --apk "$temp_dir/locker.apk" \
+        --maestro "$temp_dir/bin/maestro" \
+        --serial emulator-test \
+        --output-dir "$temp_dir/missing/../existing-output" \
+        > /dev/null 2>&1; then
+    echo "Expected an existing normalized output directory to be rejected" >&2
+    exit 1
+fi
+if [[ ! -f "$temp_dir/existing-output/user-file" ]]; then
+    echo "The runner removed a caller-owned output file" >&2
+    exit 1
+fi
 
 run_suite() {
     local output_dir=$1
@@ -237,6 +291,10 @@ if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/resul
     echo "Product JUnit exists even though private login failed" >&2
     exit 1
 fi
+if [[ -d "$login_failure_output/diagnostics" ]]; then
+    echo "A product diagnostic exists even though private login failed" >&2
+    exit 1
+fi
 
 : > "$temp_dir/logs/events.log"
 client_sync_failure_output="$temp_dir/public-client-sync-failure"
@@ -263,5 +321,106 @@ fi
 grep --quiet --fixed-strings \
     'seeded_suite status=fail accounts_created=1 fixture_applies=0 backend_resets=0 scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=0' \
     "$product_failure_output/summary.txt"
+[[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log" || true)" -eq 0 ]]
+if [[ -d "$product_failure_output/diagnostics" ]]; then
+    echo "An unrelated product failure produced a collection route probe" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+collection_failure_output="$temp_dir/public-collection-failure"
+if LOCKER_TEST_PRODUCT_FAIL=true \
+    LOCKER_TEST_PRODUCT_FAILURE_MESSAGE='Assertion is false: "Blue Suitcase" is visible' \
+    run_target_suite "$collection_failure_output" view-collection-and-item-action-menus \
+    > /dev/null 2>&1; then
+    echo "Expected the collection-entry assertion failure" >&2
+    exit 1
+fi
+[[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(find "$collection_failure_output/diagnostics" -type f -name '*-ui.txt' | wc -l | tr -d ' ')" -eq 1 ]]
+grep --quiet --fixed-strings \
+    'route_probe=all_collections top_right_actions=1 blue_visible=false' \
+    "$collection_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
+if grep --recursive --quiet --extended-regexp \
+    'seeded-android-proof-test@example\.org|Locker-test!Aa1' \
+    "$collection_failure_output/diagnostics"; then
+    echo "The product route probe leaked private hierarchy text" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+hierarchy_failure_output="$temp_dir/public-hierarchy-failure"
+if LOCKER_TEST_PRODUCT_FAIL=true \
+    LOCKER_TEST_PRODUCT_FAILURE_MESSAGE='Assertion is false: "Blue Suitcase" is visible' \
+    LOCKER_TEST_HIERARCHY_FAIL=true \
+    run_target_suite "$hierarchy_failure_output" view-collection-and-item-action-menus \
+    > /dev/null 2>&1; then
+    echo "Expected the forced product failure to survive hierarchy capture failure" >&2
+    exit 1
+fi
+grep --quiet --fixed-strings \
+    'seeded_suite status=fail accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=0 seeded_login_attempts=1' \
+    "$hierarchy_failure_output/summary.txt"
+[[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
+if [[ -d "$hierarchy_failure_output/diagnostics" ]]; then
+    echo "A route probe exists even though private hierarchy capture failed" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+malformed_hierarchy_output="$temp_dir/public-malformed-hierarchy"
+if LOCKER_TEST_PRODUCT_FAIL=true \
+    LOCKER_TEST_PRODUCT_FAILURE_MESSAGE='Assertion is false: "Blue Suitcase" is visible' \
+    LOCKER_TEST_HIERARCHY_MALFORMED=true \
+    run_target_suite "$malformed_hierarchy_output" view-collection-and-item-action-menus \
+    > /dev/null 2>&1; then
+    echo "Expected the product failure to survive malformed hierarchy output" >&2
+    exit 1
+fi
+if [[ -d "$malformed_hierarchy_output/diagnostics" ]]; then
+    echo "A route probe exists for malformed hierarchy output" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+timeout_hierarchy_output="$temp_dir/public-timeout-hierarchy"
+if LOCKER_TEST_PRODUCT_FAIL=true \
+    LOCKER_TEST_PRODUCT_FAILURE_MESSAGE='Assertion is false: "Blue Suitcase" is visible' \
+    LOCKER_TEST_HIERARCHY_HANG=true \
+    LOCKER_HIERARCHY_TIMEOUT_SECONDS=1 \
+    run_target_suite "$timeout_hierarchy_output" view-collection-and-item-action-menus \
+    > /dev/null 2>&1; then
+    echo "Expected the product failure to survive hierarchy timeout" >&2
+    exit 1
+fi
+if [[ -d "$timeout_hierarchy_output/diagnostics" ]]; then
+    echo "A route probe exists after hierarchy capture timed out" >&2
+    exit 1
+fi
+
+finish_failure_output="$temp_dir/public-finish-failure"
+if LOCKER_TEST_FINISH_FAIL=true \
+    run_target_suite "$finish_failure_output" rename-and-delete-collections \
+    > /dev/null 2>&1; then
+    echo "Expected fixture finalization failure" >&2
+    exit 1
+fi
+if [[ -e "$finish_failure_output" ]]; then
+    echo "Unverified public output survived fixture finalization failure" >&2
+    exit 1
+fi
+
+rm -f "$temp_dir/logs/final-clear-ready"
+clear_failure_output="$temp_dir/public-final-clear-failure"
+if LOCKER_TEST_FINAL_CLEAR_FAIL=true \
+    run_target_suite "$clear_failure_output" rename-and-delete-collections \
+    > /dev/null 2>&1; then
+    echo "Expected final app-data clear failure" >&2
+    exit 1
+fi
+if [[ -e "$clear_failure_output" ]]; then
+    echo "Unverified public output survived final app-data clear failure" >&2
+    exit 1
+fi
 
 echo "Locker seeded Android runner tests passed"

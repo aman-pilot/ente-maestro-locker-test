@@ -25,6 +25,10 @@ Run the complete non-Android gate first:
 scripts/check-static.sh
 ```
 
+Local Android runs require Maestro `2.6.1`, matching hosted CI. If another
+version is first on `PATH`, pass the verified `2.6.1` executable with
+`--maestro /path/to/maestro`.
+
 Resolve and verify the current published APK, then run account-free onboarding:
 
 ```sh

@@ -19,6 +19,7 @@ scripts/test-resolve-nightly-apk.sh
 scripts/test-download-locker-nightly.sh
 scripts/test-run-locker-android-local.sh
 scripts/test-run-locker-seeded-hosted.sh
+scripts/test-summarize-locker-ui-hierarchy.sh
 scripts/test-run-locker-seeded-suite.sh
 scripts/check-locker-boundaries.sh
 ruby scripts/check-locker-assets.rb

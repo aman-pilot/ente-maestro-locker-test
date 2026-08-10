@@ -37,10 +37,14 @@ into the same account, and executes the ordered seeded flows. It does not reset
 the backend or create another account between flows. App-data clearing is only
 a cold-client boundary and does not change backend state.
 
-Credentials, account contexts, Maestro login arguments, run records, and debug
-output stay private. Product YAML must not contain login data or backend
-endpoints. The runner stops after the first product failure because later flows
-share mutable state and would otherwise produce cascade noise.
+Credentials, account contexts, Maestro login arguments, run records, raw UI
+hierarchies, and debug output stay private. Product YAML must not contain login
+data or backend endpoints. On the known collection-entry assertion failure, the
+runner may publish one leakage-scanned route probe derived from the private
+hierarchy; it contains only a structural page classification, action count, and
+seeded-title visibility.
+The runner stops after the first product failure because later flows share
+mutable state and would otherwise produce cascade noise.
 
 ## Repository layout
 
@@ -94,8 +98,10 @@ ordered lane; targeted evidence does not promote the full lane.
 
 External actions, Docker images, Rust dependencies, and Maestro are pinned.
 Hosted summaries record immutable APK provenance and public lifecycle counts.
-Authenticated artifacts contain leakage-scanned JUnit only; account-free smoke
-may retain Maestro diagnostics.
+Authenticated artifacts contain leakage-scanned JUnit, the redacted lifecycle
+summary, and at most one structural product-failure route probe. Login and
+private-run diagnostics remain private; account-free smoke may retain Maestro
+diagnostics.
 
 ## Intentional exclusions
 

@@ -26,6 +26,23 @@ printf '%s\n' \
 
 chmod +x "$temp_dir/bin/maestro" "$temp_dir/bin/adb"
 
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'echo 2.5.1' \
+    > "$temp_dir/bin/wrong-maestro"
+chmod +x "$temp_dir/bin/wrong-maestro"
+
+if PATH="$temp_dir/bin:$PATH" \
+    LOCKER_TEST_LOG="$temp_dir/logs" \
+    "$runner" \
+        --apk "$temp_dir/locker.apk" \
+        --maestro "$temp_dir/bin/wrong-maestro" \
+        --serial emulator-test \
+        --suite onboarding > /dev/null 2>&1; then
+    echo "Expected a mismatched Maestro version to fail" >&2
+    exit 1
+fi
+
 PATH="$temp_dir/bin:$PATH" \
 LOCKER_TEST_LOG="$temp_dir/logs" \
 LOCKER_MAESTRO_OUTPUT_DIR="$temp_dir/output" \

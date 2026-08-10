@@ -125,7 +125,8 @@ checked_files.each do |path|
   expected_concurrency_group = "locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}"
   expected_artifact_paths = [
     "artifacts/maestro/seeded-proof/results/*.xml",
-    "artifacts/maestro/seeded-proof/summary.txt"
+    "artifacts/maestro/seeded-proof/summary.txt",
+    "artifacts/maestro/seeded-proof/diagnostics/*-ui.txt"
   ]
 
   unless workflow.dig("concurrency", "group") == expected_concurrency_group &&
@@ -147,7 +148,7 @@ checked_files.each do |path|
     workflow_contract_violations << "#{path}: the final gate name must expose full versus targeted scope"
   end
   unless artifact_paths == expected_artifact_paths
-    workflow_contract_violations << "#{path}: seeded artifacts must remain limited to redacted JUnit and summary files"
+    workflow_contract_violations << "#{path}: seeded artifacts must remain limited to redacted JUnit, summary, and route probes"
   end
 end
 

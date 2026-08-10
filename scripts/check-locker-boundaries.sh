@@ -143,9 +143,15 @@ if ! grep --quiet --fixed-strings \
 fi
 
 if grep --quiet --extended-regexp \
-    '(debug|account-context|run\.json|baseline).*(path:|upload-artifact)|path:.*(debug|account-context|run\.json|baseline)' \
+    '(debug|account-context|run\.json|baseline|screenshot|\.png|maestro\.log|console\.log|logcat|locker\.db).*(path:|upload-artifact)|path:.*(debug|account-context|run\.json|baseline|screenshot|\.png|maestro\.log|console\.log|logcat|locker\.db)' \
     .github/workflows/locker-android-seeded.yml; then
     echo "The hosted seeded proof must not upload private runtime state" >&2
+    exit 1
+fi
+if grep --quiet --extended-regexp \
+    'diagnostics/(\*\*|\*([[:space:]]|$))' \
+    .github/workflows/locker-android-seeded.yml; then
+    echo "Hosted diagnostics must use the exact route-probe allowlist" >&2
     exit 1
 fi
 

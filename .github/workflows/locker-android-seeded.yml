@@ -189,6 +189,7 @@ jobs:
                   path: |
                       artifacts/maestro/seeded-proof/results/*.xml
                       artifacts/maestro/seeded-proof/summary.txt
+                      artifacts/maestro/seeded-proof/diagnostics/*-ui.txt
                   if-no-files-found: warn
                   retention-days: 7
 

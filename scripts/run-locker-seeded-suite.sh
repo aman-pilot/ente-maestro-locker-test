@@ -9,7 +9,10 @@ readonly endpoint="${LOCKER_MUSEUM_ENDPOINT:-http://127.0.0.1:8080}"
 readonly catalog="$workspace_root/locker/catalog.v1.json"
 readonly flow_registry="$workspace_root/locker/product-flows.v1.json"
 readonly login_flow="$workspace_root/maestro/locker/online/subflows/login-online-account.yaml"
+readonly hierarchy_summarizer="$workspace_root/scripts/summarize-locker-ui-hierarchy.rb"
+readonly expected_maestro_version=2.6.1
 readonly client_sync_attempts="${LOCKER_CLIENT_SYNC_ATTEMPTS:-90}"
+readonly hierarchy_timeout_seconds="${LOCKER_HIERARCHY_TIMEOUT_SECONDS:-15}"
 
 usage() {
     cat <<'EOF'
@@ -103,19 +106,28 @@ if [[ ! "$client_sync_attempts" =~ ^[1-9][0-9]*$ ]]; then
     printf 'LOCKER_CLIENT_SYNC_ATTEMPTS must be a positive integer\n' >&2
     exit 2
 fi
-if [[ -e "$output_dir" ]]; then
-    printf 'Output directory must not already exist: %s\n' "$output_dir" >&2
-    exit 2
-fi
-
 for command in adb docker jq ruby; do
     if ! command -v "$command" > /dev/null; then
         printf 'Required command is not available: %s\n' "$command" >&2
         exit 2
     fi
 done
-if ! "$maestro_bin" --version > /dev/null; then
+output_dir=$(ruby -e 'puts File.expand_path(ARGV.fetch(0))' "$output_dir")
+if [[ -e "$output_dir" ]]; then
+    printf 'Output directory must not already exist: %s\n' "$output_dir" >&2
+    exit 2
+fi
+if [[ ! "$hierarchy_timeout_seconds" =~ ^[1-9][0-9]*$ ]] ||
+    ((hierarchy_timeout_seconds > 30)); then
+    printf 'LOCKER_HIERARCHY_TIMEOUT_SECONDS must be between 1 and 30\n' >&2
+    exit 2
+fi
+if ! maestro_version=$("$maestro_bin" --version); then
     printf 'Maestro executable is not runnable: %s\n' "$maestro_bin" >&2
+    exit 2
+fi
+if [[ "$maestro_version" != "$expected_maestro_version" ]]; then
+    printf 'Expected Maestro %s, found %s\n' "$expected_maestro_version" "$maestro_version" >&2
     exit 2
 fi
 
@@ -166,11 +178,13 @@ readonly private_logs="$private_root/logs"
 readonly private_runs="$private_root/runs"
 readonly private_maestro="$private_root/maestro"
 readonly results_dir="$output_dir/results"
+readonly diagnostics_dir="$output_dir/diagnostics"
 readonly summary_file="$output_dir/summary.txt"
 
 stack_requested=false
 cleanup_started=false
-output_owned=false
+output_root_created=false
+public_output_verified=false
 current_phase=initialization
 
 remove_private_root() {
@@ -183,6 +197,16 @@ remove_private_root() {
             return 1
             ;;
     esac
+}
+
+remove_public_output() {
+    if [[ "$output_root_created" != true || -z "$output_dir" || "$output_dir" == / ]]; then
+        printf 'Refusing to remove an unexpected public output path\n' >&2
+        return 1
+    fi
+    rm -rf -- "$results_dir" "$diagnostics_dir"
+    rm -f -- "$summary_file"
+    rmdir "$output_dir" 2> /dev/null || true
 }
 
 clear_app_data() {
@@ -261,6 +285,9 @@ cleanup() {
             cleanup_status=1
         fi
     fi
+    if [[ "$output_root_created" == true && "$public_output_verified" != true ]]; then
+        remove_public_output || cleanup_status=1
+    fi
     remove_private_root || cleanup_status=1
 
     if [[ $original_status -ne 0 ]]; then
@@ -274,8 +301,13 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+mkdir -p "$(dirname "$output_dir")"
+if ! mkdir "$output_dir"; then
+    printf 'Unable to create new public output directory: %s\n' "$output_dir" >&2
+    exit 2
+fi
+output_root_created=true
 mkdir -p "$private_logs" "$private_runs" "$private_maestro" "$results_dir"
-output_owned=true
 
 registered_scenarios=()
 while IFS= read -r scenario; do
@@ -469,6 +501,48 @@ run_product_flow() {
         "$flow" > "$product_root/console.log" 2>&1
 }
 
+capture_product_failure_diagnostic() {
+    local scenario=$1
+    local raw_hierarchy="$private_root/$scenario-ui.csv"
+    local hierarchy_log="$private_logs/$scenario-hierarchy.log"
+    local public_temp
+
+    if ! ruby -rtimeout -e '
+      timeout_seconds, stdout_path, stderr_path, *command = ARGV
+      File.open(stdout_path, "w", 0o600) do |stdout|
+        File.open(stderr_path, "w", 0o600) do |stderr|
+          pid = Process.spawn(*command, out: stdout, err: stderr, pgroup: true)
+          begin
+            Timeout.timeout(Integer(timeout_seconds)) { Process.wait(pid) }
+            exit($?.exitstatus || 1)
+          rescue Timeout::Error
+            Process.kill("TERM", -pid) rescue Errno::ESRCH
+            sleep 0.2
+            Process.kill("KILL", -pid) rescue Errno::ESRCH
+            Process.wait(pid) rescue Errno::ECHILD
+            exit 124
+          end
+        end
+      end
+    ' "$hierarchy_timeout_seconds" "$raw_hierarchy" "$hierarchy_log" \
+        "$maestro_bin" --device "$serial" hierarchy \
+            --compact --no-ansi --no-reinstall-driver; then
+        rm -f -- "$raw_hierarchy"
+        return 0
+    fi
+
+    mkdir -p "$diagnostics_dir"
+    public_temp="$diagnostics_dir/.$scenario-ui.tmp"
+    if ruby "$hierarchy_summarizer" "$raw_hierarchy" > "$public_temp" 2>> "$hierarchy_log"; then
+        chmod 600 "$public_temp"
+        mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
+    else
+        rm -f -- "$public_temp"
+        rmdir "$diagnostics_dir" 2> /dev/null || true
+    fi
+    rm -f -- "$raw_hierarchy"
+}
+
 current_phase=stack-up
 stack_requested=true
 LOCKER_COMPOSE_PROJECT="$compose_project" \
@@ -596,6 +670,12 @@ for index in "${!scenarios[@]}"; do
         scenario_status=fail
         failure_phase=product
         failure_category=canonical-yaml
+        if [[ "$scenario" == "view-collection-and-item-action-menus" ]] &&
+            grep --fixed-strings --quiet \
+                'Assertion is false: "Blue Suitcase" is visible' \
+                "$results_dir/$scenario.xml"; then
+            capture_product_failure_diagnostic "$scenario" || true
+        fi
     fi
     current_phase="product-$scenario"
 
@@ -640,16 +720,25 @@ clear_app_data
     cat "$records_file"
 } > "$summary_file"
 
-if grep --recursive --fixed-strings --quiet -- "$email" "$output_dir" ||
-    grep --recursive --fixed-strings --quiet -- "$password" "$output_dir"; then
-    printf 'Credential leakage detected in public seeded output; output removed\n' >&2
-    if [[ "$output_owned" == true ]]; then
-        rm -rf -- "$results_dir"
-        rm -f -- "$summary_file"
-        rmdir -- "$output_dir" 2> /dev/null || true
+credential_found=false
+for credential in "$email" "$password"; do
+    if grep --recursive --fixed-strings --quiet -- "$credential" "$output_dir"; then
+        credential_found=true
+        break
+    else
+        credential_scan_status=$?
+        if [[ $credential_scan_status -ne 1 ]]; then
+            printf 'Unable to verify public seeded output for credential leakage\n' >&2
+            exit 1
+        fi
     fi
+done
+if [[ "$credential_found" == true ]]; then
+    printf 'Credential leakage detected in public seeded output; output removed\n' >&2
+    remove_public_output
     exit 1
 fi
+public_output_verified=true
 
 printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
     "$suite_status" "$fixture_apply_count" "$attempted_count" "$failure_count" \
