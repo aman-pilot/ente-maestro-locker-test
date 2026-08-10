@@ -15,6 +15,8 @@ fixture profile assigned per flow.
   reset backend state.
 - Later flows reuse the same account, fixture, and backend mutations in a
   deliberate order.
+- The runner stops after the first product-flow failure because later dependent
+  results on the mutated account would not be trustworthy.
 - The complete disposable stack is removed at job completion.
 
 The catalog no longer maps scenarios to fixture profiles. Inactive manifests
@@ -47,14 +49,15 @@ Future flow promotion must preserve the single-fixture model:
 - use unique names for data that is not intentionally shared;
 - run logout last or explicitly cold-login afterward.
 
-The 2026-08-10 source-APK evidence proves all 20 flows together in one clean
-ordered run: 20 JUnit tests, 0 failures, one account, one fixture application,
-no backend reset, unchanged identity, and both logins on attempt one. The shared login helper
-accepts the stable seeded-home search semantic as well as the empty-home save
-actions; a bounded same-account retry remains only as an observable
-emulator/network fallback. The later release gate is to publish the needed app
-semantics in one immutable APK and repeat the proof against that exact asset.
-Hosted run `31366400340` confirmed that the currently resolved RC is not that
-asset: 6 of 20 flows passed and 14 failed on API 34 x86_64, while the one-account
-and one-fixture invariants held. Resetting the backend is not part of that
-validation.
+The 2026-08-10 exact-published-APK evidence proves all 20 flows together in one
+clean ordered run: 20 JUnit tests, 0 failures, one account, one fixture
+application, no backend reset, unchanged identity, and both logins on attempt
+one. The verified asset is `502622451`, SHA-256
+`a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`.
+The shared login helper accepts the stable seeded-home search semantic as well
+as the empty-home save actions; a bounded same-account retry remains only as an
+observable emulator/network fallback. Hosted run `31366400340` predates the
+published-label compatibility and fail-fast changes: 6 of 20 flows passed and
+14 later results included cascade noise, while the one-account and one-fixture
+invariants held. The remaining release gate is the repaired lane on hosted
+x86_64. Resetting the backend is not part of that validation.

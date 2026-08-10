@@ -35,11 +35,13 @@ apk_path=$(scripts/download-locker-nightly.sh)
 scripts/run-locker-android-local.sh --apk "$apk_path" --suite onboarding
 ```
 
-Run the authenticated online lane against an exact APK on a rootable emulator:
+Download and verify the same Ente GitHub nightly used by CI, then run the
+authenticated online lane on a rootable emulator:
 
 ```sh
+apk_path=$(scripts/download-locker-nightly.sh)
 scripts/run-locker-seeded-suite.sh \
-  --apk /absolute/path/to/locker.apk \
+  --apk "$apk_path" \
   --serial emulator-5554
 ```
 
@@ -47,9 +49,10 @@ While repairing one flow, run only that canonical YAML and leave the complete
 lane for the final gate:
 
 ```sh
+apk_path=$(scripts/download-locker-nightly.sh)
 scripts/run-locker-seeded-suite.sh \
   --only-flow add-item-to-multiple-collections \
-  --apk /absolute/path/to/locker.apk \
+  --apk "$apk_path" \
   --serial emulator-5554
 ```
 
@@ -71,12 +74,12 @@ and deferred blockers are maintained in
 ### Local Android online coverage
 
 The latest clean authenticated run completed on 2026-08-10 using Android API 35
-ARM64 and Maestro `2.6.1`. It used a source-built independent APK, not a
-published Locker release.
+ARM64 and Maestro `2.6.1`. The APK was downloaded from Ente GitHub and verified
+before execution; Locker was not compiled locally.
 
-| Build | APK modified | SHA-256 |
-| --- | --- | --- |
-| `app-independent-debug.apk` | 2026-08-04 15:51:13 IST | `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3` |
+| Release | Asset ID | Build | SHA-256 |
+| --- | --- | --- | --- |
+| `locker-v1.0.8-rc` | `502622451` | `ente-locker-v1.0.8.apk` | `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4` |
 
 All 20 flows in the default lane passed in one ordered execution. The public
 runner summary was:
@@ -85,9 +88,8 @@ runner summary was:
 seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=20 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1
 ```
 
-The JUnit suites contained 20 tests, 0 failures, and 627 seconds of Maestro
-execution. The badges below open the canonical Locker-owned YAML used by that
-clean run.
+The JUnit suites contained 20 tests and 0 failures. The badges below open the
+canonical Locker-owned YAML used by that clean run.
 
 | Flow group | Verified behavior |
 | --- | --- |
@@ -100,18 +102,6 @@ clean run.
 | Bulk lifecycle | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/bulk-add-delete-and-restore-items.yaml) Performs bulk collection mutation, Trash, and restore, then deletes a collection while retaining its item. |
 | Emergency Contact | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/edit-emergency-contact.yaml) Edits and saves the Emergency Contact setting. |
 | Permanent deletion and logout | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/permanently-delete-note.yaml) Permanently deletes the prepared note and logs out last. |
-
-### Local Android published-build compatibility
-
-The same lane ran locally against exact published release-candidate
-`locker-v1.0.8-rc`, asset `502622451`, created 2026-08-05 12:56:34 UTC,
-filename `ente-locker-v1.0.8.apk`, SHA-256
-`a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`.
-Empty home and seeded search passed on their first login attempts. Both settings
-flows failed because that APK does not expose the expected
-`Open navigation menu` accessibility semantic. This result proves the fixture
-and synchronized search against a published build, but it is not a complete
-four-flow pass and is not hosted evidence.
 
 ### Hosted Android CI (published build)
 
@@ -130,27 +120,25 @@ asset timestamp, ID, and digest are recorded below.
 
 The manual published-build proof completed on 2026-08-10 UTC
 ([run 31366400340](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31366400340)).
-It is a failed diagnostic run, not a green badge: 6 of 20 flows passed and 14
-failed. The runner still created one account, applied one fixture, performed no
-backend reset, preserved the identity, and completed both login boundaries on
-attempt one. Nine failures are caused by the RC lacking the canonical
-`Open navigation menu` semantic. The other five are published-build state or
-visibility mismatches in seeded search, collection actions, bulk lifecycle,
-delete-collection retention, and Emergency Contact.
+It is a historical failed diagnostic run, not a green badge: 6 of 20 flows
+passed and 14 failed. The old runner continued after failures on one mutable
+account, so later results included cascade noise. The current YAML handles the
+published RC's older drawer/menu labels and avoids Home-recency assumptions;
+the current runner stops after the first product failure. The repaired lane is
+20/20 locally against this same immutable asset and awaits a new hosted run.
 
-This proves that the exact-asset resolver, checksum verification, hosted
-emulator, disposable stack, account/fixture lifecycle, JUnit upload, and cleanup
-all execute on hosted x86_64. It does not prove the 20-flow product lane against
-a compatible published Locker build.
+The historical run proves that the exact-asset resolver, checksum verification,
+hosted emulator, disposable stack, account/fixture lifecycle, JUnit upload, and
+cleanup execute on hosted x86_64. The repaired 20-flow product lane still needs
+its new hosted result.
 
 ### Not yet green or intentionally deferred
 
-- Prove the same 20-flow lane against one immutable published Locker APK on
-  hosted Android API 34 x86_64. Run `31366400340` proves the current published
-  RC is incompatible: 6 flows passed and 14 failed, including 9 failures caused
-  by its missing `Open navigation menu` semantic.
-- Complete the five targeted normal-flow fixes listed in
-  [Locker normal-flow status](docs/normal-flow-status.md).
+- Repeat the locally green 20-flow immutable published-APK proof on hosted
+  Android API 34 x86_64.
+- Promote the five additional normal flows listed in
+  [Locker normal-flow status](docs/normal-flow-status.md); they remain outside
+  the default lane rather than blocking it.
 - `rename-and-move-document` remains unresolved because Museum recorded the
   collection move while the renamed value was absent after save and relaunch.
 - Native document picker/preview/download flows remain local platform work.

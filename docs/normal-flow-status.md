@@ -1,8 +1,9 @@
 # Locker normal-flow status
 
 Verified locally on 2026-08-10 with Maestro 2.6.1, Android API 35 ARM64, the
-source-built independent Locker APK, one disposable online account, one shared
-fixture application, and no intra-lane backend reset.
+exact Ente GitHub release-candidate APK, one disposable online account, one
+shared fixture application, and no intra-lane backend reset. Locker was not
+compiled locally.
 
 ## Default seeded lane (20 flows)
 
@@ -27,14 +28,14 @@ fixture application, and no intra-lane backend reset.
 - `permanently-delete-note`
 - `logout`
 
-All 20 flows passed together in one clean ordered execution against source-built
-independent APK SHA-256
-`e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
-The JUnit output contained 20 tests, 0 failures, and 627 seconds of Maestro
-execution. The runner created one account, applied one fixture, performed no
-backend reset, kept the same identity, and completed both cold logins on attempt
-one. This is local evidence; hosted x86_64 and exact-published-APK proof remain
-separate gates.
+All 20 flows passed together in one clean ordered execution against
+`locker-v1.0.8-rc`, asset `502622451`, filename `ente-locker-v1.0.8.apk`,
+SHA-256
+`a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`.
+The JUnit output contained 20 tests and 0 failures. The runner created one
+account, applied one fixture, performed no backend reset, kept the same
+identity, and completed both cold logins on attempt one. This is exact
+published-APK local evidence; hosted x86_64 remains a separate gate.
 
 ## Hosted published-build result
 
@@ -52,14 +53,13 @@ Six flows passed:
 - `mark-and-unmark-important`
 - `select-all-and-mark-important`
 
-The remaining 14 failed. Nine require the canonical `Open navigation menu`
-semantic that is absent from this published RC. Seeded search readiness,
-collection action visibility, bulk item visibility, delete-collection item
-retention, and Emergency Contact also differed from the source-built proof.
-The account/fixture invariants remained valid: one account, one fixture
-application, zero backend resets, unchanged identity, and both login boundaries
-on attempt one. Treat this as hosted infrastructure proof and published-build
-compatibility evidence, not a green product lane.
+The remaining 14 failed in that historical revision. Nine reached an absent
+newer `Open navigation menu` semantic, while later failures also included
+cascade noise because dependent flows continued on the already-mutated account.
+The current YAML uses semantic-first published-build compatibility fallbacks,
+scopes inventory assertions to collections instead of the limited Home feed,
+and the runner stops after the first product failure. The same asset is now
+20/20 locally; a new hosted run is pending.
 
 ## Normal flows deferred for targeted fixes
 
@@ -80,7 +80,7 @@ Targeted debugging remains available through:
 ```sh
 scripts/run-locker-seeded-suite.sh \
   --only-flow <hosted-or-unresolved-flow> \
-  --apk /absolute/path/to/app-independent-debug.apk \
+  --apk "$(scripts/download-locker-nightly.sh)" \
   --serial emulator-5554
 ```
 

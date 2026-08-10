@@ -46,6 +46,7 @@ end
 checked_files = CHECKED_PATHS.flat_map { |path| Dir.glob(path) }.sort
 trigger_violations = []
 unpinned_violations = []
+published_apk_violations = []
 
 checked_files.each do |path|
   workflow = workflow_yaml(path)
@@ -59,9 +60,22 @@ checked_files.each do |path|
 
     unpinned_violations << "#{path}: #{action}@#{ref}"
   end
+
+  next unless File.basename(path).start_with?("locker-android-")
+
+  body = File.read(path)
+  unless body.include?("scripts/resolve-nightly-apk.sh --app locker") &&
+      body.include?("releases/assets/$APK_ASSET_ID") &&
+      body.include?("actual_sha256") &&
+      body.include?("--apk \"$LOCKER_APK_PATH\"")
+    published_apk_violations << "#{path}: must resolve, download, verify, and run an ente/nightly Locker APK"
+  end
+  if body.match?(/(?:flutter\s+build|gradlew?\s+[^\n]*assemble)/i)
+    published_apk_violations << "#{path}: must not compile the Locker application"
+  end
 end
 
-failed = trigger_violations.any? || unpinned_violations.any?
+failed = trigger_violations.any? || unpinned_violations.any? || published_apk_violations.any?
 puts "Workflow Security Checks: #{failed ? "Failed" : "Passed"}"
 puts "Checked #{checked_files.length} workflow files."
 
@@ -72,6 +86,10 @@ end
 unless unpinned_violations.empty?
   puts "Unpinned external actions:"
   unpinned_violations.each { |violation| puts "- #{violation}" }
+end
+unless published_apk_violations.empty?
+  puts "Published Locker APK contract violations:"
+  published_apk_violations.each { |violation| puts "- #{violation}" }
 end
 
 exit(failed ? 1 : 0)

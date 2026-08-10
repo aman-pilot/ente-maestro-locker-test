@@ -23,16 +23,16 @@ Snapshot: 2026-08-10
 | Seeded Android orchestration | Static and mocked tests prove one account, one fixture apply, zero backend resets, two cold-login boundaries, private login arguments, credential-free product invocation, and public per-boundary login-attempt counts. |
 | Hosted private login | Rootable API 34 x86_64 pre-seeds `flutter.endpoint`; bounded retries reuse the same identity and never create another account. |
 | Exact-APK product entry | The manual workflow resolves and verifies the exact published APK and produces leakage-scanned JUnit. |
-| Source-built seeded visibility | The complete 20-flow lane passed together locally on API 35 ARM64 with source-built independent APK SHA-256 `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`: 20 JUnit tests, 0 failures, one account, one fixture application, no backend reset, unchanged identity, and both cold logins on attempt one. |
-| Source-built settings semantics | The source proof passed `Open navigation menu` and `Search settings` against the current Locker source build. |
-| Published RC seeded visibility | Exact asset `502622451` (`locker-v1.0.8-rc`, SHA-256 `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`) passed empty home and seeded search locally on API 35 ARM, with both login boundaries completing on attempt one. |
+| Local exact published seeded gate | Exact asset `502622451` (`locker-v1.0.8-rc`, SHA-256 `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4`) passed all 20 ordered flows locally on API 35 ARM64: one account, one fixture application, no backend reset, unchanged identity, and both cold logins on attempt one. |
+| Published-build semantic compatibility | A shared drawer helper prefers current accessibility semantics and uses a stable header fallback for the older RC; settings labels accept both published and current forms. Home recency is no longer treated as a complete inventory. |
+| Failure isolation | The seeded runner stops after the first product failure because later dependent results on the same mutable account would be cascade noise. |
 
 ## Open decisions and runtime proofs
 
 | Blocker | Required handling |
 | --- | --- |
-| Exact published seeded gate | Hosted run `31366400340` executed all 20 flows against asset `502622451` on API 34 x86_64. Six passed and 14 failed; nine failures came from the missing `Open navigation menu` semantic and five from other RC/state visibility mismatches. Publish a compatible Locker APK, prove it locally, then repeat the same immutable asset on hosted x86_64. |
-| Product/nightly compatibility | Five normal flows remain targeted blockers, listed in `docs/normal-flow-status.md`; `rename-and-move-document` remains separately unresolved. |
+| Hosted exact published seeded gate | Repeat the locally green 20-flow asset `502622451` proof on API 34 x86_64. Historical run `31366400340` predates the compatibility and fail-fast repairs. |
+| Additional flow promotion | Five normal flows remain outside the default lane, listed in `docs/normal-flow-status.md`; `rename-and-move-document` remains separately unresolved. |
 | Native platform flows | Keep picker, viewer, download, and offline/network behavior outside the first hosted seeded gate. |
 
 ## Current evidence boundary
@@ -47,16 +47,17 @@ Product YAML is present. Run `30888541387` used the retired reset-per-profile
 runner and is historical evidence only. It produced four product JUnit files:
 empty-home and account/security passed, while seeded search visibility and
 settings-search semantics failed on that historical APK. The online-only
-one-fixture runner now owns a 20-flow proven lane against the current
-source-built independent APK on API 35 ARM64. On 2026-08-10 all 20 flows passed
-together with zero failures while preserving the account and fixture contract.
-The complete lane remains unproven against a compatible immutable published
-asset and on the hosted x86_64 runner.
+one-fixture runner now owns a 20-flow proven lane against exact published asset
+`502622451` on API 35 ARM64. On 2026-08-10 all 20 flows passed together with
+zero failures while preserving the account and fixture contract. The complete
+lane remains unproven only on the hosted x86_64 runner.
 
 The 2026-08-06 local compatibility run against immutable published asset
 `502622451` passed empty home and seeded search, then failed both settings flows
 at `Open navigation menu`. A hosted run was initially deferred because it would
-exercise the same known-incompatible APK. Requested run `31366400340` later
-confirmed that incompatibility on API 34 x86_64: 6 of 20 flows passed and 14
-failed, while account creation, fixture application, identity preservation,
-result upload, and cleanup all completed correctly.
+exercise the same known-incompatible YAML/APK pairing. Requested run
+`31366400340` later recorded 6 of 20 passes and 14 failures on API 34 x86_64.
+That revision lacked published-build selector fallbacks and continued dependent
+flows after a failure, so it remains infrastructure history rather than the
+current product result. Account creation, fixture application, identity
+preservation, result upload, and cleanup all completed correctly.

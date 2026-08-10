@@ -8,7 +8,7 @@ release-candidate APKs. It is not an Ente checkout and does not build the app.
 | Layer | Purpose | Current state |
 | --- | --- | --- |
 | Published smoke | Account-free onboarding and other public startup behavior. | Hosted API 34 x86_64 proof passed. |
-| Online product lane | One synthetic online account and one shared encrypted fixture per isolated run, with no intra-lane backend reset. | Source-built API 35 ARM proof passed; published asset `502622451` passes empty/seeded search but lacks the settings navigation semantic; exact published-APK hosted proof remains. |
+| Online product lane | One synthetic online account and one shared encrypted fixture per isolated run, with no intra-lane backend reset. | Exact published asset `502622451` passed all 20 flows locally on API 35 ARM; hosted x86_64 proof remains. |
 | Platform local | Native picker, viewer, download, share, and other OS behavior. | Deferred from hosted CI. |
 | Multi-account and fault | Sharing roles, recovery, limits, and injected backend/device failures. | Deferred. |
 
@@ -19,6 +19,11 @@ start using `scripts/resolve-nightly-apk.sh --app locker`. Beta and
 release-candidate tags are eligible. Because release tags can be reused, assets
 are ordered by creation time and the exact asset ID and digest are passed to
 every selected job.
+
+The Android workflows are guarded against compiling Locker. They must resolve
+an `ente/nightly` asset, download it by immutable asset ID, verify its SHA-256,
+and pass that downloaded path to the runner. Building the repository-owned Rust
+fixture seeder is separate and does not build the application under test.
 
 The repository does not follow temporary Ente branches. A product change
 becomes a hosted test target only after it reaches Ente `main` and is present
