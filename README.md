@@ -85,12 +85,11 @@ asset `500679355` with SHA-256
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`.
 
 The latest completed authenticated attempt used Android API 34 x86_64 and exact
-asset `502622451`. It passed the first 11 ordered flows before failing
-`view-collection-and-item-action-menus` on an animated AppBar-title readiness
-assertion ([run 31385319727](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31385319727)).
-The flow now waits for its seeded collection content and is green locally; a
-new exact-commit hosted proof is in progress
+asset `502622451`. It passed the first 11 ordered flows before
+`view-collection-and-item-action-menus` failed to enter `Home Inventory`
 ([run 31387905140](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31387905140)).
+That flow now enters Collections through the drawer route already proven by the
+hosted `empty-collection` flow instead of navigating through the filter sheet.
 
 ### Deferred coverage
 

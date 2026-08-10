@@ -6,13 +6,12 @@ appId: ${APP_ID}
     visible: Add item
     timeout: 10000
 
-# Seeded start state: Home Inventory contains Blue Suitcase. Open the collection
-# popup menu without selecting actions.
-- tapOn: Filters
-- extendedWaitUntil:
-    visible: All collections
-    timeout: 10000
-- tapOn: All collections
+# Seeded start state: Home Inventory contains Blue Suitcase. Enter Collections
+# through the drawer, the same published-build route proven by empty-collection,
+# then open the collection popup menu without selecting actions.
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
+- tapOn: Collections
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
@@ -64,19 +63,12 @@ appId: ${APP_ID}
     timeout: 10000
 
 # Return home.
-- tapOn: Back
+- back
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
-- tapOn: Back
-- runFlow:
-    when:
-      visible: All collections
-    commands:
-      - tapOn:
-          text: Clear all
-          optional: true
-      - back
+- back
+- back
 - extendedWaitUntil:
     visible: Add item
     timeout: 10000
