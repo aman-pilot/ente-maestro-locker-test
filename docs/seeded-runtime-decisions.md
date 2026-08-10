@@ -21,7 +21,7 @@ The catalog no longer maps scenarios to fixture profiles. Inactive manifests
 are retained as reference inputs while unresolved canonical flows are reworked
 to reuse the shared fixture or create their own uniquely named data.
 
-## Proven hosted lane
+## Default seeded lane
 
 The lane runs:
 
@@ -47,10 +47,9 @@ Future flow promotion must preserve the single-fixture model:
 - use unique names for data that is not intentionally shared;
 - run logout last or explicitly cold-login afterward.
 
-The 2026-08-06 source-APK evidence proves the 20 flows in the narrowed lane,
-using a clean combined run plus isolated green Add-to and Emergency Contact
-runs. A combined rerun of the narrowed lane remains the next runtime gate. The
-shared login helper
+The 2026-08-10 source-APK evidence proves all 20 flows together in one clean
+ordered run: 20 JUnit tests, 0 failures, one account, one fixture application,
+no backend reset, unchanged identity, and both logins on attempt one. The shared login helper
 accepts the stable seeded-home search semantic as well as the empty-home save
 actions; a bounded same-account retry remains only as an observable
 emulator/network fallback. The later release gate is to publish the needed app

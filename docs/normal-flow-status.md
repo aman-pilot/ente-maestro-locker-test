@@ -1,10 +1,10 @@
 # Locker normal-flow status
 
-Verified locally on 2026-08-06 with Maestro 2.6.1, Android API 35 ARM, the
+Verified locally on 2026-08-10 with Maestro 2.6.1, Android API 35 ARM64, the
 source-built independent Locker APK, one disposable online account, one shared
 fixture application, and no intra-lane backend reset.
 
-## Proven hosted lane (20 flows)
+## Default seeded lane (20 flows)
 
 - `empty-home-and-save-options`
 - `empty-trash`
@@ -27,13 +27,14 @@ fixture application, and no intra-lane backend reset.
 - `permanently-delete-note`
 - `logout`
 
-The evidence set is the latest clean combined run, in which 19 of 25 normal
-flows passed, plus later isolated green runs for
-`add-item-to-multiple-collections` (`1` test, `0` failures, 49 seconds) and
-`edit-emergency-contact` (`1` test, `0` failures, 58 seconds). The default
-hosted lane now contains only the flows with green evidence. A final combined
-run of this narrowed 20-flow lane remains the next runtime gate; it was not
-repeated while individual failures were being triaged.
+All 20 flows passed together in one clean ordered execution against source-built
+independent APK SHA-256
+`e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
+The JUnit output contained 20 tests, 0 failures, and 627 seconds of Maestro
+execution. The runner created one account, applied one fixture, performed no
+backend reset, kept the same identity, and completed both cold logins on attempt
+one. This is local evidence; hosted x86_64 and exact-published-APK proof remain
+separate gates.
 
 ## Normal flows deferred for targeted fixes
 
@@ -58,9 +59,10 @@ scripts/run-locker-seeded-suite.sh \
   --serial emulator-5554
 ```
 
-The cursor-sync error seen once on the emulator has not reproduced after the
-seeder reused and verified Locker's existing encrypted special-collection key.
-Treat it as a blocker again only if it reappears in the narrowed end-to-end run.
+The cursor-sync error seen once on the emulator did not reproduce in the clean
+20-flow end-to-end run after the seeder reused and verified Locker's existing
+encrypted special-collection key. Treat it as a blocker again only if it
+reappears.
 
 No Flutter or Dart application change is currently required for the 20-flow
 lane. The deferred failures are being held at the Maestro/fixture boundary

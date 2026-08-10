@@ -70,16 +70,36 @@ and deferred blockers are maintained in
 
 ### Local Android online coverage
 
-The latest clean authenticated run completed on 2026-08-06 using Android API 35
-ARM64, Maestro `2.6.1`, and source-built independent APK SHA-256
-`e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3`.
-The latest clean combined execution passed 19 of 25 normal flows. Later
-isolated runs made `add-item-to-multiple-collections` and
-`edit-emergency-contact` green. The default lane is therefore narrowed to the
-20 flows with concrete green evidence; five flaky or unverified normal flows
-remain canonical but are classified as unresolved.
-Every run still creates one account, applies one fixture, performs no backend
-reset, and keeps the same account identity.
+The latest clean authenticated run completed on 2026-08-10 using Android API 35
+ARM64 and Maestro `2.6.1`. It used a source-built independent APK, not a
+published Locker release.
+
+| Build | APK modified | SHA-256 |
+| --- | --- | --- |
+| `app-independent-debug.apk` | 2026-08-04 15:51:13 IST | `e71d456c9a571d293269c1c076912f7a8a124560f4d20a73803e5824e99b66f3` |
+
+All 20 flows in the default lane passed in one ordered execution. The public
+runner summary was:
+
+```text
+seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=20 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1
+```
+
+The JUnit suites contained 20 tests, 0 failures, and 627 seconds of Maestro
+execution. The badges below open the canonical Locker-owned YAML used by that
+clean run.
+
+| Flow group | Verified behavior |
+| --- | --- |
+| Empty account | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/empty-home-and-save-options.yaml) Verifies empty home save options and empty Trash before fixture application. |
+| Seeded search | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/search-note-secret-and-thing.yaml) Finds synchronized note, secret, and thing data and verifies the no-results state. |
+| Account and settings | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/view-account-and-security-settings.yaml) Opens Account and Security, searches Settings, covers About and Support, and views theme options. |
+| Language and collection filters | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/change-language-and-restore-english.yaml) Changes and restores language, verifies an empty collection, and filters items by collection. |
+| Collection and item actions | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/view-collection-and-item-action-menus.yaml) Opens action menus and adds one item to multiple collections. |
+| Important actions | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/mark-and-unmark-important.yaml) Marks and unmarks one item, then selects all and marks the scoped selection Important. |
+| Bulk lifecycle | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/bulk-add-delete-and-restore-items.yaml) Performs bulk collection mutation, Trash, and restore, then deletes a collection while retaining its item. |
+| Emergency Contact | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/edit-emergency-contact.yaml) Edits and saves the Emergency Contact setting. |
+| Permanent deletion and logout | [![Local API 35: passed](https://img.shields.io/badge/Local%20API%2035-passed-0969da?style=flat-square&logo=android&logoColor=white)](maestro/locker/online/permanently-delete-note.yaml) Permanently deletes the prepared note and logs out last. |
 
 ### Local Android published-build compatibility
 
@@ -100,18 +120,17 @@ The account-free onboarding flow passed hosted Android API 34 x86_64 against
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`,
 with Maestro `2.6.1`.
 
-The authenticated 20-flow lane has not yet been claimed green on hosted
-x86_64 or against an immutable published Locker APK. Publish a newer APK with
-the proven navigation-menu semantics before running the manual
-`Locker Android seeded proof` workflow. Once it passes, record the exact run
-URL, APK asset ID, creation time, and digest here, following the Auth README
-evidence format.
+The authenticated 20-flow lane is green locally but has not yet been claimed
+green on hosted x86_64 or against an immutable published Locker APK. The manual
+`Locker Android seeded proof` workflow is the next gate. Once it passes, record
+the exact run URL, APK asset ID, creation time, and digest here, following the
+Auth README evidence format.
 
 ### Not yet green or intentionally deferred
 
-- Publish a Locker APK containing the proven `Open navigation menu` semantic,
-  rerun the proven lane locally, then repeat it on hosted Android API 34
-  x86_64.
+- Prove the same 20-flow lane against one immutable published Locker APK on
+  hosted Android API 34 x86_64. The older published RC lacked the locally
+  proven `Open navigation menu` semantic.
 - Complete the five targeted normal-flow fixes listed in
   [Locker normal-flow status](docs/normal-flow-status.md).
 - `rename-and-move-document` remains unresolved because Museum recorded the
@@ -121,6 +140,10 @@ evidence format.
   deferred. Locker has no offline account mode.
 - All 31 canonical product YAML files remain preserved even when a flow is not
   in the proven hosted lane.
+
+Update this evidence from a clean complete run, not from a targeted debugging
+run. Keep failed or cancelled GitHub runs visible; this section should describe
+the latest clean result without hiding the debugging history.
 
 ## Runtime model
 
