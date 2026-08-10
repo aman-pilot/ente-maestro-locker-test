@@ -5,6 +5,19 @@ require "set"
 
 abort("Usage: summarize-locker-ui-hierarchy.rb <compact-hierarchy.csv>") unless ARGV.length == 1
 
+def exact_semantics_visible?(rows, expected)
+  rows.any? do |row|
+    row.fetch("attributes").to_s.split("; ").any? do |attribute|
+      value = if attribute.start_with?("text=")
+        attribute.sub("text=", "")
+      elsif attribute.start_with?("accessibilityText=")
+        attribute.sub("accessibilityText=", "")
+      end
+      value&.gsub("\\n", "\n") == expected
+    end
+  end
+end
+
 rows = CSV.read(ARGV.fetch(0), headers: true)
 abort("Compact hierarchy is missing the attributes column") unless rows.headers&.include?("attributes")
 
@@ -52,15 +65,17 @@ top_right_action_bounds = rows.each_with_object([]) do |row, values|
 end.to_set
 
 top_right_actions = top_right_action_bounds.length
-route_probe = case top_right_actions
-when 1 then "all_collections"
-when 2 then "collection_page"
-else "unknown"
+collection_row_visible = exact_semantics_visible?(rows, "Home Inventory\n2 items")
+collection_title_visible = exact_semantics_visible?(rows, "Home Inventory")
+route_probe = if collection_row_visible
+  "all_collections"
+elsif collection_title_visible
+  "collection_page"
+else
+  "unknown"
 end
-blue_visible = rows.any? do |row|
-  row.fetch("attributes").to_s.split("; ").any? do |attribute|
-    attribute == "text=Blue Suitcase" || attribute == "accessibilityText=Blue Suitcase"
-  end
-end
+blue_visible = exact_semantics_visible?(rows, "Blue Suitcase")
 
-puts "capture_status=ok route_probe=#{route_probe} top_right_actions=#{top_right_actions} blue_visible=#{blue_visible}"
+puts "capture_status=ok route_probe=#{route_probe} collection_row_visible=#{collection_row_visible} " \
+     "collection_title_visible=#{collection_title_visible} top_right_actions=#{top_right_actions} " \
+     "blue_visible=#{blue_visible}"

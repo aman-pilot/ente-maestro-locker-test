@@ -535,11 +535,11 @@ capture_product_failure_diagnostic() {
         rm -f -- "$raw_hierarchy"
         if [[ $hierarchy_status -eq 124 ]]; then
             printf '%s\n' \
-                'capture_status=timeout route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+                'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
                 > "$public_temp"
         else
             printf '%s\n' \
-                'capture_status=hierarchy_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+                'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
                 > "$public_temp"
         fi
         chmod 600 "$public_temp"
@@ -552,7 +552,7 @@ capture_product_failure_diagnostic() {
         mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
     else
         printf '%s\n' \
-            'capture_status=parse_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+            'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
             > "$public_temp"
         chmod 600 "$public_temp"
         mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"

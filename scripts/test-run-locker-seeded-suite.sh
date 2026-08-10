@@ -339,7 +339,7 @@ fi
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(find "$collection_failure_output/diagnostics" -type f -name '*-ui.txt' | wc -l | tr -d ' ')" -eq 1 ]]
 grep --quiet --fixed-strings \
-    'capture_status=ok route_probe=all_collections top_right_actions=1 blue_visible=false' \
+    'capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=1 blue_visible=false' \
     "$collection_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' \
@@ -363,7 +363,7 @@ grep --quiet --fixed-strings \
     "$hierarchy_failure_output/summary.txt"
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
 grep --quiet --fixed-strings \
-    'capture_status=hierarchy_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
     "$hierarchy_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
@@ -377,7 +377,7 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     exit 1
 fi
 grep --quiet --fixed-strings \
-    'capture_status=parse_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
     "$malformed_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
@@ -392,7 +392,7 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     exit 1
 fi
 grep --quiet --fixed-strings \
-    'capture_status=timeout route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
     "$timeout_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 finish_failure_output="$temp_dir/public-finish-failure"

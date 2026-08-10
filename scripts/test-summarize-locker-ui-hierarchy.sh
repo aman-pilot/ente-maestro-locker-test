@@ -25,8 +25,10 @@ printf '%s\n' \
     '4,3,"clickable=true; bounds=[800,180][940,320]; enabled=true",3' \
     '5,3,"text=seeded-android-proof-test@example.org; accessibilityText=Locker-test!Aa1; bounds=[40,400][900,520]",3' \
     '6,3,"bounds=[0,0][2000,5000]; enabled=true",3' \
+    '7,3,"text=Home Inventory\n2 items; accessibilityText=Home Inventory\n2 items; bounds=[40,500][900,620]",3' \
+    '8,4,"text=Home Inventory; bounds=[40,500][500,560]",7' \
     > "$temp_dir/all-collections.csv"
-expected='capture_status=ok route_probe=all_collections top_right_actions=1 blue_visible=false'
+expected='capture_status=ok route_probe=all_collections collection_row_visible=true collection_title_visible=true top_right_actions=1 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/all-collections.csv")
 assert_equal "$expected" "$actual"
 
@@ -36,8 +38,9 @@ printf '%s\n' \
     '1,1,"clickable=true; bounds=[660,180][800,320]; enabled=true",0' \
     '2,1,"clickable=true; bounds=[800,180][940,320]; enabled=true",0' \
     '3,1,"text=Blue Suitcase; accessibilityText=Blue Suitcase; bounds=[80,500][900,620]",0' \
+    '4,1,"text=Home Inventory; accessibilityText=Home Inventory; bounds=[80,320][900,440]",0' \
     > "$temp_dir/collection-page.csv"
-expected='capture_status=ok route_probe=collection_page top_right_actions=2 blue_visible=true'
+expected='capture_status=ok route_probe=collection_page collection_row_visible=false collection_title_visible=true top_right_actions=2 blue_visible=true'
 actual=$(ruby "$summarizer" "$temp_dir/collection-page.csv")
 assert_equal "$expected" "$actual"
 
@@ -49,7 +52,7 @@ printf '%s\n' \
     '3,1,"clickable=true; bounds=[640,180][760,320]; enabled=true",0' \
     '4,1,"clickable=true; bounds=[560,180][620,320]; enabled=true",0' \
     > "$temp_dir/unknown.csv"
-expected='capture_status=ok route_probe=unknown top_right_actions=3 blue_visible=false'
+expected='capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=3 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/unknown.csv")
 assert_equal "$expected" "$actual"
 
