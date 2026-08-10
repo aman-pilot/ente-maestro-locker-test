@@ -20,9 +20,7 @@ appId: ${APP_ID}
 # from tapping a semantics node while it is being rebuilt.
 - scrollUntilVisible:
     element: "Home Inventory\n2 items"
-- tapOn:
-    text: "Home Inventory\n2 items"
-    retryTapIfNoChange: true
+- tapOn: "Home Inventory\n2 items"
 - extendedWaitUntil:
     visible: Blue Suitcase
     timeout: 10000
