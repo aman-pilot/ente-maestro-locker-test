@@ -13,7 +13,7 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "1decba19245e4c5efaab1da06ec6d76a178f9309ff849157492805e06f32748b",
+    "flowSetSha256": "79804f575c1b4091840eba2c9aced1f6ca868f81ed05b58f055ae17d4898d161",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",

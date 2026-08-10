@@ -20,7 +20,7 @@ appId: ${APP_ID}
     element: "Home Inventory\n.*items"
 - tapOn: "Home Inventory\n.*items"
 - extendedWaitUntil:
-    visible: Home Inventory
+    visible: Blue Suitcase
     timeout: 10000
 - runFlow:
     when:
@@ -39,7 +39,7 @@ appId: ${APP_ID}
 - assertVisible: Delete
 - back
 - extendedWaitUntil:
-    visible: Home Inventory
+    visible: Blue Suitcase
     timeout: 10000
 
 # Verify the item selection action surface without mutating the selected item.
