@@ -7,6 +7,15 @@ readonly summarizer="$workspace_root/scripts/summarize-locker-ui-hierarchy.rb"
 readonly temp_dir="$(mktemp -d)"
 trap 'rm -rf "$temp_dir"' EXIT
 
+assert_equal() {
+    local expected=$1
+    local actual=$2
+    if [[ "$actual" != "$expected" ]]; then
+        printf 'Expected: %s\nActual:   %s\n' "$expected" "$actual" >&2
+        exit 1
+    fi
+}
+
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
     '0,0,"bounds=[0,0][1080,2340]; enabled=true",' \
@@ -16,7 +25,7 @@ printf '%s\n' \
     > "$temp_dir/all-collections.csv"
 expected='route_probe=all_collections top_right_actions=1 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/all-collections.csv")
-[[ "$actual" == "$expected" ]]
+assert_equal "$expected" "$actual"
 
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
@@ -27,7 +36,7 @@ printf '%s\n' \
     > "$temp_dir/collection-page.csv"
 expected='route_probe=collection_page top_right_actions=2 blue_visible=true'
 actual=$(ruby "$summarizer" "$temp_dir/collection-page.csv")
-[[ "$actual" == "$expected" ]]
+assert_equal "$expected" "$actual"
 
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
@@ -35,11 +44,11 @@ printf '%s\n' \
     '1,1,"clickable=true; bounds=[800,180][940,320]; enabled=true",0' \
     '2,2,"clickable=true; bounds=[800,180][940,320]; enabled=true",1' \
     '3,1,"clickable=true; bounds=[640,180][760,320]; enabled=true",0' \
-    '4,1,"clickable=true; bounds=[520,180][620,320]; enabled=true",0' \
+    '4,1,"clickable=true; bounds=[560,180][620,320]; enabled=true",0' \
     > "$temp_dir/unknown.csv"
 expected='route_probe=unknown top_right_actions=3 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/unknown.csv")
-[[ "$actual" == "$expected" ]]
+assert_equal "$expected" "$actual"
 
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
