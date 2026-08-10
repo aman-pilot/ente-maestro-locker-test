@@ -24,6 +24,9 @@ printf '%s\n' \
     'case "$*" in' \
     '  *"get-state"*) echo device ;;' \
     '  *"shell id -u"*) echo 0 ;;' \
+    '  *"shell command -v sqlite3"*) echo /system/bin/sqlite3 ;;' \
+    '  *"shell sqlite3 "*) echo "${LOCKER_TEST_CLIENT_ITEM_IDS:-1,2,3,4,5,6,7,8,9,10,11,12,13}"; echo "adb seeded-db-probe" >> "$LOCKER_EVENT_LOG" ;;' \
+    '  *"shell am force-stop"*) echo "adb seeded-force-stop" >> "$LOCKER_EVENT_LOG" ;;' \
     '  *"shell am get-current-user"*) echo 0 ;;' \
     '  *"shell stat -c"*) echo 10000:10000 ;;' \
     '  *"shell pm clear"*) echo Success; echo "adb pm-clear" >> "$LOCKER_EVENT_LOG" ;;' \
@@ -95,7 +98,7 @@ printf '%s\n' \
     '      previous="$argument"' \
     '    done' \
     '    mkdir -p "$run_dir"' \
-    '    printf "%s\n" "{\"endpoint\":\"http://127.0.0.1:8080\",\"email\":\"seeded-android-proof-test@example.org\",\"password\":\"Locker-test!Aa1\",\"userId\":42}" > "$run_dir/run.json"' \
+    '    printf "%s\n" "{\"endpoint\":\"http://127.0.0.1:8080\",\"email\":\"seeded-android-proof-test@example.org\",\"password\":\"Locker-test!Aa1\",\"userId\":42,\"items\":{\"item01\":1,\"item02\":2,\"item03\":3,\"item04\":4,\"item05\":5,\"item06\":6,\"item07\":7,\"item08\":8,\"item09\":9,\"item10\":10,\"item11\":11,\"item12\":12,\"item13\":13}}" > "$run_dir/run.json"' \
     '    chmod 600 "$run_dir/run.json"' \
     '    echo "seeder apply $scenario" >> "$LOCKER_EVENT_LOG"' \
     '    ;;' \
@@ -156,6 +159,8 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 [[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 20 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
+[[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 4 ]]
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
@@ -185,6 +190,8 @@ run_target_suite "$target_seeded_output" rename-and-delete-collections
 [[ "$(grep -c '^seeder apply online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro product rename-and-delete-collections$' "$temp_dir/logs/events.log")" -eq 1 ]]
 grep --quiet --fixed-strings \
     'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=1 failures=0 identity_unchanged=true empty_login_attempts=0 seeded_login_attempts=1' \
@@ -230,6 +237,21 @@ if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/resul
     echo "Product JUnit exists even though private login failed" >&2
     exit 1
 fi
+
+: > "$temp_dir/logs/events.log"
+client_sync_failure_output="$temp_dir/public-client-sync-failure"
+if LOCKER_TEST_CLIENT_ITEM_IDS=1,2 LOCKER_CLIENT_SYNC_ATTEMPTS=1 \
+    run_target_suite "$client_sync_failure_output" rename-and-delete-collections \
+    > /dev/null 2>&1; then
+    echo "Expected incomplete seeded client sync to fail the seeded suite" >&2
+    exit 1
+fi
+[[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
+[[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 2 ]]
+[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log" || true)" -eq 0 ]]
+grep --quiet --fixed-strings \
+    'failure_phase=login failure_category=seeded-client-sync' \
+    "$client_sync_failure_output/summary.txt"
 
 : > "$temp_dir/logs/events.log"
 product_failure_output="$temp_dir/public-product-failure"

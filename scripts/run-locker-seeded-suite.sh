@@ -9,6 +9,7 @@ readonly endpoint="${LOCKER_MUSEUM_ENDPOINT:-http://127.0.0.1:8080}"
 readonly catalog="$workspace_root/locker/catalog.v1.json"
 readonly flow_registry="$workspace_root/locker/product-flows.v1.json"
 readonly login_flow="$workspace_root/maestro/locker/online/subflows/login-online-account.yaml"
+readonly client_sync_attempts="${LOCKER_CLIENT_SYNC_ATTEMPTS:-90}"
 
 usage() {
     cat <<'EOF'
@@ -96,6 +97,10 @@ if [[ "$endpoint" != "http://127.0.0.1:8080" ]]; then
 fi
 if [[ "$app_id" != "io.ente.locker.independent" && "$app_id" != "io.ente.locker.dev" ]]; then
     printf 'Unsupported Locker application ID: %s\n' "$app_id" >&2
+    exit 2
+fi
+if [[ ! "$client_sync_attempts" =~ ^[1-9][0-9]*$ ]]; then
+    printf 'LOCKER_CLIENT_SYNC_ATTEMPTS must be a positive integer\n' >&2
     exit 2
 fi
 if [[ -e "$output_dir" ]]; then
@@ -196,6 +201,10 @@ require_rootable_emulator() {
     adb -s "$serial" wait-for-device > /dev/null
     if [[ "$(adb -s "$serial" shell id -u | tr -d '\r')" != "0" ]]; then
         printf 'Seeded Locker logins require a rootable Android emulator\n' >&2
+        return 1
+    fi
+    if [[ -z "$(adb -s "$serial" shell 'command -v sqlite3' | tr -d '\r')" ]]; then
+        printf 'Seeded Locker readiness checks require sqlite3 on the emulator\n' >&2
         return 1
     fi
 }
@@ -386,6 +395,62 @@ run_private_login() {
     return "$status"
 }
 
+wait_for_seeded_client_fixture() {
+    local attempt current_user database_path expected_item_ids observed_item_ids=""
+    local readiness_log="$private_logs/seeded-client-readiness.log"
+
+    expected_item_ids=$(jq --exit-status --raw-output \
+        '.items | to_entries | map(.value) | sort | map(tostring) | join(",")' \
+        "$online_run_dir/run.json")
+    if [[ -z "$expected_item_ids" ]]; then
+        printf 'The seeded run record does not contain client fixture IDs\n' >&2
+        return 1
+    fi
+
+    current_user=$(adb -s "$serial" shell am get-current-user | tr -d '\r')
+    if [[ ! "$current_user" =~ ^[0-9]+$ ]]; then
+        printf 'Unable to determine the Android user while checking seeded client state\n' >&2
+        return 1
+    fi
+    database_path="/data/user/$current_user/$app_id/app_flutter/locker.db"
+
+    for ((attempt = 1; attempt <= client_sync_attempts; attempt++)); do
+        observed_item_ids=$(
+            adb -s "$serial" shell \
+                "sqlite3 '$database_path' \"SELECT group_concat(uploaded_file_id, ',') FROM (SELECT uploaded_file_id FROM files ORDER BY uploaded_file_id);\"" \
+                2> /dev/null | tr -d '\r'
+        ) || observed_item_ids=""
+        if [[ "$observed_item_ids" == "$expected_item_ids" ]]; then
+            printf 'seeded_client_ready=true items=%s attempts=%s\n' \
+                "$(tr ',' '\n' <<< "$observed_item_ids" | wc -l | tr -d ' ')" \
+                "$attempt" > "$readiness_log"
+            # The published RC can render Home before its initial collection sync
+            # finishes and miss the update event. Once the complete fixture is in
+            # the client database, restart the process so Home reads that durable
+            # state before any product flow begins.
+            adb -s "$serial" shell am force-stop "$app_id" > /dev/null
+            return 0
+        fi
+        sleep 1
+    done
+
+    printf 'seeded_client_ready=false expected_items=%s observed_items=%s attempts=%s\n' \
+        "$(tr ',' '\n' <<< "$expected_item_ids" | wc -l | tr -d ' ')" \
+        "$(tr ',' '\n' <<< "${observed_item_ids:-}" | sed '/^$/d' | wc -l | tr -d ' ')" \
+        "$client_sync_attempts" > "$readiness_log"
+    login_failure_category=seeded-client-sync
+    return 1
+}
+
+prepare_seeded_client() {
+    local scenario=$1
+    local email=$2
+    local password=$3
+
+    run_private_login "$scenario" "$email" "$password" &&
+        wait_for_seeded_client_fixture
+}
+
 run_product_flow() {
     local scenario=$1
     local flow=$2
@@ -514,11 +579,11 @@ for index in "${!scenarios[@]}"; do
         prepare_locker_app_data
         configure_reverse
         seeded_login_attempts=$((seeded_login_attempts + 1))
-        if ! run_private_login "seeded-account" "$email" "$password"; then
+        if ! prepare_seeded_client "seeded-account" "$email" "$password"; then
             prepare_locker_app_data
             configure_reverse
             seeded_login_attempts=$((seeded_login_attempts + 1))
-            if ! run_private_login "seeded-account" "$email" "$password"; then
+            if ! prepare_seeded_client "seeded-account" "$email" "$password"; then
                 login_ready=false
                 scenario_status=fail
                 failure_phase=login
