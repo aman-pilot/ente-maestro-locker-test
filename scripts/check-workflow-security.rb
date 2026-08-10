@@ -123,6 +123,10 @@ checked_files.each do |path|
   expected_selected_flow = "${{ needs.resolve.outputs.selected_flow }}"
   expected_gate_name = "Locker seeded proof gate (${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }})"
   expected_concurrency_group = "locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}"
+  expected_android_api = 34
+  expected_android_target = "default"
+  expected_emulator_build = 12_414_864
+  expected_emulator_options = "-no-window -gpu swiftshader_indirect -feature -Vulkan -no-metrics -no-snapshot -noaudio -no-boot-anim -memory 6144"
   expected_artifact_paths = [
     "artifacts/maestro/seeded-proof/results/*.xml",
     "artifacts/maestro/seeded-proof/summary.txt",
@@ -143,6 +147,20 @@ checked_files.each do |path|
   end
   unless seeded_job["timeout-minutes"] == 60
     workflow_contract_violations << "#{path}: the sequential full lane must retain a 60-minute timeout"
+  end
+  unless workflow.dig("env", "LOCKER_ANDROID_API") == expected_android_api &&
+      workflow.dig("env", "LOCKER_ANDROID_TARGET") == expected_android_target &&
+      workflow.dig("env", "LOCKER_EMULATOR_BUILD") == expected_emulator_build &&
+      workflow.dig("env", "LOCKER_EMULATOR_OPTIONS") == expected_emulator_options &&
+      input_value(seeded_emulator_step || {}, "api-level") == "${{ env.LOCKER_ANDROID_API }}" &&
+      input_value(seeded_emulator_step || {}, "emulator-build") == "${{ env.LOCKER_EMULATOR_BUILD }}" &&
+      input_value(seeded_emulator_step || {}, "target") == "${{ env.LOCKER_ANDROID_TARGET }}" &&
+      input_value(seeded_emulator_step || {}, "arch") == "x86_64" &&
+      input_value(seeded_emulator_step || {}, "profile") == "pixel_5" &&
+      input_value(seeded_emulator_step || {}, "cores") == 4 &&
+      input_value(seeded_emulator_step || {}, "disable-animations") == true &&
+      input_value(seeded_emulator_step || {}, "emulator-options") == "${{ env.LOCKER_EMULATOR_OPTIONS }}"
+    workflow_contract_violations << "#{path}: hosted Android and emulator versions must remain pinned to the proven Auth-compatible environment"
   end
   unless gate_job["name"] == expected_gate_name
     workflow_contract_violations << "#{path}: the final gate name must expose full versus targeted scope"

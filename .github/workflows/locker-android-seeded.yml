@@ -25,6 +25,10 @@ env:
     MAESTRO_CLI_NO_ANALYTICS: 1
     MAESTRO_VERSION: 2.6.1
     MAESTRO_SHA256: 3440825f514f537c6a96bcf5de995780c2a4a7f83a43208fdc95d4f1fecfad3b
+    LOCKER_ANDROID_API: 34
+    LOCKER_ANDROID_TARGET: default
+    LOCKER_EMULATOR_BUILD: 12414864
+    LOCKER_EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-metrics -no-snapshot -noaudio -no-boot-anim -memory 6144
 
 jobs:
     resolve:
@@ -146,12 +150,13 @@ jobs:
               id: seeded-tests
               uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
               with:
-                  api-level: 34
-                  target: default
+                  api-level: ${{ env.LOCKER_ANDROID_API }}
+                  emulator-build: ${{ env.LOCKER_EMULATOR_BUILD }}
+                  target: ${{ env.LOCKER_ANDROID_TARGET }}
                   arch: x86_64
                   profile: pixel_5
                   cores: 4
-                  emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -memory 6144
+                  emulator-options: ${{ env.LOCKER_EMULATOR_OPTIONS }}
                   disable-animations: true
                   script: scripts/run-locker-seeded-hosted.sh --apk "$LOCKER_APK_PATH"
 
@@ -169,7 +174,7 @@ jobs:
                       echo "- Asset created: \`$LOCKER_APK_CREATED_AT\`"
                       echo "- Asset ID: \`$LOCKER_APK_ASSET_ID\`"
                       echo "- Locker APK SHA-256: \`$LOCKER_APK_SHA256\`"
-                      echo "- Android API: \`34\` x86_64"
+                      echo "- Android API: \`$LOCKER_ANDROID_API\` x86_64; emulator build: \`$LOCKER_EMULATOR_BUILD\`"
                       echo "- Maestro: \`$MAESTRO_VERSION\`"
                       echo "- Scope: \`$LOCKER_SELECTED_FLOW\`"
                       echo "- Account contract: one online account, one shared fixture application, no intra-lane backend reset"
