@@ -1,7 +1,8 @@
 appId: ${APP_ID}
 ---
 - launchApp
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - tapOn: General
 - extendedWaitUntil:
     visible: Select language

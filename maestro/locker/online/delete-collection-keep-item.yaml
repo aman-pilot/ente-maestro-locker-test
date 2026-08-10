@@ -4,7 +4,9 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Spare Monitor
+    # Earlier flows can change the limited Home/recent-items viewport. Enter
+    # the seeded collection below before asserting the item itself.
+    visible: Search your documents
     timeout: 30000
 - tapOn: Filters
 - extendedWaitUntil:
@@ -48,20 +50,9 @@ appId: ${APP_ID}
     timeout: 20000
 - assertNotVisible: "Office Equipment\\n.*items"
 
-# The item must remain on the single online account after deleting only its collection.
-- tapOn: Back
-- extendedWaitUntil:
-    visible: Spare Monitor
-    timeout: 10000
-- assertVisible: Add item
-- tapOn: Filters
-- extendedWaitUntil:
-    visible: All collections
-    timeout: 10000
-- tapOn: All collections
-- extendedWaitUntil:
-    visible: Collections
-    timeout: 10000
+# The item must remain on the single online account after deleting only its
+# collection. Verify it in Uncategorized instead of assuming it is still in
+# the limited Home/recent-items viewport after earlier flows mutate recency.
 - scrollUntilVisible:
     element: "Uncategorized\\n.*items"
     direction: DOWN

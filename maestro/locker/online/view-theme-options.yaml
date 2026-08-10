@@ -8,7 +8,8 @@ appId: ${APP_ID}
 
 # Open Settings > Appearance/Theme and assert the safe theme choices.
 # This smoke is view-only so it never leaves the app in a changed theme.
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - extendedWaitUntil:
     visible: General
     timeout: 10000

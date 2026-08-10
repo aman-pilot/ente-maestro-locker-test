@@ -1,0 +1,19 @@
+appId: ${APP_ID}
+---
+# Current Locker builds expose a localized accessibility label for the header
+# action. Older published builds still expose the same header action but do not
+# expose that semantic node, so use the stable top-left hit target as a fallback.
+- runFlow:
+    when:
+      visible: Open navigation menu
+    commands:
+      - tapOn: Open navigation menu
+- runFlow:
+    when:
+      notVisible: General
+    commands:
+      - tapOn:
+          point: 9%,8%
+- extendedWaitUntil:
+    visible: General
+    timeout: 10000

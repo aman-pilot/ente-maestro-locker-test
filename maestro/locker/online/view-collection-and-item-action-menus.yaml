@@ -22,7 +22,17 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Home Inventory
     timeout: 10000
-- tapOn: Show menu
+- runFlow:
+    when:
+      visible: Show menu
+    commands:
+      - tapOn: Show menu
+- runFlow:
+    when:
+      notVisible: Edit
+    commands:
+      - tapOn:
+          point: 93%,14%
 - extendedWaitUntil:
     visible: Edit
     timeout: 10000

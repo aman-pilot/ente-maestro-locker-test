@@ -8,7 +8,8 @@ appId: ${APP_ID}
 
 # The ordered online lane runs this empty-state check before any flow can move
 # data to Trash. The same account is reused for the rest of the lane.
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - tapOn: Trash
 - extendedWaitUntil:
     visible: Trash

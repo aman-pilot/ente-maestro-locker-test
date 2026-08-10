@@ -6,13 +6,12 @@ appId: ${APP_ID}
     timeout: 10000
 
 # Open the Locker settings surface from home.
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - extendedWaitUntil:
     visible: General
     timeout: 10000
 - assertVisible: Security
-- assertVisible: Help and Support
-- assertVisible: About
 - scrollUntilVisible:
     element: Logout
 - assertVisible: Logout
@@ -34,13 +33,15 @@ appId: ${APP_ID}
     visible: Logout
     timeout: 10000
 - scrollUntilVisible:
-    element: Help and Support
+    # The published RC uses "Help & Support" while newer Locker builds use
+    # "Help and Support". Keep the product flow valid for both labels.
+    element: "Help (&|and) Support"
     direction: UP
 
 # Help and Support is safe to visit as long as external actions are not tapped.
-- tapOn: Help and Support
+- tapOn: "Help (&|and) Support"
 - extendedWaitUntil:
-    visible: Help and Support
+    visible: "Help (&|and) Support"
     timeout: 10000
 - assertVisible: Ask a question
 - assertVisible: Request a feature

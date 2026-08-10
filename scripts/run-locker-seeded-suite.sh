@@ -437,6 +437,7 @@ require_rootable_emulator
 adb -s "$serial" shell settings put system screen_off_timeout 2147483647 > /dev/null
 
 failure_count=0
+attempted_count=0
 records_file="$private_root/scenario-records.txt"
 : > "$records_file"
 online_run_dir="$private_runs/online-fixture"
@@ -472,6 +473,7 @@ fi
 for index in "${!scenarios[@]}"; do
     scenario=${scenarios[$index]}
     flow=${flows[$index]}
+    attempted_count=$((attempted_count + 1))
     scenario_status=pass
     failure_phase=none
     failure_category=none
@@ -544,6 +546,13 @@ for index in "${!scenarios[@]}"; do
         "$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$flow")" \
         "$fixture_sha256" \
         >> "$records_file"
+
+    # The lane intentionally reuses one mutable account. Once a product flow
+    # fails, later state is no longer trustworthy, so stop at the first blocker
+    # instead of reporting dependent cascade failures.
+    if [[ "$scenario_status" == "fail" ]]; then
+        break
+    fi
 done
 
 current_phase=finalize
@@ -561,7 +570,7 @@ fi
 clear_app_data
 {
     printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
-        "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count" \
+        "$suite_status" "$fixture_apply_count" "$attempted_count" "$failure_count" \
         "$empty_login_attempts" "$seeded_login_attempts"
     cat "$records_file"
 } > "$summary_file"
@@ -578,7 +587,7 @@ if grep --recursive --fixed-strings --quiet -- "$email" "$output_dir" ||
 fi
 
 printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
-    "$suite_status" "$fixture_apply_count" "${#scenarios[@]}" "$failure_count" \
+    "$suite_status" "$fixture_apply_count" "$attempted_count" "$failure_count" \
     "$empty_login_attempts" "$seeded_login_attempts"
 if [[ "$suite_status" == "fail" ]]; then
     exit 1

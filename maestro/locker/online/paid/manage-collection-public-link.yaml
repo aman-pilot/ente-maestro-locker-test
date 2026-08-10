@@ -7,7 +7,8 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Add item
     timeout: 30000
-- tapOn: Open navigation menu
+- runFlow:
+    file: ../subflows/open-navigation-menu.yaml
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000

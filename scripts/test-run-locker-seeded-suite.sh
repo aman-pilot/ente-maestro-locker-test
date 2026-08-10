@@ -60,6 +60,10 @@ printf '%s\n' \
     'scenario="$(basename "${output%.xml}")"' \
     'echo "maestro product $scenario" >> "$LOCKER_EVENT_LOG"' \
     'mkdir -p "$(dirname "$output")"' \
+    'if [[ ${LOCKER_TEST_PRODUCT_FAIL:-false} == true ]]; then' \
+    '  printf "<testsuite name=\"%s\" tests=\"1\" failures=\"1\"><testcase><failure>forced product failure</failure></testcase></testsuite>\n" "$scenario" > "$output"' \
+    '  exit 1' \
+    'fi' \
     'if [[ ${LOCKER_TEST_LEAK:-false} == true && "$scenario" == search-note-secret-and-thing ]]; then' \
     '  printf "<testsuite name=\"seeded-android-proof-test@example.org\"/>\n" > "$output"' \
     'else' \
@@ -217,14 +221,25 @@ if run_suite "$login_failure_output" env LOCKER_TEST_LOGIN_FAIL=true > /dev/null
     echo "Expected private login failure to fail the seeded suite" >&2
     exit 1
 fi
-[[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 20 ]]
+[[ "$(grep -c 'failure_phase=login failure_category=initial-login-screen' "$login_failure_output/summary.txt")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 grep --quiet --fixed-strings \
-    'empty_login_attempts=2 seeded_login_attempts=0' \
+    'scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=2 seeded_login_attempts=0' \
     "$login_failure_output/summary.txt"
 if [[ -d "$login_failure_output/results" ]] && find "$login_failure_output/results" -type f | grep --quiet .; then
     echo "Product JUnit exists even though private login failed" >&2
     exit 1
 fi
+
+: > "$temp_dir/logs/events.log"
+product_failure_output="$temp_dir/public-product-failure"
+if run_suite "$product_failure_output" env LOCKER_TEST_PRODUCT_FAIL=true > /dev/null 2>&1; then
+    echo "Expected the forced product failure to fail the seeded suite" >&2
+    exit 1
+fi
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 1 ]]
+grep --quiet --fixed-strings \
+    'seeded_suite status=fail accounts_created=1 fixture_applies=0 backend_resets=0 scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=0' \
+    "$product_failure_output/summary.txt"
 
 echo "Locker seeded Android runner tests passed"

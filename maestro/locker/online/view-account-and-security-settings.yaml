@@ -5,7 +5,8 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Search your documents
     timeout: 30000
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 
 # Sensitive mutations require local authentication, but their account surface
 # can be verified safely with the disposable seeded account.

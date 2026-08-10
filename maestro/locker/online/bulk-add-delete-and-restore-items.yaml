@@ -5,8 +5,24 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Camping Stove
+    visible: Search your documents
     timeout: 30000
+- tapOn: Filters
+- extendedWaitUntil:
+    visible: All collections
+    timeout: 10000
+- tapOn: All collections
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Camping Gear\n.*items"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Camping Gear\n.*items"
+- extendedWaitUntil:
+    visible: Camping Stove
+    timeout: 15000
 - assertVisible: Sleeping Bag
 
 # Add both seeded items to the target collection.
@@ -37,18 +53,17 @@ appId: ${APP_ID}
     selected: true
 - tapOn: Save
 - extendedWaitUntil:
-    visible: Filters
+    visible: Camping Stove
     timeout: 20000
 
-# Prove both memberships in the target collection.
-- tapOn: Filters
-- extendedWaitUntil:
-    visible: All collections
-    timeout: 10000
-- tapOn: All collections
+# Return to the collection list directly. Published builds can keep the source
+# collection open after Save instead of returning to Home.
+- tapOn: Back
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
+
+# Prove both memberships in the target collection.
 - scrollUntilVisible:
     element: "Weekend Trips\\n.*items"
     direction: DOWN
@@ -58,16 +73,8 @@ appId: ${APP_ID}
     visible: Camping Stove
     timeout: 10000
 - assertVisible: Sleeping Bag
-- tapOn: Back
-- extendedWaitUntil:
-    visible: Collections
-    timeout: 10000
-- tapOn: Back
-- extendedWaitUntil:
-    visible: Camping Stove
-    timeout: 10000
 
-# Exercise bulk delete and restore; the selected target collection is explicit.
+# Exercise bulk delete in the explicitly selected target collection.
 - longPressOn: Camping Stove
 - tapOn: Sleeping Bag
 - extendedWaitUntil:
@@ -85,7 +92,27 @@ appId: ${APP_ID}
     timeout: 20000
 - assertNotVisible: Camping Stove
 - assertNotVisible: Sleeping Bag
-- tapOn: Open navigation menu
+
+# Return through Collections and dismiss the collection filter before opening
+# Trash from Home.
+- tapOn: Back
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: Back
+- runFlow:
+    when:
+      visible: All collections
+    commands:
+      - tapOn:
+          text: Clear all
+          optional: true
+      - back
+- extendedWaitUntil:
+    visible: Search your documents
+    timeout: 10000
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - tapOn: Trash
 - extendedWaitUntil:
     visible: Trash
@@ -122,7 +149,7 @@ appId: ${APP_ID}
     timeout: 10000
 - tapOn: Back
 - extendedWaitUntil:
-    visible: Camping Stove
+    visible: Search your documents
     timeout: 10000
 - tapOn: Filters
 - extendedWaitUntil:

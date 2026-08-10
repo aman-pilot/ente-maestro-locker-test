@@ -5,11 +5,19 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Search your documents
     timeout: 30000
-- tapOn: Open navigation menu
-- extendedWaitUntil:
-    visible: Search settings
-    timeout: 10000
-- tapOn: Search settings
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
+- runFlow:
+    when:
+      visible: Search settings
+    commands:
+      - tapOn: Search settings
+- runFlow:
+    when:
+      notVisible: Search settings
+    commands:
+      - tapOn:
+          point: 93%,14%
 - extendedWaitUntil:
     visible: Search settings
     timeout: 10000

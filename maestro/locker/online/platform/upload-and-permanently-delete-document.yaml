@@ -93,7 +93,8 @@ appId: ${APP_ID}
     visible: Item deleted successfully
     timeout: 20000
 - assertNotVisible: "Home Insurance Policy\\.pdf"
-- tapOn: Open navigation menu
+- runFlow:
+    file: ../subflows/open-navigation-menu.yaml
 - tapOn: Trash
 - extendedWaitUntil:
     visible: Trash

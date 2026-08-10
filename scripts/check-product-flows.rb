@@ -60,11 +60,17 @@ end.reject { |path| path.start_with?("maestro/locker/online/subflows/") }.sort
 fail_check("canonical YAML inventory differs from the registry") unless on_disk == expected_paths.values.sort
 
 forbidden = /USER_EMAIL|USER_PASSWORD|MUSEUM_ENDPOINT|clearState\s*:|appId:\s+io\.ente\.locker|fresh[- ]account|every workflow gets its own account/
+allowed_product_subflows = [
+  "subflows/open-navigation-menu.yaml",
+  "../subflows/open-navigation-menu.yaml"
+]
 on_disk.each do |relative_path|
   body = ROOT.join(relative_path).read
   fail_check("#{relative_path} must use the runtime APP_ID") unless body.start_with?("appId: ${APP_ID}\n---\n")
   fail_check("#{relative_path} crosses the product/runtime boundary") if body.match?(forbidden)
-  fail_check("#{relative_path} references an external Maestro flow") if body.match?(/runFlow:\s*\n\s+file:/)
+  dependencies = body.scan(/^\s*file:\s*["']?([^"'\s]+)["']?\s*$/).flatten
+  unexpected_dependencies = dependencies - allowed_product_subflows
+  fail_check("#{relative_path} references an external Maestro flow") unless unexpected_dependencies.empty?
 end
 
 login_path = ROOT.join("maestro/locker/online/subflows/login-online-account.yaml")
@@ -76,6 +82,13 @@ fail_check("runtime login must not clear state inside Maestro") if login_body.ma
   fail_check("runtime login is missing #{variable}") unless login_body.include?("${#{variable}}")
 end
 fail_check("runtime login must receive the endpoint through app data") if login_body.include?("MUSEUM_ENDPOINT")
+
+drawer_path = ROOT.join("maestro/locker/online/subflows/open-navigation-menu.yaml")
+fail_check("missing shared drawer compatibility flow") unless drawer_path.file?
+drawer_body = drawer_path.read
+fail_check("drawer compatibility flow must use the runtime APP_ID") unless drawer_body.start_with?("appId: ${APP_ID}\n---\n")
+fail_check("drawer compatibility flow must prefer the accessibility semantic") unless drawer_body.include?("visible: Open navigation menu")
+fail_check("drawer compatibility flow must retain the published-build coordinate fallback") unless drawer_body.include?("point: 9%,8%")
 
 credential_yaml = Dir.glob(ROOT.join("maestro/locker/**/*.yaml")).select do |path|
   File.read(path).match?(/USER_EMAIL|USER_PASSWORD/)

@@ -109,7 +109,8 @@ appId: ${APP_ID}
 - assertNotVisible: Travel Suitcase Updated
 
 # Open Trash, verify the item is view-only, and restore it to Home Inventory.
-- tapOn: Open navigation menu
+- runFlow:
+    file: subflows/open-navigation-menu.yaml
 - tapOn: Trash
 - extendedWaitUntil:
     visible: Travel Suitcase Updated
