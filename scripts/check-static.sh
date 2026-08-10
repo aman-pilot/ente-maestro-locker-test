@@ -13,6 +13,7 @@ for command in bash cargo docker git jq ruby; do
 done
 
 scripts/test-select-locker-ci-suites.sh
+scripts/test-select-locker-seeded-flow.sh
 scripts/test-hosted-flow-registration.sh
 scripts/test-resolve-nightly-apk.sh
 scripts/test-download-locker-nightly.sh

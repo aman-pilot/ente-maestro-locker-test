@@ -24,7 +24,7 @@ clears.
 
 Options:
   --apk <path>          Exact Locker APK to install once (required).
-  --only-flow <name>    Local debugging mode: run one registered product flow.
+  --only-flow <name>    Targeted mode: run one registered product flow.
                         Non-empty flows still get the combined fixture first.
   --seeder <path>       locker-seed executable. Defaults to LOCKER_SEED_BIN or
                         builds the workspace debug binary.

@@ -5,6 +5,12 @@ name: "Locker Android seeded proof"
 # one shared fixture application, and one APK.
 on:
     workflow_dispatch:
+        inputs:
+            flow:
+                description: Run all ordered flows or one hosted target
+                required: true
+                default: all
+                type: string
 
 permissions:
     contents: read
@@ -31,6 +37,7 @@ jobs:
             apk_sha256: ${{ steps.release.outputs.apk_sha256 }}
             channel: ${{ steps.release.outputs.channel }}
             release_tag: ${{ steps.release.outputs.release_tag }}
+            selected_flow: ${{ steps.scope.outputs.selected_flow }}
             source_repository: ${{ steps.release.outputs.source_repository }}
         steps:
             - name: Checkout tests
@@ -38,6 +45,14 @@ jobs:
               with:
                   fetch-depth: 0
                   persist-credentials: false
+
+            - name: Select seeded proof scope
+              id: scope
+              env:
+                  REQUESTED_FLOW: ${{ inputs.flow || 'all' }}
+              run: |
+                  selected_flow=$(scripts/select-locker-seeded-flow.sh "$REQUESTED_FLOW")
+                  echo "selected_flow=$selected_flow" >> "$GITHUB_OUTPUT"
 
             - name: Validate seeded proof configuration
               run: scripts/check-static.sh
@@ -55,6 +70,7 @@ jobs:
         timeout-minutes: 45
         env:
             LOCKER_COMPOSE_PROJECT: ente-locker-seeded-${{ github.run_id }}-${{ github.run_attempt }}
+            LOCKER_SELECTED_FLOW: ${{ needs.resolve.outputs.selected_flow }}
             LOCKER_SEEDED_OUTPUT_DIR: ${{ github.workspace }}/artifacts/maestro/seeded-proof
             LOCKER_SEED_BIN: ${{ github.workspace }}/tools/locker-seed/target/release/locker-seed
         steps:
@@ -137,7 +153,12 @@ jobs:
                   cores: 4
                   emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -memory 6144
                   disable-animations: true
-                  script: scripts/run-locker-seeded-suite.sh --apk "$LOCKER_APK_PATH"
+                  script: |
+                      if [ "$LOCKER_SELECTED_FLOW" = all ]; then
+                          scripts/run-locker-seeded-suite.sh --apk "$LOCKER_APK_PATH"
+                      else
+                          scripts/run-locker-seeded-suite.sh --only-flow "$LOCKER_SELECTED_FLOW" --apk "$LOCKER_APK_PATH"
+                      fi
 
             - name: Summarize seeded proof
               if: always() && steps.seeded-tests.outcome != 'skipped'
@@ -155,6 +176,7 @@ jobs:
                       echo "- Locker APK SHA-256: \`$LOCKER_APK_SHA256\`"
                       echo "- Android API: \`34\` x86_64"
                       echo "- Maestro: \`$MAESTRO_VERSION\`"
+                      echo "- Scope: \`$LOCKER_SELECTED_FLOW\`"
                       echo "- Account contract: one online account, one shared fixture application, no intra-lane backend reset"
                       echo
                       if [[ -f "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" ]]; then

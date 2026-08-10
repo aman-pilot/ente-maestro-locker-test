@@ -132,6 +132,16 @@ if ! grep --quiet --fixed-strings \
     exit 1
 fi
 
+if ! grep --quiet --fixed-strings \
+    'scripts/select-locker-seeded-flow.sh' \
+    .github/workflows/locker-android-seeded.yml ||
+    ! grep --quiet --fixed-strings -- \
+        '--only-flow "$LOCKER_SELECTED_FLOW"' \
+        .github/workflows/locker-android-seeded.yml; then
+    echo "The hosted seeded proof must expose the audited targeted-flow path" >&2
+    exit 1
+fi
+
 if grep --quiet --extended-regexp \
     '(debug|account-context|run\.json|baseline).*(path:|upload-artifact)|path:.*(debug|account-context|run\.json|baseline)' \
     .github/workflows/locker-android-seeded.yml; then

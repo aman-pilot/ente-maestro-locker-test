@@ -86,6 +86,12 @@ manual while the published x86_64 baseline is being proven. Shared workflows,
 selectors, fixtures, and runtime helpers select or invalidate the complete
 relevant lane; platform-local paths intentionally select no hosted suite.
 
+The seeded workflow accepts `flow=all` or one registered hosted/unresolved flow
+name. A targeted run keeps the same disposable stack, account, fixture, login,
+APK, and leakage controls while executing only the selected product YAML. Use
+it to verify an x86_64-specific repair before spending time on the complete
+ordered lane; targeted evidence does not promote the full lane.
+
 External actions, Docker images, Rust dependencies, and Maestro are pinned.
 Hosted summaries record immutable APK provenance and public lifecycle counts.
 Authenticated artifacts contain leakage-scanned JUnit only; account-free smoke

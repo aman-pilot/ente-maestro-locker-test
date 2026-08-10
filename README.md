@@ -56,6 +56,10 @@ single fixture application, ordered product execution, credential redaction,
 JUnit output, and cleanup. Maestro MCP is optional for local inspection; the
 CLI runner is the reproducible local and hosted entrypoint.
 
+The manual hosted workflow accepts `flow=all` for the complete lane or one
+registered hosted/unresolved flow name for a targeted x86_64 proof. Use the
+targeted scope while iterating, then run `all` for promotion evidence.
+
 ## Latest verified coverage
 
 ### Local Android online lane
