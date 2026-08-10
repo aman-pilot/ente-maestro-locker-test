@@ -16,7 +16,7 @@ permissions:
     contents: read
 
 concurrency:
-    group: locker-android-seeded-${{ github.ref }}
+    group: locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}
     cancel-in-progress: true
 
 env:
@@ -67,7 +67,7 @@ jobs:
         name: Published Locker seeded proof
         needs: resolve
         runs-on: ubuntu-latest
-        timeout-minutes: 45
+        timeout-minutes: 60
         env:
             LOCKER_COMPOSE_PROJECT: ente-locker-seeded-${{ github.run_id }}-${{ github.run_attempt }}
             LOCKER_SELECTED_FLOW: ${{ needs.resolve.outputs.selected_flow }}
@@ -201,7 +201,7 @@ jobs:
                   fi
 
     locker-seeded-gate:
-        name: Locker seeded proof gate
+        name: Locker seeded proof gate (${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }})
         if: always()
         needs: [resolve, seeded-proof]
         runs-on: ubuntu-latest

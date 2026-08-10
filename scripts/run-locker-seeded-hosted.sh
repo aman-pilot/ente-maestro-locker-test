@@ -8,6 +8,13 @@ readonly runner="${LOCKER_SEEDED_RUNNER:-$workspace_root/scripts/run-locker-seed
 selected_flow="$($selector "${LOCKER_SELECTED_FLOW:-all}")"
 readonly selected_flow
 
+for argument in "$@"; do
+    if [[ "$argument" == --only-flow ]]; then
+        echo "The hosted wrapper owns --only-flow; select scope with LOCKER_SELECTED_FLOW" >&2
+        exit 2
+    fi
+done
+
 if [[ "$selected_flow" == all ]]; then
     exec "$runner" "$@"
 fi

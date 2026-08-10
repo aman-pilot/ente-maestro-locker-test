@@ -43,13 +43,28 @@ def uses_values(node)
   end
 end
 
+def workflow_steps(workflow)
+  workflow.fetch("jobs", {}).values.flat_map { |job| job.fetch("steps", []) }
+end
+
+def run_body(step)
+  step["run"].is_a?(String) ? step["run"] : ""
+end
+
+def input_value(step, key)
+  inputs = step["with"]
+  inputs.is_a?(Hash) ? inputs[key] : nil
+end
+
 checked_files = CHECKED_PATHS.flat_map { |path| Dir.glob(path) }.sort
 trigger_violations = []
 unpinned_violations = []
 published_apk_violations = []
+workflow_contract_violations = []
 
 checked_files.each do |path|
   workflow = workflow_yaml(path)
+  steps = workflow_steps(workflow)
   (trigger_names(workflow).to_set & SENSITIVE_TRIGGERS).each do |trigger|
     trigger_violations << "#{path}: #{trigger}"
   end
@@ -61,21 +76,83 @@ checked_files.each do |path|
     unpinned_violations << "#{path}: #{action}@#{ref}"
   end
 
+  unless workflow["permissions"] == { "contents" => "read" }
+    workflow_contract_violations << "#{path}: permissions must be limited to contents: read"
+  end
+  steps.select { |step| step["uses"].to_s.start_with?("actions/checkout@") }.each do |step|
+    next if input_value(step, "persist-credentials") == false
+
+    workflow_contract_violations << "#{path}: every checkout must set persist-credentials: false"
+  end
+
   next unless File.basename(path).start_with?("locker-android-")
 
-  body = File.read(path)
-  unless body.include?("scripts/resolve-nightly-apk.sh --app locker") &&
-      body.include?("releases/assets/$APK_ASSET_ID") &&
-      body.include?("actual_sha256") &&
-      body.include?("--apk \"$LOCKER_APK_PATH\"")
+  resolver_step = steps.find { |step| step["name"] == "Resolve latest Locker nightly" }
+  download_step = steps.find { |step| step["name"] == "Download resolved Locker nightly" }
+  emulator_step = steps.find do |step|
+    step["uses"].to_s.start_with?("ReactiveCircus/android-emulator-runner@")
+  end
+  unless run_body(resolver_step || {}).strip ==
+      'scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"' &&
+      run_body(download_step || {}).include?("releases/assets/$APK_ASSET_ID") &&
+      run_body(download_step || {}).include?("actual_sha256") &&
+      input_value(emulator_step || {}, "script").to_s.include?('--apk "$LOCKER_APK_PATH"')
     published_apk_violations << "#{path}: must resolve, download, verify, and run an ente/nightly Locker APK"
   end
-  if body.match?(/(?:flutter\s+build|gradlew?\s+[^\n]*assemble)/i)
+  if steps.any? { |step| run_body(step).match?(/(?:flutter\s+build|gradlew?\s+[^\n]*assemble)/i) }
     published_apk_violations << "#{path}: must not compile the Locker application"
+  end
+
+  next unless File.basename(path) == "locker-android-seeded.yml"
+
+  jobs = workflow.fetch("jobs")
+  resolve_job = jobs.fetch("resolve")
+  seeded_job = jobs.fetch("seeded-proof")
+  gate_job = jobs.fetch("locker-seeded-gate")
+  scope_step = resolve_job.fetch("steps").find { |step| step["id"] == "scope" }
+  seeded_steps = seeded_job.fetch("steps")
+  seeded_emulator_step = seeded_steps.find do |step|
+    step["uses"].to_s.start_with?("ReactiveCircus/android-emulator-runner@")
+  end
+  artifact_step = seeded_steps.find do |step|
+    step["uses"].to_s.start_with?("actions/upload-artifact@")
+  end
+  artifact_paths = input_value(artifact_step || {}, "path").to_s.lines.map(&:strip).reject(&:empty?)
+
+  expected_scope_output = "${{ steps.scope.outputs.selected_flow }}"
+  expected_selected_flow = "${{ needs.resolve.outputs.selected_flow }}"
+  expected_gate_name = "Locker seeded proof gate (${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }})"
+  expected_concurrency_group = "locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}"
+  expected_artifact_paths = [
+    "artifacts/maestro/seeded-proof/results/*.xml",
+    "artifacts/maestro/seeded-proof/summary.txt"
+  ]
+
+  unless workflow.dig("concurrency", "group") == expected_concurrency_group &&
+      workflow.dig("concurrency", "cancel-in-progress") == true
+    workflow_contract_violations << "#{path}: concurrency must isolate full and targeted scopes"
+  end
+  unless resolve_job.dig("outputs", "selected_flow") == expected_scope_output &&
+      scope_step&.dig("env", "REQUESTED_FLOW") == "${{ inputs.flow || 'all' }}" &&
+      run_body(scope_step || {}).include?('scripts/select-locker-seeded-flow.sh "$REQUESTED_FLOW"') &&
+      seeded_job.dig("env", "LOCKER_SELECTED_FLOW") == expected_selected_flow &&
+      input_value(seeded_emulator_step || {}, "script") ==
+        'scripts/run-locker-seeded-hosted.sh --apk "$LOCKER_APK_PATH"'
+    workflow_contract_violations << "#{path}: selected flow must pass through the audited selector and hosted wrapper"
+  end
+  unless seeded_job["timeout-minutes"] == 60
+    workflow_contract_violations << "#{path}: the sequential full lane must retain a 60-minute timeout"
+  end
+  unless gate_job["name"] == expected_gate_name
+    workflow_contract_violations << "#{path}: the final gate name must expose full versus targeted scope"
+  end
+  unless artifact_paths == expected_artifact_paths
+    workflow_contract_violations << "#{path}: seeded artifacts must remain limited to redacted JUnit and summary files"
   end
 end
 
-failed = trigger_violations.any? || unpinned_violations.any? || published_apk_violations.any?
+failed = trigger_violations.any? || unpinned_violations.any? ||
+  published_apk_violations.any? || workflow_contract_violations.any?
 puts "Workflow Security Checks: #{failed ? "Failed" : "Passed"}"
 puts "Checked #{checked_files.length} workflow files."
 
@@ -90,6 +167,10 @@ end
 unless published_apk_violations.empty?
   puts "Published Locker APK contract violations:"
   published_apk_violations.each { |violation| puts "- #{violation}" }
+end
+unless workflow_contract_violations.empty?
+  puts "Workflow contract violations:"
+  workflow_contract_violations.each { |violation| puts "- #{violation}" }
 end
 
 exit(failed ? 1 : 0)
