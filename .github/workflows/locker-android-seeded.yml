@@ -153,12 +153,7 @@ jobs:
                   cores: 4
                   emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -memory 6144
                   disable-animations: true
-                  script: |
-                      if [ "$LOCKER_SELECTED_FLOW" = all ]; then
-                          scripts/run-locker-seeded-suite.sh --apk "$LOCKER_APK_PATH"
-                      else
-                          scripts/run-locker-seeded-suite.sh --only-flow "$LOCKER_SELECTED_FLOW" --apk "$LOCKER_APK_PATH"
-                      fi
+                  script: scripts/run-locker-seeded-hosted.sh --apk "$LOCKER_APK_PATH"
 
             - name: Summarize seeded proof
               if: always() && steps.seeded-tests.outcome != 'skipped'

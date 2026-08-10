@@ -126,7 +126,7 @@ if grep --quiet --extended-regexp \
 fi
 
 if ! grep --quiet --fixed-strings \
-    'scripts/run-locker-seeded-suite.sh' \
+    'scripts/run-locker-seeded-hosted.sh' \
     .github/workflows/locker-android-seeded.yml; then
     echo "The hosted seeded proof must use the audited Android runner" >&2
     exit 1
@@ -134,10 +134,10 @@ fi
 
 if ! grep --quiet --fixed-strings \
     'scripts/select-locker-seeded-flow.sh' \
-    .github/workflows/locker-android-seeded.yml ||
+    scripts/run-locker-seeded-hosted.sh ||
     ! grep --quiet --fixed-strings -- \
-        '--only-flow "$LOCKER_SELECTED_FLOW"' \
-        .github/workflows/locker-android-seeded.yml; then
+        '--only-flow "$selected_flow"' \
+        scripts/run-locker-seeded-hosted.sh; then
     echo "The hosted seeded proof must expose the audited targeted-flow path" >&2
     exit 1
 fi
