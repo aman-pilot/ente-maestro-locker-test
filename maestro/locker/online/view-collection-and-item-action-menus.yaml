@@ -20,7 +20,17 @@ appId: ${APP_ID}
 # from tapping a semantics node while it is being rebuilt.
 - scrollUntilVisible:
     element: "Home Inventory\n2 items"
-- tapOn: "Home Inventory\n2 items"
+    centerElement: true
+    timeout: 10000
+# Tap inside the left/content area of the exact matched row. This remains
+# relative to the selected element (not the screen) and avoids depending on
+# the merged semantics node's default center.
+- tapOn:
+    text: "Home Inventory\n2 items"
+    point: 25%,50%
+- extendedWaitUntil:
+    notVisible: "Home Inventory\n2 items"
+    timeout: 10000
 - extendedWaitUntil:
     visible: Blue Suitcase
     timeout: 10000

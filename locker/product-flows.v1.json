@@ -13,7 +13,7 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "684a057e4584aa2b04a6941857ff7532b5996b699845a73351942f20111e6de3",
+    "flowSetSha256": "5ef2d2f802f2ffc62e87b05e75ca29a6235f3e5814880f372356fec6168dab04",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
@@ -21,7 +21,8 @@
       "Place ordinary online product flows directly under maestro/locker/online and private login under online/subflows to match Auth.",
       "Use the current Locker Open navigation menu semantics label for seeded settings flows.",
       "Open the drawer through one repository-owned compatibility subflow that prefers the current semantic label and falls back to the older published-build header hit target.",
-      "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action."
+      "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action.",
+      "Gate Home Inventory on its final async item count, center the card, and tap its selector-relative content area."
     ]
   },
   "classifications": {
