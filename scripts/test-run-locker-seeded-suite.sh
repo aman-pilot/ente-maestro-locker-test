@@ -26,7 +26,7 @@ printf '%s\n' \
     '  *"shell id -u"*) echo 0 ;;' \
     '  *"shell command -v sqlite3"*) echo /system/bin/sqlite3 ;;' \
     '  *"shell sqlite3 "*) echo "${LOCKER_TEST_CLIENT_ITEM_IDS:-1,2,3,4,5,6,7,8,9,10,11,12,13}"; echo "adb seeded-db-probe" >> "$LOCKER_EVENT_LOG" ;;' \
-    '  *"shell am force-stop"*) echo "adb seeded-force-stop" >> "$LOCKER_EVENT_LOG" ;;' \
+    '  *"shell am force-stop"*) echo "adb force-stop" >> "$LOCKER_EVENT_LOG" ;;' \
     '  *"shell am get-current-user"*) echo 0 ;;' \
     '  *"shell stat -c"*) echo 10000:10000 ;;' \
     '  *"shell pm clear"*) echo Success; echo "adb pm-clear" >> "$LOCKER_EVENT_LOG" ;;' \
@@ -160,7 +160,7 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 20 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
-[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^adb force-stop$' "$temp_dir/logs/events.log")" -eq 5 ]]
 [[ "$(grep -c '^adb pm-clear$' "$temp_dir/logs/events.log")" -ge 4 ]]
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
@@ -191,7 +191,7 @@ run_target_suite "$target_seeded_output" rename-and-delete-collections
 [[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
-[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(grep -c '^adb force-stop$' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^maestro product rename-and-delete-collections$' "$temp_dir/logs/events.log")" -eq 1 ]]
 grep --quiet --fixed-strings \
     'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=1 failures=0 identity_unchanged=true empty_login_attempts=0 seeded_login_attempts=1' \
@@ -248,7 +248,7 @@ if LOCKER_TEST_CLIENT_ITEM_IDS=1,2 LOCKER_CLIENT_SYNC_ATTEMPTS=1 \
 fi
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
 [[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 2 ]]
-[[ "$(grep -c '^adb seeded-force-stop$' "$temp_dir/logs/events.log" || true)" -eq 0 ]]
+[[ "$(grep -c '^adb force-stop$' "$temp_dir/logs/events.log")" -eq 4 ]]
 grep --quiet --fixed-strings \
     'failure_phase=login failure_category=seeded-client-sync' \
     "$client_sync_failure_output/summary.txt"
