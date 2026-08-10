@@ -42,7 +42,8 @@ hierarchies, and debug output stay private. Product YAML must not contain login
 data or backend endpoints. On the known collection-entry assertion failure, the
 runner may publish one leakage-scanned route probe derived from the private
 hierarchy; it contains only a structural page classification, action count, and
-seeded-title visibility.
+seeded-title visibility. A fixed capture status reports hierarchy-command,
+timeout, or parser failure without exposing raw UI text.
 The runner stops after the first product failure because later flows share
 mutable state and would otherwise produce cascade noise.
 

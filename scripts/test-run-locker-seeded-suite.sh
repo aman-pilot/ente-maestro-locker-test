@@ -339,7 +339,7 @@ fi
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(find "$collection_failure_output/diagnostics" -type f -name '*-ui.txt' | wc -l | tr -d ' ')" -eq 1 ]]
 grep --quiet --fixed-strings \
-    'route_probe=all_collections top_right_actions=1 blue_visible=false' \
+    'capture_status=ok route_probe=all_collections top_right_actions=1 blue_visible=false' \
     "$collection_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' \
@@ -362,10 +362,9 @@ grep --quiet --fixed-strings \
     'seeded_suite status=fail accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=0 seeded_login_attempts=1' \
     "$hierarchy_failure_output/summary.txt"
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
-if [[ -d "$hierarchy_failure_output/diagnostics" ]]; then
-    echo "A route probe exists even though private hierarchy capture failed" >&2
-    exit 1
-fi
+grep --quiet --fixed-strings \
+    'capture_status=hierarchy_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    "$hierarchy_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
 malformed_hierarchy_output="$temp_dir/public-malformed-hierarchy"
@@ -377,10 +376,9 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     echo "Expected the product failure to survive malformed hierarchy output" >&2
     exit 1
 fi
-if [[ -d "$malformed_hierarchy_output/diagnostics" ]]; then
-    echo "A route probe exists for malformed hierarchy output" >&2
-    exit 1
-fi
+grep --quiet --fixed-strings \
+    'capture_status=parse_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    "$malformed_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
 timeout_hierarchy_output="$temp_dir/public-timeout-hierarchy"
@@ -393,10 +391,9 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     echo "Expected the product failure to survive hierarchy timeout" >&2
     exit 1
 fi
-if [[ -d "$timeout_hierarchy_output/diagnostics" ]]; then
-    echo "A route probe exists after hierarchy capture timed out" >&2
-    exit 1
-fi
+grep --quiet --fixed-strings \
+    'capture_status=timeout route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+    "$timeout_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 finish_failure_output="$temp_dir/public-finish-failure"
 if LOCKER_TEST_FINISH_FAIL=true \

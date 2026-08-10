@@ -18,12 +18,15 @@ assert_equal() {
 
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
-    '0,0,"bounds=[0,0][1080,2340]; enabled=true",' \
-    '1,1,"clickable=true; bounds=[800,180][940,320]; enabled=true",0' \
-    '2,1,"text=seeded-android-proof-test@example.org; accessibilityText=Locker-test!Aa1; bounds=[40,400][900,520]",0' \
-    '3,1,"bounds=[0,0][2000,5000]; enabled=true",0' \
+    '0,0,"enabled=true",' \
+    '1,1,"enabled=true",0' \
+    '2,2,"bounds=[0,0][1080,128]; enabled=true",1' \
+    '3,2,"bounds=[0,0][1080,2340]; enabled=true",1' \
+    '4,3,"clickable=true; bounds=[800,180][940,320]; enabled=true",3' \
+    '5,3,"text=seeded-android-proof-test@example.org; accessibilityText=Locker-test!Aa1; bounds=[40,400][900,520]",3' \
+    '6,3,"bounds=[0,0][2000,5000]; enabled=true",3' \
     > "$temp_dir/all-collections.csv"
-expected='route_probe=all_collections top_right_actions=1 blue_visible=false'
+expected='capture_status=ok route_probe=all_collections top_right_actions=1 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/all-collections.csv")
 assert_equal "$expected" "$actual"
 
@@ -34,7 +37,7 @@ printf '%s\n' \
     '2,1,"clickable=true; bounds=[800,180][940,320]; enabled=true",0' \
     '3,1,"text=Blue Suitcase; accessibilityText=Blue Suitcase; bounds=[80,500][900,620]",0' \
     > "$temp_dir/collection-page.csv"
-expected='route_probe=collection_page top_right_actions=2 blue_visible=true'
+expected='capture_status=ok route_probe=collection_page top_right_actions=2 blue_visible=true'
 actual=$(ruby "$summarizer" "$temp_dir/collection-page.csv")
 assert_equal "$expected" "$actual"
 
@@ -46,16 +49,27 @@ printf '%s\n' \
     '3,1,"clickable=true; bounds=[640,180][760,320]; enabled=true",0' \
     '4,1,"clickable=true; bounds=[560,180][620,320]; enabled=true",0' \
     > "$temp_dir/unknown.csv"
-expected='route_probe=unknown top_right_actions=3 blue_visible=false'
+expected='capture_status=ok route_probe=unknown top_right_actions=3 blue_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/unknown.csv")
 assert_equal "$expected" "$actual"
 
 printf '%s\n' \
     'element_num,depth,attributes,parent_num' \
-    '0,1,"bounds=[0,0][1080,2340]; enabled=true",' \
+    '0,0,"enabled=true",' \
     > "$temp_dir/missing-root.csv"
 if ruby "$summarizer" "$temp_dir/missing-root.csv" > /dev/null 2>&1; then
-    echo "Expected a hierarchy without one bounded root to fail" >&2
+    echo "Expected a hierarchy without a bounded top-level window to fail" >&2
+    exit 1
+fi
+
+printf '%s\n' \
+    'element_num,depth,attributes,parent_num' \
+    '0,0,"enabled=true",' \
+    '1,1,"bounds=[0,0][1080,2340]; enabled=true",0' \
+    '2,1,"bounds=[10,0][1090,2340]; enabled=true",0' \
+    > "$temp_dir/ambiguous-viewport.csv"
+if ruby "$summarizer" "$temp_dir/ambiguous-viewport.csv" > /dev/null 2>&1; then
+    echo "Expected conflicting largest top-level windows to fail" >&2
     exit 1
 fi
 

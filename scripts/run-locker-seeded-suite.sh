@@ -505,9 +505,13 @@ capture_product_failure_diagnostic() {
     local scenario=$1
     local raw_hierarchy="$private_root/$scenario-ui.csv"
     local hierarchy_log="$private_logs/$scenario-hierarchy.log"
+    local hierarchy_status=0
     local public_temp
 
-    if ! ruby -rtimeout -e '
+    mkdir -p "$diagnostics_dir"
+    public_temp="$diagnostics_dir/.$scenario-ui.tmp"
+
+    ruby -rtimeout -e '
       timeout_seconds, stdout_path, stderr_path, *command = ARGV
       File.open(stdout_path, "w", 0o600) do |stdout|
         File.open(stderr_path, "w", 0o600) do |stderr|
@@ -526,19 +530,32 @@ capture_product_failure_diagnostic() {
       end
     ' "$hierarchy_timeout_seconds" "$raw_hierarchy" "$hierarchy_log" \
         "$maestro_bin" --device "$serial" hierarchy \
-            --compact --no-ansi --no-reinstall-driver; then
+            --compact --no-ansi --no-reinstall-driver || hierarchy_status=$?
+    if [[ $hierarchy_status -ne 0 ]]; then
         rm -f -- "$raw_hierarchy"
+        if [[ $hierarchy_status -eq 124 ]]; then
+            printf '%s\n' \
+                'capture_status=timeout route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+                > "$public_temp"
+        else
+            printf '%s\n' \
+                'capture_status=hierarchy_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+                > "$public_temp"
+        fi
+        chmod 600 "$public_temp"
+        mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
         return 0
     fi
 
-    mkdir -p "$diagnostics_dir"
-    public_temp="$diagnostics_dir/.$scenario-ui.tmp"
     if ruby "$hierarchy_summarizer" "$raw_hierarchy" > "$public_temp" 2>> "$hierarchy_log"; then
         chmod 600 "$public_temp"
         mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
     else
-        rm -f -- "$public_temp"
-        rmdir "$diagnostics_dir" 2> /dev/null || true
+        printf '%s\n' \
+            'capture_status=parse_failed route_probe=unavailable top_right_actions=unknown blue_visible=unknown' \
+            > "$public_temp"
+        chmod 600 "$public_temp"
+        mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
     fi
     rm -f -- "$raw_hierarchy"
 }
