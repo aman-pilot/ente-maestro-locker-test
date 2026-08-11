@@ -217,5 +217,13 @@ jobs:
                   RESOLVE_RESULT: ${{ needs.resolve.result }}
                   SEEDED_RESULT: ${{ needs.seeded-proof.result }}
               run: |
-                  test "$RESOLVE_RESULT" = success
-                  test "$SEEDED_RESULT" = success
+                  status=0
+                  if [[ "$RESOLVE_RESULT" != success ]]; then
+                      echo "::error::Seeded proof input resolution finished with result=$RESOLVE_RESULT"
+                      status=1
+                  fi
+                  if [[ "$SEEDED_RESULT" != success ]]; then
+                      echo "::error::Published Locker seeded proof finished with result=$SEEDED_RESULT. Inspect the upstream seeded summary and JUnit artifact."
+                      status=1
+                  fi
+                  exit "$status"

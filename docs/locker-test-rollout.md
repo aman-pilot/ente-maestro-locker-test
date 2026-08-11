@@ -107,7 +107,7 @@ diagnostics.
 
 ## Intentional exclusions
 
-- Six core flows are preserved but remain hosted-unresolved until their
+- Eight core flows are preserved but remain hosted-unresolved until their
   published-build semantics pass targeted and complete-lane validation.
 - Native document picker, preview, download, and platform/offline-state flows
   are not part of the first hosted lane.

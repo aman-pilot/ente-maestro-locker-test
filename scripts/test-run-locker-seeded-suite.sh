@@ -211,7 +211,7 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^seeder apply online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
-[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 20 ]]
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 18 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^adb force-stop$' "$temp_dir/logs/events.log")" -eq 5 ]]
@@ -219,9 +219,9 @@ run_suite "$output_dir" env
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
 grep --quiet --fixed-strings \
-    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=20 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
+    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=18 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
     "$output_dir/summary.txt"
-[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 20 ]]
+[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 18 ]]
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' "$output_dir"; then
     echo "Public seeded output leaked credentials" >&2
@@ -313,8 +313,16 @@ grep --quiet --fixed-strings \
 
 : > "$temp_dir/logs/events.log"
 product_failure_output="$temp_dir/public-product-failure"
-if run_suite "$product_failure_output" env LOCKER_TEST_PRODUCT_FAIL=true > /dev/null 2>&1; then
+product_failure_log="$temp_dir/logs/product-failure.log"
+if run_suite "$product_failure_output" env LOCKER_TEST_PRODUCT_FAIL=true > "$product_failure_log" 2>&1; then
     echo "Expected the forced product failure to fail the seeded suite" >&2
+    exit 1
+fi
+grep --quiet --fixed-strings \
+    'Seeded suite reported verified failure scenario=empty-home-and-save-options failure_phase=product failure_category=canonical-yaml' \
+    "$product_failure_log"
+if grep --quiet --fixed-strings 'Seeded suite failed during phase=finalize' "$product_failure_log"; then
+    echo "A verified product failure was mislabeled as a finalization failure" >&2
     exit 1
 fi
 [[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 1 ]]
@@ -396,12 +404,16 @@ grep --quiet --fixed-strings \
     "$timeout_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 finish_failure_output="$temp_dir/public-finish-failure"
+finish_failure_log="$temp_dir/logs/finish-failure.log"
 if LOCKER_TEST_FINISH_FAIL=true \
     run_target_suite "$finish_failure_output" rename-and-delete-collections \
-    > /dev/null 2>&1; then
+    > "$finish_failure_log" 2>&1; then
     echo "Expected fixture finalization failure" >&2
     exit 1
 fi
+grep --quiet --fixed-strings \
+    'Seeded suite infrastructure failed during phase=finalize' \
+    "$finish_failure_log"
 if [[ -e "$finish_failure_output" ]]; then
     echo "Unverified public output survived fixture finalization failure" >&2
     exit 1

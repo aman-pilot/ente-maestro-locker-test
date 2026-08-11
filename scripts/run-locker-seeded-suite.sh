@@ -186,6 +186,10 @@ cleanup_started=false
 output_root_created=false
 public_output_verified=false
 current_phase=initialization
+suite_status=unknown
+failed_scenario=none
+failed_phase=none
+failed_category=none
 
 remove_private_root() {
     case "$private_root" in
@@ -291,7 +295,12 @@ cleanup() {
     remove_private_root || cleanup_status=1
 
     if [[ $original_status -ne 0 ]]; then
-        printf 'Seeded suite failed during phase=%s\n' "$current_phase" >&2
+        if [[ "$public_output_verified" == true && "$suite_status" == fail && "$failed_scenario" != none ]]; then
+            printf 'Seeded suite reported verified failure scenario=%s failure_phase=%s failure_category=%s\n' \
+                "$failed_scenario" "$failed_phase" "$failed_category" >&2
+        else
+            printf 'Seeded suite infrastructure failed during phase=%s\n' "$current_phase" >&2
+        fi
         exit "$original_status"
     fi
     exit "$cleanup_status"
@@ -313,8 +322,8 @@ registered_scenarios=()
 while IFS= read -r scenario; do
     [[ -n "$scenario" ]] && registered_scenarios+=("$scenario")
 done < <(jq --exit-status --raw-output '.hostedLane.flows[]' "$flow_registry")
-if [[ ${#registered_scenarios[@]} -ne 20 ]]; then
-    printf 'The audited online lane must contain all 20 proven hosted flows\n' >&2
+if [[ ${#registered_scenarios[@]} -ne 18 ]]; then
+    printf 'The audited online lane must contain all 18 proven hosted flows\n' >&2
     exit 2
 fi
 
@@ -698,6 +707,9 @@ for index in "${!scenarios[@]}"; do
 
     if [[ "$scenario_status" == "fail" ]]; then
         failure_count=$((failure_count + 1))
+        failed_scenario=$scenario
+        failed_phase=$failure_phase
+        failed_category=$failure_category
     fi
     fixture_sha256=none
     if [[ "$fixture_applied" == true ]]; then

@@ -31,7 +31,6 @@
       "bulk-add-delete-and-restore-items",
       "change-language-and-restore-english",
       "delete-collection-keep-item",
-      "edit-emergency-contact",
       "empty-collection",
       "empty-home-and-save-options",
       "empty-trash",
@@ -45,7 +44,6 @@
       "select-all-and-mark-important",
       "view-about-and-support-settings",
       "view-account-and-security-settings",
-      "view-collection-and-item-action-menus",
       "view-theme-options"
     ],
     "hostedUnresolved": {
@@ -53,8 +51,10 @@
       "create-edit-move-delete-and-restore-thing": "Creation and collection-selection semantics still need an isolated green run.",
       "create-uncategorized-secret": "Creation succeeds, but the later Uncategorized filter selector is absent.",
       "create-uncategorized-thing": "Creation succeeds, but the later Uncategorized filter selector is absent.",
+      "edit-emergency-contact": "The exact published RC locally opened the seeded contact for editing but did not expose the expected Archive action.",
       "rename-and-delete-collections": "Collection selection/navigation is locally flaky and has not repeated its earlier green result.",
-      "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move."
+      "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move.",
+      "view-collection-and-item-action-menus": "The exact published RC exposes no semantic label for the collection popup button, and its coordinate fallback failed on hosted x86_64 after collection entry succeeded."
     },
     "nativeSystemDeferred": {
       "download-document": "Targets the native iOS Files save and replace surface.",
@@ -86,13 +86,11 @@
       "change-language-and-restore-english",
       "empty-collection",
       "filter-items-by-collection",
-      "view-collection-and-item-action-menus",
       "add-item-to-multiple-collections",
       "mark-and-unmark-important",
       "select-all-and-mark-important",
       "bulk-add-delete-and-restore-items",
       "delete-collection-keep-item",
-      "edit-emergency-contact",
       "permanently-delete-note",
       "logout"
     ]

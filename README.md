@@ -68,7 +68,7 @@ targeted scope while iterating, then run `all` for promotion evidence.
 
 ### Local Android online lane
 
-The latest clean full run completed on 2026-08-10 with Android API 35 ARM64 and
+The latest clean full run completed on 2026-08-11 with Android API 35 ARM64 and
 the following exact Ente GitHub release-candidate APK. Locker was not built
 locally.
 
@@ -76,11 +76,10 @@ locally.
 | --- | --- | --- | --- |
 | `locker-v1.0.8-rc` | `502622451` | `ente-locker-v1.0.8.apk` | `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4` |
 
-All 20 default-lane flows passed in one ordered execution: 20 JUnit tests, no
-failures, one account, one fixture application, no backend reset, unchanged
-identity, and one successful empty-state login plus one seeded login.
-Subsequent fixes to the search and collection-action readiness contracts each
-passed targeted local runs against the same immutable APK.
+All 18 current default-lane flows passed in one ordered execution: 18 JUnit
+tests, no failures, one account, one fixture application, no backend reset,
+unchanged identity, and one successful empty-state login plus one seeded login.
+The leakage-scanned runner left no private-suite or Docker-stack residue.
 
 ### Hosted Android CI
 
@@ -89,15 +88,16 @@ asset `500679355` with SHA-256
 `1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`.
 
 The latest completed authenticated attempt used Android API 34 x86_64 and exact
-asset `502622451`. It passed the first 11 ordered flows before
-`view-collection-and-item-action-menus` failed to enter `Home Inventory`
-([run 31387905140](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31387905140)).
-That flow now enters Collections through the drawer route already proven by the
-hosted `empty-collection` flow instead of navigating through the filter sheet.
+asset `502622451`. A targeted `view-collection-and-item-action-menus` run entered
+`Home Inventory` and found `Blue Suitcase`, then failed to expose the unlabeled
+collection popup's `Edit` action
+([run 31406020777](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31406020777)).
+That flow remains canonical and individually targetable but is excluded from the
+default hosted lane until the published APK exposes a deterministic popup target.
 
 ### Deferred coverage
 
-- Six core flows remain classified as hosted-unresolved in
+- Eight core flows remain classified as hosted-unresolved in
   `locker/product-flows.v1.json`.
 - Native picker, preview, download, and offline/platform-state flows remain
   local or deferred.
