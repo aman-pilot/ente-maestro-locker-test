@@ -13,7 +13,7 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "5ef2d2f802f2ffc62e87b05e75ca29a6235f3e5814880f372356fec6168dab04",
+    "flowSetSha256": "564b9f842b0ac96c409e85c6a1f124b47edc080989d44a011596d8de9ac45d9e",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
@@ -22,7 +22,8 @@
       "Use the current Locker Open navigation menu semantics label for seeded settings flows.",
       "Open the drawer through one repository-owned compatibility subflow that prefers the current semantic label and falls back to the older published-build header hit target.",
       "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action.",
-      "Gate Home Inventory on its final async item count, center the card, and tap its selector-relative content area."
+      "Gate Home Inventory on its final async item count, center the card, and tap its selector-relative content area.",
+      "Wait for newly deleted items to finish syncing into Trash before asserting the bulk-restore inventory."
     ]
   },
   "classifications": {

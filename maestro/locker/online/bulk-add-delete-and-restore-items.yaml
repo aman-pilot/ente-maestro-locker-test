@@ -117,7 +117,9 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Trash
     timeout: 10000
-- assertVisible: Camping Stove
+- extendedWaitUntil:
+    visible: Camping Stove
+    timeout: 30000
 - assertVisible: Sleeping Bag
 - longPressOn: Camping Stove
 - tapOn: Sleeping Bag
