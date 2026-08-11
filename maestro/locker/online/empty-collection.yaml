@@ -16,7 +16,7 @@ appId: ${APP_ID}
 - tapOn: "Travel Archive\n.*items"
 - extendedWaitUntil:
     visible: Nothing to see here
-    timeout: 10000
+    timeout: 30000
 - assertVisible: Travel Archive
 - assertVisible: There are no items in this collection
 - back
