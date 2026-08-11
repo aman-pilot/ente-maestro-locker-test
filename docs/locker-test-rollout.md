@@ -44,6 +44,10 @@ one leakage-scanned route probe derived from the private hierarchy. It contains
 only a structural page classification, action count, and fixed booleans for
 known synthetic fixture labels. A fixed capture status reports
 hierarchy-command, timeout, or parser failure without exposing raw UI text.
+Product assertions and in-flow failures are not retried. One retry is allowed
+only for the narrow JUnit signature showing Maestro's Android driver failed
+during pre-flow `deviceInfo`; persistent driver failure is reported separately
+from canonical YAML failure.
 The runner stops after the first product failure because later flows share
 mutable state and would otherwise produce cascade noise.
 

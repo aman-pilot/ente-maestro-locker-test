@@ -78,6 +78,11 @@ printf '%s\n' \
     'scenario="$(basename "${output%.xml}")"' \
     'echo "maestro product $scenario" >> "$LOCKER_EVENT_LOG"' \
     'mkdir -p "$(dirname "$output")"' \
+    'if [[ ${LOCKER_TEST_PRODUCT_DRIVER_FAIL_ALWAYS:-false} == true || ( ${LOCKER_TEST_PRODUCT_DRIVER_FAIL_ONCE:-false} == true && ! -f "$LOCKER_TEST_LOG/product-driver-failed-once" ) ]]; then' \
+    '  touch "$LOCKER_TEST_LOG/product-driver-failed-once"' \
+    '  printf "<testsuite tests=\"1\" failures=\"1\"><testcase time=\"0.0\"><failure>io.grpc.StatusRuntimeException: UNAVAILABLE MaestroDriverBlockingStub.deviceInfo Command failed (tcp:46359): closed</failure></testcase></testsuite>\n" > "$output"' \
+    '  exit 1' \
+    'fi' \
     'if [[ ${LOCKER_TEST_PRODUCT_FAIL:-false} == true ]]; then' \
     '  failure_message=${LOCKER_TEST_PRODUCT_FAILURE_MESSAGE:-forced product failure}' \
     '  printf "<testsuite name=\"%s\" tests=\"1\" failures=\"1\"><testcase><failure>%s</failure></testcase></testsuite>\n" "$scenario" "$failure_message" > "$output"' \
@@ -236,6 +241,36 @@ if find "$temp_dir" -maxdepth 1 -type d -name 'locker-seeded-suite.*' | grep --q
     echo "Private seeded-suite directory was not removed" >&2
     exit 1
 fi
+
+: > "$temp_dir/logs/events.log"
+rm -f "$temp_dir/logs/product-driver-failed-once"
+driver_retry_output="$temp_dir/public-driver-retry"
+run_suite "$driver_retry_output" env LOCKER_TEST_PRODUCT_DRIVER_FAIL_ONCE=true
+[[ "$(grep -c '^maestro product empty-home-and-save-options$' "$temp_dir/logs/events.log")" -eq 2 ]]
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 19 ]]
+grep --quiet --fixed-strings \
+    'scenarios=18 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1 product_driver_retries=1' \
+    "$driver_retry_output/summary.txt"
+if [[ -d "$driver_retry_output/diagnostics" ]]; then
+    echo "A recovered pre-flow Maestro driver failure produced a product diagnostic" >&2
+    exit 1
+fi
+
+: > "$temp_dir/logs/events.log"
+persistent_driver_failure_output="$temp_dir/public-persistent-driver-failure"
+if LOCKER_TEST_PRODUCT_DRIVER_FAIL_ALWAYS=true \
+    run_target_suite "$persistent_driver_failure_output" empty-home-and-save-options \
+    > /dev/null 2>&1; then
+    echo "Expected the persistent Maestro driver failure to fail" >&2
+    exit 1
+fi
+[[ "$(grep -c '^maestro product empty-home-and-save-options$' "$temp_dir/logs/events.log")" -eq 2 ]]
+grep --quiet --fixed-strings \
+    'failure_phase=product failure_category=maestro-driver-unavailable' \
+    "$persistent_driver_failure_output/summary.txt"
+grep --quiet --fixed-strings \
+    'scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=0 product_driver_retries=1' \
+    "$persistent_driver_failure_output/summary.txt"
 
 : > "$temp_dir/logs/events.log"
 target_seeded_output="$temp_dir/public-target-seeded"

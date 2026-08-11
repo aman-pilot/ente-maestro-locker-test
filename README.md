@@ -79,6 +79,11 @@ preparation, fixture application, JUnit output, credential-leak checks, and
 failure diagnostics. Maestro MCP is optional for inspection; the CLI runner is
 the reproducible local and hosted entrypoint.
 
+Product assertions are never retried. The runner retries once only when JUnit
+proves Maestro's Android driver became unavailable during `deviceInfo`, before
+the product flow began; the redacted summary records that recovery as
+`product_driver_retries`.
+
 ## Local-first change policy
 
 To conserve hosted runner minutes, batch workflow, fixture, and flow changes

@@ -492,13 +492,12 @@ prepare_seeded_client() {
         wait_for_seeded_client_fixture
 }
 
-run_product_flow() {
+run_product_flow_once() {
     local scenario=$1
     local flow=$2
     local result_file="$results_dir/$scenario.xml"
     local product_root="$private_maestro/product-$scenario"
 
-    mkdir -p "$product_root"
     "$maestro_bin" test \
         --udid "$serial" \
         --no-ansi \
@@ -508,6 +507,44 @@ run_product_flow() {
         --debug-output "$product_root/debug" \
         --flatten-debug-output \
         "$flow" > "$product_root/console.log" 2>&1
+}
+
+is_maestro_driver_startup_failure() {
+    local result_file=$1
+
+    [[ -f "$result_file" ]] &&
+        grep --fixed-strings --quiet 'io.grpc.StatusRuntimeException: UNAVAILABLE' "$result_file" &&
+        grep --fixed-strings --quiet 'MaestroDriverBlockingStub.deviceInfo' "$result_file" &&
+        grep --fixed-strings --quiet 'Command failed (tcp:' "$result_file"
+}
+
+run_product_flow() {
+    local scenario=$1
+    local flow=$2
+    local result_file="$results_dir/$scenario.xml"
+    local product_root="$private_maestro/product-$scenario"
+
+    mkdir -p "$product_root"
+    if run_product_flow_once "$scenario" "$flow"; then
+        return 0
+    fi
+    if ! is_maestro_driver_startup_failure "$result_file"; then
+        return 1
+    fi
+
+    product_driver_retries=$((product_driver_retries + 1))
+    mv "$product_root/console.log" "$product_root/driver-startup-failure.log"
+    rm -rf -- "$product_root/debug"
+    rm -f -- "$result_file"
+    adb -s "$serial" wait-for-device > /dev/null
+
+    if run_product_flow_once "$scenario" "$flow"; then
+        return 0
+    fi
+    if is_maestro_driver_startup_failure "$result_file"; then
+        product_failure_category=maestro-driver-unavailable
+    fi
+    return 1
 }
 
 capture_product_failure_diagnostic() {
@@ -603,6 +640,7 @@ adb -s "$serial" shell settings put system screen_off_timeout 2147483647 > /dev/
 
 failure_count=0
 attempted_count=0
+product_driver_retries=0
 records_file="$private_root/scenario-records.txt"
 : > "$records_file"
 online_run_dir="$private_runs/online-fixture"
@@ -642,6 +680,7 @@ for index in "${!scenarios[@]}"; do
     scenario_status=pass
     failure_phase=none
     failure_category=none
+    product_failure_category=canonical-yaml
 
     if [[ "$login_ready" != true ]]; then
         scenario_status=fail
@@ -695,7 +734,7 @@ for index in "${!scenarios[@]}"; do
     if [[ "$scenario_status" == "pass" ]] && ! run_product_flow "$scenario" "$flow"; then
         scenario_status=fail
         failure_phase=product
-        failure_category=canonical-yaml
+        failure_category=$product_failure_category
         capture_product_failure_diagnostic "$scenario" || true
     fi
     current_phase="product-$scenario"
@@ -738,9 +777,9 @@ if [[ "$fixture_applied" == true ]]; then
 fi
 clear_app_data
 {
-    printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
+    printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s product_driver_retries=%s\n' \
         "$suite_status" "$fixture_apply_count" "$attempted_count" "$failure_count" \
-        "$empty_login_attempts" "$seeded_login_attempts"
+        "$empty_login_attempts" "$seeded_login_attempts" "$product_driver_retries"
     cat "$records_file"
 } > "$summary_file"
 
@@ -764,9 +803,9 @@ if [[ "$credential_found" == true ]]; then
 fi
 public_output_verified=true
 
-printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s\n' \
+printf 'seeded_suite status=%s accounts_created=1 fixture_applies=%s backend_resets=0 scenarios=%s failures=%s identity_unchanged=true empty_login_attempts=%s seeded_login_attempts=%s product_driver_retries=%s\n' \
     "$suite_status" "$fixture_apply_count" "$attempted_count" "$failure_count" \
-    "$empty_login_attempts" "$seeded_login_attempts"
+    "$empty_login_attempts" "$seeded_login_attempts" "$product_driver_retries"
 if [[ "$suite_status" == "fail" ]]; then
     exit 1
 fi
