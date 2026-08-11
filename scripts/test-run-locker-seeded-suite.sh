@@ -329,11 +329,11 @@ fi
 grep --quiet --fixed-strings \
     'seeded_suite status=fail accounts_created=1 fixture_applies=0 backend_resets=0 scenarios=1 failures=1 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=0' \
     "$product_failure_output/summary.txt"
-[[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log" || true)" -eq 0 ]]
-if [[ -d "$product_failure_output/diagnostics" ]]; then
-    echo "An unrelated product failure produced a collection route probe" >&2
-    exit 1
-fi
+[[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
+[[ "$(find "$product_failure_output/diagnostics" -type f -name '*-ui.txt' | wc -l | tr -d ' ')" -eq 1 ]]
+grep --quiet --fixed-strings \
+    'capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=1 blue_visible=false travel_archive_row_visible=false travel_archive_title_visible=false empty_heading_visible=false empty_description_visible=false' \
+    "$product_failure_output/diagnostics/empty-home-and-save-options-ui.txt"
 
 : > "$temp_dir/logs/events.log"
 collection_failure_output="$temp_dir/public-collection-failure"
@@ -347,7 +347,7 @@ fi
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(find "$collection_failure_output/diagnostics" -type f -name '*-ui.txt' | wc -l | tr -d ' ')" -eq 1 ]]
 grep --quiet --fixed-strings \
-    'capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=1 blue_visible=false' \
+    'capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=1 blue_visible=false travel_archive_row_visible=false travel_archive_title_visible=false empty_heading_visible=false empty_description_visible=false' \
     "$collection_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' \
@@ -371,7 +371,7 @@ grep --quiet --fixed-strings \
     "$hierarchy_failure_output/summary.txt"
 [[ "$(grep -c '^maestro hierarchy$' "$temp_dir/logs/events.log")" -eq 1 ]]
 grep --quiet --fixed-strings \
-    'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
     "$hierarchy_failure_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
@@ -385,7 +385,7 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     exit 1
 fi
 grep --quiet --fixed-strings \
-    'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
     "$malformed_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 : > "$temp_dir/logs/events.log"
@@ -400,7 +400,7 @@ if LOCKER_TEST_PRODUCT_FAIL=true \
     exit 1
 fi
 grep --quiet --fixed-strings \
-    'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+    'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
     "$timeout_hierarchy_output/diagnostics/view-collection-and-item-action-menus-ui.txt"
 
 finish_failure_output="$temp_dir/public-finish-failure"

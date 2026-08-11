@@ -16,10 +16,13 @@ appId: ${APP_ID}
     visible: Collections
     timeout: 10000
 - scrollUntilVisible:
-    element: "Camping Gear\n.*items"
+    element: "Camping Gear\n2 items"
+    centerElement: true
     direction: DOWN
-    timeout: 10000
-- tapOn: "Camping Gear\n.*items"
+    timeout: 30000
+- tapOn:
+    text: "Camping Gear\n2 items"
+    point: 25%,50%
 - extendedWaitUntil:
     visible: Camping Stove
     timeout: 15000
@@ -65,10 +68,13 @@ appId: ${APP_ID}
 
 # Prove both memberships in the target collection.
 - scrollUntilVisible:
-    element: "Weekend Trips\\n.*items"
+    element: "Weekend Trips\n2 items"
+    centerElement: true
     direction: DOWN
-    timeout: 10000
-- tapOn: "Weekend Trips\\n.*items"
+    timeout: 30000
+- tapOn:
+    text: "Weekend Trips\n2 items"
+    point: 25%,50%
 - extendedWaitUntil:
     visible: Camping Stove
     timeout: 10000
@@ -162,10 +168,13 @@ appId: ${APP_ID}
     visible: Collections
     timeout: 10000
 - scrollUntilVisible:
-    element: "Weekend Trips\\n.*items"
+    element: "Weekend Trips\n2 items"
+    centerElement: true
     direction: DOWN
-    timeout: 10000
-- tapOn: "Weekend Trips\\n.*items"
+    timeout: 30000
+- tapOn:
+    text: "Weekend Trips\n2 items"
+    point: 25%,50%
 - extendedWaitUntil:
     visible: Camping Stove
     timeout: 10000

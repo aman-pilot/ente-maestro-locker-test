@@ -13,7 +13,7 @@
   },
   "import": {
     "root": "maestro/locker/online",
-    "flowSetSha256": "01ed80c9e4e04d14ebc39670dedb9fb36b8045b6807a0ec992ff10d854cafda6",
+    "flowSetSha256": "12a6573407e5a7eef5a1eb60eb4fbd0d7e19e92d08ccd3d464be9aa79604e59e",
     "setHashFormat": "SHA256 of lines sorted by repository-relative path: <file-sha256><two spaces><repository-relative-path><newline>",
     "transformations": [
       "Replace the source appId io.ente.locker with the runtime variable ${APP_ID}.",
@@ -23,8 +23,9 @@
       "Open the drawer through one repository-owned compatibility subflow that prefers the current semantic label and falls back to the older published-build header hit target.",
       "Use Search your documents as the seeded-home readiness proof instead of the data-dependent Add item action.",
       "Gate Home Inventory on its final async item count, center the card, and tap its selector-relative content area.",
+      "Gate collection navigation in the bulk lifecycle on final async item counts and selector-relative content-area taps.",
       "Wait for newly deleted items to finish syncing into Trash before asserting the bulk-restore inventory.",
-      "Wait for a seeded empty collection to render its complete empty-state contract on hosted x86."
+      "Wait for the seeded empty collection's final item count, center its merged semantics row, and tap its selector-relative content area."
     ]
   },
   "classifications": {

@@ -67,6 +67,15 @@ end.to_set
 top_right_actions = top_right_action_bounds.length
 collection_row_visible = exact_semantics_visible?(rows, "Home Inventory\n2 items")
 collection_title_visible = exact_semantics_visible?(rows, "Home Inventory")
+travel_archive_row_visible = rows.any? do |row|
+  row.fetch("attributes").to_s.split("; ").any? do |attribute|
+    value = attribute.sub(/\A(?:text|accessibilityText)=/, "")
+    attribute.match?(/\A(?:text|accessibilityText)=/) && value.gsub("\\n", "\n").start_with?("Travel Archive\n")
+  end
+end
+travel_archive_title_visible = exact_semantics_visible?(rows, "Travel Archive")
+empty_heading_visible = exact_semantics_visible?(rows, "Nothing to see here")
+empty_description_visible = exact_semantics_visible?(rows, "There are no items in this collection")
 route_probe = if collection_row_visible
   "all_collections"
 elsif collection_title_visible
@@ -78,4 +87,6 @@ blue_visible = exact_semantics_visible?(rows, "Blue Suitcase")
 
 puts "capture_status=ok route_probe=#{route_probe} collection_row_visible=#{collection_row_visible} " \
      "collection_title_visible=#{collection_title_visible} top_right_actions=#{top_right_actions} " \
-     "blue_visible=#{blue_visible}"
+     "blue_visible=#{blue_visible} travel_archive_row_visible=#{travel_archive_row_visible} " \
+     "travel_archive_title_visible=#{travel_archive_title_visible} " \
+     "empty_heading_visible=#{empty_heading_visible} empty_description_visible=#{empty_description_visible}"

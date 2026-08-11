@@ -35,7 +35,7 @@ Options:
   --serial <serial>     adb serial. Defaults to ANDROID_SERIAL or the only device.
   --app-id <id>         Defaults to io.ente.locker.independent.
   --output-dir <path>   New public redacted-output directory. Defaults to
-                        LOCKER_SEEDED_OUTPUT_DIR or artifacts/maestro/seeded-proof.
+                        LOCKER_ONLINE_OUTPUT_DIR or artifacts/maestro/online.
   -h, --help            Show this help.
 EOF
 }
@@ -46,7 +46,7 @@ seeder_bin="${LOCKER_SEED_BIN:-}"
 maestro_bin="${MAESTRO_BIN:-maestro}"
 serial="${ANDROID_SERIAL:-}"
 app_id="io.ente.locker.independent"
-output_dir="${LOCKER_SEEDED_OUTPUT_DIR:-$workspace_root/artifacts/maestro/seeded-proof}"
+output_dir="${LOCKER_ONLINE_OUTPUT_DIR:-${LOCKER_SEEDED_OUTPUT_DIR:-$workspace_root/artifacts/maestro/online}}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -544,11 +544,11 @@ capture_product_failure_diagnostic() {
         rm -f -- "$raw_hierarchy"
         if [[ $hierarchy_status -eq 124 ]]; then
             printf '%s\n' \
-                'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+                'capture_status=timeout route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
                 > "$public_temp"
         else
             printf '%s\n' \
-                'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+                'capture_status=hierarchy_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
                 > "$public_temp"
         fi
         chmod 600 "$public_temp"
@@ -561,7 +561,7 @@ capture_product_failure_diagnostic() {
         mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
     else
         printf '%s\n' \
-            'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown' \
+            'capture_status=parse_failed route_probe=unavailable collection_row_visible=unknown collection_title_visible=unknown top_right_actions=unknown blue_visible=unknown travel_archive_row_visible=unknown travel_archive_title_visible=unknown empty_heading_visible=unknown empty_description_visible=unknown' \
             > "$public_temp"
         chmod 600 "$public_temp"
         mv "$public_temp" "$diagnostics_dir/$scenario-ui.txt"
@@ -696,12 +696,7 @@ for index in "${!scenarios[@]}"; do
         scenario_status=fail
         failure_phase=product
         failure_category=canonical-yaml
-        if [[ "$scenario" == "view-collection-and-item-action-menus" ]] &&
-            grep --fixed-strings --quiet \
-                'Assertion is false: "Blue Suitcase" is visible' \
-                "$results_dir/$scenario.xml"; then
-            capture_product_failure_diagnostic "$scenario" || true
-        fi
+        capture_product_failure_diagnostic "$scenario" || true
     fi
     current_phase="product-$scenario"
 

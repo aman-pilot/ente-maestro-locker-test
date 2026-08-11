@@ -28,7 +28,7 @@ printf '%s\n' \
     '7,3,"text=Home Inventory\n2 items; accessibilityText=Home Inventory\n2 items; bounds=[40,500][900,620]",3' \
     '8,4,"text=Home Inventory; bounds=[40,500][500,560]",7' \
     > "$temp_dir/all-collections.csv"
-expected='capture_status=ok route_probe=all_collections collection_row_visible=true collection_title_visible=true top_right_actions=1 blue_visible=false'
+expected='capture_status=ok route_probe=all_collections collection_row_visible=true collection_title_visible=true top_right_actions=1 blue_visible=false travel_archive_row_visible=false travel_archive_title_visible=false empty_heading_visible=false empty_description_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/all-collections.csv")
 assert_equal "$expected" "$actual"
 
@@ -40,7 +40,7 @@ printf '%s\n' \
     '3,1,"text=Blue Suitcase; accessibilityText=Blue Suitcase; bounds=[80,500][900,620]",0' \
     '4,1,"text=Home Inventory; accessibilityText=Home Inventory; bounds=[80,320][900,440]",0' \
     > "$temp_dir/collection-page.csv"
-expected='capture_status=ok route_probe=collection_page collection_row_visible=false collection_title_visible=true top_right_actions=2 blue_visible=true'
+expected='capture_status=ok route_probe=collection_page collection_row_visible=false collection_title_visible=true top_right_actions=2 blue_visible=true travel_archive_row_visible=false travel_archive_title_visible=false empty_heading_visible=false empty_description_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/collection-page.csv")
 assert_equal "$expected" "$actual"
 
@@ -52,7 +52,7 @@ printf '%s\n' \
     '3,1,"clickable=true; bounds=[640,180][760,320]; enabled=true",0' \
     '4,1,"clickable=true; bounds=[560,180][620,320]; enabled=true",0' \
     > "$temp_dir/unknown.csv"
-expected='capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=3 blue_visible=false'
+expected='capture_status=ok route_probe=unknown collection_row_visible=false collection_title_visible=false top_right_actions=3 blue_visible=false travel_archive_row_visible=false travel_archive_title_visible=false empty_heading_visible=false empty_description_visible=false'
 actual=$(ruby "$summarizer" "$temp_dir/unknown.csv")
 assert_equal "$expected" "$actual"
 

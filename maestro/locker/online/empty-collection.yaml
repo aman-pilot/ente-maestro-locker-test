@@ -12,11 +12,18 @@ appId: ${APP_ID}
     visible: Collections
     timeout: 10000
 - scrollUntilVisible:
-    element: "Travel Archive\n.*items"
-- tapOn: "Travel Archive\n.*items"
+    element: "Travel Archive\n0 items"
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    text: "Travel Archive\n0 items"
+    point: 25%,50%
+- extendedWaitUntil:
+    notVisible: "Travel Archive\n0 items"
+    timeout: 10000
 - extendedWaitUntil:
     visible: Nothing to see here
-    timeout: 30000
+    timeout: 10000
 - assertVisible: Travel Archive
 - assertVisible: There are no items in this collection
 - back
