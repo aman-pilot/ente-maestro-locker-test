@@ -326,14 +326,7 @@ impl MuseumClient {
     }
 
     pub async fn trash_file(&self, file_id: i64, collection_id: i64) -> Result<()> {
-        self.trash_files(&[(file_id, collection_id)]).await
-    }
-
-    pub async fn trash_files(&self, files: &[(i64, i64)]) -> Result<()> {
-        if files.is_empty() {
-            return Ok(());
-        }
-        let body = trash_request(files);
+        let body = trash_request(&[(file_id, collection_id)]);
         self.post_empty("/files/trash", &body).await
     }
 
@@ -534,13 +527,14 @@ impl MuseumClient {
                 .bytes()
                 .await?
         };
-        if let Some(expected_size) = attributes.size.filter(|size| *size > 0)
-            && encrypted.len() as i64 != expected_size
-        {
-            bail!(
-                "downloaded {object_name} {file_id} has {} encrypted bytes, expected {expected_size}",
-                encrypted.len()
-            );
+        if let Some(expected_size) = attributes.size.filter(|size| *size > 0) {
+            let actual_size = i64::try_from(encrypted.len())
+                .context("downloaded encrypted object is too large to validate")?;
+            if actual_size != expected_size {
+                bail!(
+                    "downloaded {object_name} {file_id} has {actual_size} encrypted bytes, expected {expected_size}"
+                );
+            }
         }
         let header = decode_header(&attributes.decryption_header)?;
         crypto::stream::decrypt_file_data(&encrypted, &header, file_key)
@@ -555,7 +549,7 @@ impl MuseumClient {
             .with_context(|| format!("invalid Museum JSON response for GET {path}"))
     }
 
-    async fn post_json<T: DeserializeOwned, B: Serialize + ?Sized>(
+    async fn post_json<T: DeserializeOwned, B: Serialize + Sync + ?Sized>(
         &self,
         path: &str,
         body: &B,
@@ -567,7 +561,7 @@ impl MuseumClient {
             .with_context(|| format!("invalid Museum JSON response for POST {path}"))
     }
 
-    async fn post_empty<B: Serialize + ?Sized>(&self, path: &str, body: &B) -> Result<()> {
+    async fn post_empty<B: Serialize + Sync + ?Sized>(&self, path: &str, body: &B) -> Result<()> {
         checked(self.http.post(self.url(path)).json(body).send().await?).await?;
         Ok(())
     }

@@ -123,9 +123,6 @@ printf '%s\n' \
     '    chmod 600 "$run_dir/run.json"' \
     '    echo "seeder apply $scenario" >> "$LOCKER_EVENT_LOG"' \
     '    ;;' \
-    '  inspect)' \
-    '    echo "{}"' \
-    '    ;;' \
     '  finish)' \
     '    run_dir=""; previous=""' \
     '    for argument in "$@"; do [[ "$previous" == --run-dir ]] && run_dir="$argument"; previous="$argument"; done' \

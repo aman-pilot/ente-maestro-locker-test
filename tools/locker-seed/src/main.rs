@@ -47,31 +47,16 @@ enum Command {
         )]
         endpoint: String,
     },
-    /// Validate one manifest without starting Docker or accessing an account.
-    Validate {
-        #[arg(long)]
-        manifest: PathBuf,
-    },
     /// Seed and verify a manifest using a caller-supplied private account context.
     Apply {
         #[arg(long)]
         scenario: String,
         #[arg(long)]
-        manifest: Option<PathBuf>,
+        manifest: PathBuf,
         #[arg(long)]
-        run_dir: Option<PathBuf>,
+        run_dir: PathBuf,
         #[arg(long)]
         account_context: PathBuf,
-    },
-    /// Log in again and print a redacted inventory for a prepared account.
-    Inspect {
-        #[arg(long)]
-        run_dir: PathBuf,
-    },
-    /// Replay existing trash markers after Locker's first collection sync.
-    ReplayTrash {
-        #[arg(long)]
-        run_dir: PathBuf,
     },
     /// Capture final state and remove the private session record.
     Finish {
@@ -85,7 +70,6 @@ enum Command {
 #[derive(Subcommand)]
 enum StackAction {
     Up,
-    Status,
     Down,
 }
 
@@ -95,7 +79,6 @@ async fn main() -> Result<()> {
     match cli.command {
         Command::Stack { action, endpoint } => match action {
             StackAction::Up => stack::up(&endpoint).await,
-            StackAction::Status => stack::status(&endpoint).await,
             StackAction::Down => stack::down(),
         },
         Command::CreateAccount {
@@ -116,27 +99,12 @@ async fn main() -> Result<()> {
             println!("Created Locker account: {}", context.redacted_identity());
             Ok(())
         }
-        Command::Validate { manifest } => {
-            manifest::Manifest::load(&manifest)?;
-            println!("Manifest is valid: {}", manifest.display());
-            Ok(())
-        }
         Command::Apply {
             scenario,
             manifest,
             run_dir,
             account_context,
         } => {
-            let manifest = manifest.unwrap_or_else(|| {
-                stack::workspace_root()
-                    .join("manifests")
-                    .join(format!("{scenario}.json"))
-            });
-            let run_dir = run_dir.unwrap_or_else(|| {
-                stack::workspace_root()
-                    .join("runs")
-                    .join(format!("{scenario}-{}", uuid::Uuid::new_v4().simple()))
-            });
             let account_context = AccountContext::load(&account_context)?;
             let record = seeder::apply(&scenario, &account_context, &manifest, &run_dir)
                 .await
@@ -144,18 +112,6 @@ async fn main() -> Result<()> {
             println!("Applied Locker scenario: {}", record.scenario_id);
             println!("Account identity: {}", account_context.redacted_identity());
             println!("Fixtures verified: {}", record.items.len());
-            Ok(())
-        }
-        Command::Inspect { run_dir } => {
-            let record = RunRecord::load(&run_dir)?;
-            let snapshot = seeder::inspect(&record).await?;
-            println!("{}", serde_json::to_string_pretty(&snapshot)?);
-            Ok(())
-        }
-        Command::ReplayTrash { run_dir } => {
-            let record = RunRecord::load(&run_dir)?;
-            let replayed = seeder::replay_trash(&record).await?;
-            println!("Replayed {replayed} Locker trash marker(s)");
             Ok(())
         }
         Command::Finish { run_dir, status } => {

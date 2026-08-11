@@ -127,7 +127,7 @@ impl RunRecord {
     }
 }
 
-pub(crate) fn write_private_json(path: &Path, value: &impl Serialize) -> Result<()> {
+fn write_private_json(path: &Path, value: &impl Serialize) -> Result<()> {
     let bytes = serde_json::to_vec_pretty(value)?;
 
     #[cfg(unix)]
@@ -152,7 +152,7 @@ pub(crate) fn write_private_json(path: &Path, value: &impl Serialize) -> Result<
     Ok(())
 }
 
-pub(crate) fn redacted_identity(user_id: i64, email: &str) -> String {
+fn redacted_identity(user_id: i64, email: &str) -> String {
     let digest = Sha256::digest(format!("{user_id}\0{}", email.to_ascii_lowercase()).as_bytes());
     format!("sha256:{digest:x}")
 }
@@ -245,6 +245,7 @@ mod tests {
         let path = run_dir.join("run.json");
         fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .mode(0o644)
             .open(&path)

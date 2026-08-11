@@ -120,47 +120,6 @@ pub async fn apply(
     Ok(record)
 }
 
-pub async fn inspect(record: &RunRecord) -> Result<InventorySnapshot> {
-    let account = authenticate_run_record(record).await?;
-    inventory_from_account(&record.endpoint, &account).await
-}
-
-/// Refresh the Museum trash diff timestamps after Locker has completed its
-/// first collection sync. Locker starts collection and trash syncs in
-/// parallel on a fresh login; if trash wins, it cannot decrypt an entry whose
-/// collection is not in its local database yet. Replaying the idempotent
-/// `/files/trash` request makes those entries available to the next app sync.
-pub async fn replay_trash(record: &RunRecord) -> Result<usize> {
-    let account = authenticate_run_record(record).await?;
-    let client = MuseumClient::new(&record.endpoint, &auth::encoded_token(&account))?;
-    let before = client.trash().await?;
-    let expected_ids = before
-        .iter()
-        .map(|file| file.id)
-        .collect::<std::collections::HashSet<_>>();
-    let items = before
-        .iter()
-        .map(|file| (file.id, file.collection_id))
-        .collect::<Vec<_>>();
-
-    client.trash_files(&items).await?;
-
-    let actual_ids = client
-        .trash()
-        .await?
-        .into_iter()
-        .map(|file| file.id)
-        .collect::<std::collections::HashSet<_>>();
-    if actual_ids != expected_ids {
-        bail!(
-            "trash inventory changed while replaying sync markers: expected {:?}, found {:?}",
-            expected_ids,
-            actual_ids
-        );
-    }
-    Ok(items.len())
-}
-
 pub async fn finish(record: &RunRecord, run_dir: &Path, status: &str) -> Result<FinishRecord> {
     let account = authenticate_run_record(record).await?;
     let path = run_dir.join("finish.json");
@@ -252,29 +211,18 @@ async fn seed_manifest(
         .iter()
         .any(|item| matches!(item, ItemFixture::Document { .. }))
     {
-        let thumbnail = include_str!("../../../locker/fixtures/black-thumbnail.jpg.b64");
-        base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            thumbnail.split_whitespace().collect::<String>(),
-        )?
+        thumbnail_fixture()?
     } else {
         Vec::new()
     };
     let mut items = BTreeMap::new();
 
     for fixture in &manifest.items {
-        let mut refs = if fixture.collections().is_empty() {
-            vec![UNCATEGORIZED_REF.to_owned()]
-        } else {
-            fixture.collections().to_vec()
-        };
-        if fixture.important() && !refs.iter().any(|value| value == IMPORTANT_REF) {
-            refs.push(IMPORTANT_REF.to_owned());
-        }
+        let refs = item_collection_refs(fixture);
         let primary = collections
             .get(&refs[0])
             .ok_or_else(|| anyhow!("missing primary collection {}", refs[0]))?;
-        let title = fixture.title(fixture_root)?;
+        let title = fixture.title(fixture_root);
         let created = match fixture {
             ItemFixture::Note { title, content, .. } => {
                 client
@@ -296,7 +244,7 @@ async fn seed_manifest(
                 ..
             } => {
                 let mut data = json!({"name": name, "username": username, "password": password});
-                insert_optional(&mut data, "notes", notes);
+                insert_optional(&mut data, "notes", notes.as_deref());
                 client
                     .create_info_item(
                         primary.id,
@@ -315,7 +263,7 @@ async fn seed_manifest(
                 ..
             } => {
                 let mut data = json!({"name": name, "location": location});
-                insert_optional(&mut data, "notes", notes);
+                insert_optional(&mut data, "notes", notes.as_deref());
                 client
                     .create_info_item(
                         primary.id,
@@ -334,7 +282,7 @@ async fn seed_manifest(
                 ..
             } => {
                 let mut data = json!({"name": name, "contactDetails": contact_details});
-                insert_optional(&mut data, "notes", notes);
+                insert_optional(&mut data, "notes", notes.as_deref());
                 client
                     .create_info_item(
                         primary.id,
@@ -461,9 +409,7 @@ async fn verify_seed(
         .collect::<std::collections::HashSet<_>>();
     if !expected_collection_ids.is_subset(&actual_collection_ids) {
         bail!(
-            "account collection inventory is missing one-time online fixture collections: expected {:?}, found {:?}",
-            expected_collection_ids,
-            actual_collection_ids
+            "account collection inventory is missing one-time online fixture collections: expected {expected_collection_ids:?}, found {actual_collection_ids:?}"
         );
     }
     let remote_by_id = remote_collections
@@ -514,9 +460,7 @@ async fn verify_seed(
         .collect::<std::collections::HashSet<_>>();
     if actual_trash_ids != expected_trash_ids {
         bail!(
-            "account trash inventory differs from the one-time online fixture: expected {:?}, found {:?}",
-            expected_trash_ids,
-            actual_trash_ids
+            "account trash inventory differs from the one-time online fixture: expected {expected_trash_ids:?}, found {actual_trash_ids:?}"
         );
     }
 
@@ -539,13 +483,12 @@ async fn verify_seed(
     }
     if actual_active_ids != expected_active_ids {
         bail!(
-            "account active inventory differs from the one-time online fixture: expected {:?}, found {:?}",
-            expected_active_ids,
-            actual_active_ids
+            "account active inventory differs from the one-time online fixture: expected {expected_active_ids:?}, found {actual_active_ids:?}"
         );
     }
 
     for fixture in &manifest.items {
+        let expected_title = fixture.title(fixture_root);
         let seeded = items
             .get(fixture.fixture_ref())
             .ok_or_else(|| anyhow!("missing seeded item {}", fixture.fixture_ref()))?;
@@ -576,7 +519,7 @@ async fn verify_seed(
         }
 
         let decrypted = MuseumClient::decrypt_file(remote, &primary.key)?;
-        if decrypted.title != fixture.title(fixture_root)? {
+        if decrypted.title != expected_title {
             bail!(
                 "item {} title failed encrypted read-back verification",
                 seeded.id
@@ -601,12 +544,7 @@ async fn verify_seed(
                     seeded.id
                 );
             }
-            let expected_thumbnail =
-                include_str!("../../../locker/fixtures/black-thumbnail.jpg.b64");
-            let expected_thumbnail = base64::Engine::decode(
-                &base64::engine::general_purpose::STANDARD,
-                expected_thumbnail.split_whitespace().collect::<String>(),
-            )?;
+            let expected_thumbnail = thumbnail_fixture()?;
             let actual_thumbnail = client
                 .download_thumbnail(remote, &decrypted.file_key)
                 .await?;
@@ -619,13 +557,7 @@ async fn verify_seed(
         }
 
         if fixture.state() == ItemState::Active {
-            let mut expected_memberships = fixture.collections().to_vec();
-            if expected_memberships.is_empty() {
-                expected_memberships.push(UNCATEGORIZED_REF.to_owned());
-            }
-            if fixture.important() {
-                expected_memberships.push(IMPORTANT_REF.to_owned());
-            }
+            let mut expected_memberships = item_collection_refs(fixture);
             expected_memberships.sort();
             expected_memberships.dedup();
             for collection_ref in expected_memberships {
@@ -651,7 +583,7 @@ async fn verify_seed(
                         )
                     })?;
                 if membership_item.file_key.as_bytes() != seeded.file_key.as_bytes()
-                    || membership_item.title != fixture.title(fixture_root)?
+                    || membership_item.title != expected_title
                 {
                     bail!(
                         "item {} failed encrypted membership verification for {}",
@@ -676,9 +608,7 @@ fn validate_additional_collections(collections: &BTreeSet<(String, String)>) -> 
         .collect::<BTreeSet<_>>();
     if !collections.is_subset(&expected) {
         bail!(
-            "account has collections outside the online fixture and allowed Locker defaults: allowed {:?}, found {:?}",
-            expected,
-            collections
+            "account has collections outside the online fixture and allowed Locker defaults: allowed {expected:?}, found {collections:?}"
         );
     }
     Ok(())
@@ -723,7 +653,7 @@ fn verify_pub_magic(fixture: &ItemFixture, pub_magic: &Value) -> Result<()> {
             ..
         } => {
             let mut data = json!({"name": name, "username": username, "password": password});
-            insert_optional(&mut data, "notes", notes);
+            insert_optional(&mut data, "notes", notes.as_deref());
             Some(("accountCredential", data))
         }
         ItemFixture::Thing {
@@ -733,7 +663,7 @@ fn verify_pub_magic(fixture: &ItemFixture, pub_magic: &Value) -> Result<()> {
             ..
         } => {
             let mut data = json!({"name": name, "location": location});
-            insert_optional(&mut data, "notes", notes);
+            insert_optional(&mut data, "notes", notes.as_deref());
             Some(("physicalRecord", data))
         }
         ItemFixture::EmergencyContact {
@@ -743,7 +673,7 @@ fn verify_pub_magic(fixture: &ItemFixture, pub_magic: &Value) -> Result<()> {
             ..
         } => {
             let mut data = json!({"name": name, "contactDetails": contact_details});
-            insert_optional(&mut data, "notes", notes);
+            insert_optional(&mut data, "notes", notes.as_deref());
             Some(("emergencyContact", data))
         }
         ItemFixture::Document { .. } => None,
@@ -811,9 +741,29 @@ async fn inventory_from_account(
     })
 }
 
-fn insert_optional(target: &mut Value, key: &str, value: &Option<String>) {
-    if let Some(value) = value.as_ref().filter(|value| !value.is_empty()) {
-        target[key] = Value::String(value.clone());
+fn item_collection_refs(fixture: &ItemFixture) -> Vec<String> {
+    let mut refs = if fixture.collections().is_empty() {
+        vec![UNCATEGORIZED_REF.to_owned()]
+    } else {
+        fixture.collections().to_vec()
+    };
+    if fixture.important() && !refs.iter().any(|value| value == IMPORTANT_REF) {
+        refs.push(IMPORTANT_REF.to_owned());
+    }
+    refs
+}
+
+fn thumbnail_fixture() -> Result<Vec<u8>> {
+    let encoded = include_str!("../../../locker/fixtures/black-thumbnail.jpg.b64");
+    Ok(base64::Engine::decode(
+        &base64::engine::general_purpose::STANDARD,
+        encoded.split_whitespace().collect::<String>(),
+    )?)
+}
+
+fn insert_optional(target: &mut Value, key: &str, value: Option<&str>) {
+    if let Some(value) = value.filter(|value| !value.is_empty()) {
+        target[key] = Value::String(value.to_owned());
     }
 }
 
@@ -838,8 +788,25 @@ mod tests {
     #[test]
     fn optional_empty_values_are_not_serialized() {
         let mut value = json!({"name": "Thing"});
-        insert_optional(&mut value, "notes", &Some(String::new()));
+        insert_optional(&mut value, "notes", Some(""));
         assert!(value.get("notes").is_none());
+    }
+
+    #[test]
+    fn derives_special_collection_memberships_once() {
+        let fixture: ItemFixture = serde_json::from_value(json!({
+            "type": "thing",
+            "ref": "important_uncategorized_thing",
+            "name": "Emergency Key",
+            "location": "Entry cabinet",
+            "important": true
+        }))
+        .unwrap();
+
+        assert_eq!(
+            item_collection_refs(&fixture),
+            vec![UNCATEGORIZED_REF.to_owned(), IMPORTANT_REF.to_owned()]
+        );
     }
 
     #[test]

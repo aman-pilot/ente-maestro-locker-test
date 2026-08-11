@@ -180,7 +180,7 @@ impl Manifest {
             if !refs.insert(item.fixture_ref()) {
                 bail!("duplicate fixture ref {}", item.fixture_ref());
             }
-            let display_name = item.title(fixture_root)?;
+            let display_name = item.title(fixture_root);
             if display_name.trim().is_empty() {
                 bail!("item {} has an empty display name", item.fixture_ref());
             }
@@ -240,7 +240,7 @@ impl ItemFixture {
         }
     }
 
-    pub fn important(&self) -> bool {
+    pub const fn important(&self) -> bool {
         match self {
             Self::Note { important, .. }
             | Self::Secret { important, .. }
@@ -250,7 +250,7 @@ impl ItemFixture {
         }
     }
 
-    pub fn state(&self) -> ItemState {
+    pub const fn state(&self) -> ItemState {
         match self {
             Self::Note { state, .. }
             | Self::Secret { state, .. }
@@ -260,8 +260,8 @@ impl ItemFixture {
         }
     }
 
-    pub fn title(&self, fixture_root: &Path) -> Result<String> {
-        Ok(match self {
+    pub fn title(&self, fixture_root: &Path) -> String {
+        match self {
             Self::Note { title, .. } => title.clone(),
             Self::Secret { name, .. }
             | Self::Thing { name, .. }
@@ -274,7 +274,7 @@ impl ItemFixture {
                     .unwrap_or("document")
                     .to_owned()
             }),
-        })
+        }
     }
 }
 

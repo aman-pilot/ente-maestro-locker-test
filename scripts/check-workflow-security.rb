@@ -189,7 +189,7 @@ checked_files.each do |path|
       input_value(online_emulator_step || {}, "cores") == 4 &&
       input_value(online_emulator_step || {}, "disable-animations") == true &&
       input_value(online_emulator_step || {}, "emulator-options") == "${{ env.LOCKER_EMULATOR_OPTIONS }}"
-    workflow_contract_violations << "#{path}: hosted Android and emulator versions must remain pinned to the proven Auth-compatible environment"
+    workflow_contract_violations << "#{path}: hosted Android and emulator versions must remain pinned to the proven Locker environment"
   end
   unless gate_job["name"] == expected_gate_name
     workflow_contract_violations << "#{path}: the final gate name must expose full versus targeted scope"

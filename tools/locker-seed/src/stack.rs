@@ -31,23 +31,11 @@ fn parse_compose_pull_policy(value: Option<OsString>) -> Result<&'static str> {
     }
 }
 
-pub async fn status(endpoint: &str) -> Result<()> {
-    run_compose(&["ps"])?;
-    let response = reqwest::get(format!("{}/ping", endpoint.trim_end_matches('/')))
-        .await
-        .context("Museum /ping is unreachable")?;
-    if !response.status().is_success() {
-        bail!("Museum /ping returned {}", response.status());
-    }
-    println!("Museum is ready at {endpoint}");
-    Ok(())
-}
-
 pub fn down() -> Result<()> {
     run_compose(&["down", "-v", "--remove-orphans"])
 }
 
-pub(crate) async fn wait_for_ping(endpoint: &str, timeout: Duration) -> Result<()> {
+async fn wait_for_ping(endpoint: &str, timeout: Duration) -> Result<()> {
     let start = std::time::Instant::now();
     let url = format!("{}/ping", endpoint.trim_end_matches('/'));
     loop {
@@ -77,7 +65,7 @@ fn run_compose(args: &[&str]) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn compose_command() -> Command {
+fn compose_command() -> Command {
     let root = repo_root();
     let compose_file = root.join("locker/stack/compose.yaml");
     let project_name =
@@ -91,10 +79,6 @@ pub(crate) fn compose_command() -> Command {
         .arg(compose_file)
         .current_dir(root);
     command
-}
-
-pub fn workspace_root() -> PathBuf {
-    repo_root().join("locker")
 }
 
 fn repo_root() -> PathBuf {

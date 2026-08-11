@@ -46,7 +46,7 @@ seeder_bin="${LOCKER_SEED_BIN:-}"
 maestro_bin="${MAESTRO_BIN:-maestro}"
 serial="${ANDROID_SERIAL:-}"
 app_id="io.ente.locker.independent"
-output_dir="${LOCKER_ONLINE_OUTPUT_DIR:-${LOCKER_SEEDED_OUTPUT_DIR:-$workspace_root/artifacts/maestro/online}}"
+output_dir="${LOCKER_ONLINE_OUTPUT_DIR:-$workspace_root/artifacts/maestro/online}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -329,22 +329,13 @@ fi
 
 scenarios=("${registered_scenarios[@]}")
 if [[ -n "$only_flow" ]]; then
-    targetable_scenarios=()
-    while IFS= read -r scenario; do
-        [[ -n "$scenario" ]] && targetable_scenarios+=("$scenario")
-    done < <(
-        jq --exit-status --raw-output \
-            '.classifications.hostedCandidate[], (.classifications.hostedUnresolved | keys[])' \
-            "$flow_registry"
-    )
-    flow_registered=false
-    for scenario in "${targetable_scenarios[@]}"; do
-        if [[ "$scenario" == "$only_flow" ]]; then
-            flow_registered=true
-            break
-        fi
-    done
-    if [[ "$flow_registered" != true ]]; then
+    if ! jq --exit-status --arg flow "$only_flow" '
+        [
+          .classifications.hostedCandidate[],
+          (.classifications.hostedUnresolved | keys[])
+        ]
+        | index($flow) != null
+      ' "$flow_registry" > /dev/null; then
         printf 'Unknown registered Locker flow: %s\n' "$only_flow" >&2
         exit 2
     fi
@@ -646,6 +637,7 @@ records_file="$private_root/scenario-records.txt"
 online_run_dir="$private_runs/online-fixture"
 fixture_applied=false
 fixture_apply_count=0
+fixture_sha256=none
 login_ready=true
 login_failure_category=none
 empty_login_attempts=0
@@ -705,6 +697,7 @@ for index in "${!scenarios[@]}"; do
         fi
         fixture_applied=true
         fixture_apply_count=1
+        fixture_sha256="$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")"
 
         observed_user_id=$(jq --exit-status --raw-output '.userId | tostring' "$online_run_dir/run.json")
         observed_email=$(jq --exit-status --raw-output '.email' "$online_run_dir/run.json")
@@ -712,8 +705,6 @@ for index in "${!scenarios[@]}"; do
             printf 'Account identity changed while applying the online fixture\n' >&2
             exit 1
         fi
-        "$seeder_bin" inspect --run-dir "$online_run_dir" > "$private_logs/inspect-online-fixture.json" 2>&1
-
         current_phase=seeded-account-login
         prepare_locker_app_data
         configure_reverse
@@ -744,10 +735,6 @@ for index in "${!scenarios[@]}"; do
         failed_scenario=$scenario
         failed_phase=$failure_phase
         failed_category=$failure_category
-    fi
-    fixture_sha256=none
-    if [[ "$fixture_applied" == true ]]; then
-        fixture_sha256="$(ruby -rdigest -e 'puts Digest::SHA256.file(ARGV.fetch(0)).hexdigest' "$manifest")"
     fi
     printf 'scenario=%s status=%s failure_phase=%s failure_category=%s flow_sha256=%s manifest_sha256=%s\n' \
         "$scenario" "$scenario_status" "$failure_phase" "$failure_category" \
