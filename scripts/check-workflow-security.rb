@@ -12,6 +12,15 @@ SENSITIVE_TRIGGERS = %w[
 ].to_set.freeze
 
 CHECKED_PATHS = [".github/workflows/*.{yml,yaml}"].freeze
+EXPECTED_WORKFLOW_NAMES = {
+  "locker-android-seeded.yml" => "Locker / Android seeded E2E",
+  "locker-android-smoke.yml" => "Locker / Android smoke",
+  "locker-static.yml" => "Locker / Validate"
+}.freeze
+EXPECTED_RUN_NAMES = {
+  "locker-android-seeded.yml" => "Locker seeded E2E · ${{ inputs.flow || 'all' }}",
+  "locker-android-smoke.yml" => "Locker smoke · ${{ inputs.suite || 'all' }}"
+}.freeze
 USES_REF = %r{\A([A-Za-z0-9._-]+/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]+)?)@(\S+)\z}
 FULL_SHA = /\A[0-9a-fA-F]{40}\z/
 
@@ -64,6 +73,7 @@ workflow_contract_violations = []
 
 checked_files.each do |path|
   workflow = workflow_yaml(path)
+  basename = File.basename(path)
   steps = workflow_steps(workflow)
   (trigger_names(workflow).to_set & SENSITIVE_TRIGGERS).each do |trigger|
     trigger_violations << "#{path}: #{trigger}"
@@ -79,23 +89,32 @@ checked_files.each do |path|
   unless workflow["permissions"] == { "contents" => "read" }
     workflow_contract_violations << "#{path}: permissions must be limited to contents: read"
   end
+  unless workflow["name"] == EXPECTED_WORKFLOW_NAMES.fetch(basename)
+    workflow_contract_violations << "#{path}: public workflow name differs from the Locker naming convention"
+  end
+  expected_run_name = EXPECTED_RUN_NAMES[basename]
+  if expected_run_name && workflow["run-name"] != expected_run_name
+    workflow_contract_violations << "#{path}: run name must expose the selected manual scope"
+  end
   steps.select { |step| step["uses"].to_s.start_with?("actions/checkout@") }.each do |step|
     next if input_value(step, "persist-credentials") == false
 
     workflow_contract_violations << "#{path}: every checkout must set persist-credentials: false"
   end
 
-  next unless File.basename(path).start_with?("locker-android-")
+  next unless basename.start_with?("locker-android-")
 
-  resolver_step = steps.find { |step| step["name"] == "Resolve latest Locker nightly" }
-  download_step = steps.find { |step| step["name"] == "Download resolved Locker nightly" }
+  resolver_step = steps.find { |step| step["id"] == "release" }
+  download_step = steps.find { |step| step["id"] == "download-apk" }
+  verify_step = steps.find { |step| step["id"] == "verify-apk" }
   emulator_step = steps.find do |step|
     step["uses"].to_s.start_with?("ReactiveCircus/android-emulator-runner@")
   end
   unless run_body(resolver_step || {}).strip ==
       'scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"' &&
       run_body(download_step || {}).include?("releases/assets/$APK_ASSET_ID") &&
-      run_body(download_step || {}).include?("actual_sha256") &&
+      run_body(verify_step || {}).include?("actual_sha256") &&
+      run_body(verify_step || {}).include?("$LOCKER_APK_SHA256") &&
       input_value(emulator_step || {}, "script").to_s.include?('--apk "$LOCKER_APK_PATH"')
     published_apk_violations << "#{path}: must resolve, download, verify, and run an ente/nightly Locker APK"
   end
@@ -103,7 +122,7 @@ checked_files.each do |path|
     published_apk_violations << "#{path}: must not compile the Locker application"
   end
 
-  next unless File.basename(path) == "locker-android-seeded.yml"
+  next unless basename == "locker-android-seeded.yml"
 
   jobs = workflow.fetch("jobs")
   resolve_job = jobs.fetch("resolve")
@@ -121,7 +140,7 @@ checked_files.each do |path|
 
   expected_scope_output = "${{ steps.scope.outputs.selected_flow }}"
   expected_selected_flow = "${{ needs.resolve.outputs.selected_flow }}"
-  expected_gate_name = "Locker seeded proof gate (${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }})"
+  expected_gate_name = "Require seeded E2E · ${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }}"
   expected_concurrency_group = "locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}"
   expected_android_api = 34
   expected_android_target = "default"
