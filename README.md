@@ -1,42 +1,55 @@
 # Ente Locker Maestro tests
 
-Maestro smoke and end-to-end tests for published Ente Locker Android builds.
+Maestro smoke and end-to-end tests that run against published Ente Locker
+Android builds.
 
-Locker is online-only. The authenticated lane starts an isolated
-Museum/PostgreSQL/MinIO stack, creates one synthetic account, verifies the empty
-state, applies one shared E2EE fixture, and runs the ordered product flows on
-that same account without resetting the backend.
+At the start of every Android run, the workflows resolve the newest compatible
+Locker beta or release-candidate APK from
+[`ente/nightly`](https://github.com/ente/nightly/releases). The resolved asset
+ID and SHA-256 digest are pinned for the run, and the downloaded APK is verified
+before installation. The workflows do not build Locker or use Maestro Cloud.
 
-Android workflows resolve the newest compatible Locker APK from
-[`ente/nightly`](https://github.com/ente/nightly/releases), pin its immutable
-asset ID and SHA-256 digest, and use Maestro `2.6.1`. They do not compile Locker
-or use Maestro Cloud. Static checks run on pull requests and pushes to `main`;
-the Android workflows remain manual until the complete published-build lane is
-green on hosted x86_64.
+The account-free smoke workflow verifies onboarding. The online workflow runs
+on Ubuntu and starts an isolated Docker Compose stack containing Museum,
+PostgreSQL 15, MinIO, and a socat network bridge. It creates one synthetic
+account, verifies the empty state, applies one shared E2EE fixture, installs the
+published APK once, connects the emulator with `adb reverse`, and executes the
+ordered product flows without resetting the backend.
 
-See the [Locker test guide](docs/locker-test-rollout.md) for fixture, ownership,
-CI, and deferred-coverage contracts.
+Pull requests run only workflows affected by their changed paths. Every
+relevant push to `main` runs the complete hosted baseline. Manual runs can
+target onboarding, the complete online lane, or one registered online flow.
+
+| Workflow | Purpose |
+| --- | --- |
+| `Locker validation` | Static, provenance, fixture, selector, workflow-security, Rust, and shell contract checks. |
+| `Locker Android smoke` | Account-free onboarding on Android API 34 x86_64. |
+| `Locker Android online` | One-account, one-fixture online product lane on Android API 34 x86_64. |
+
+See the [Locker test guide](docs/locker-test-rollout.md) for ownership,
+fixtures, security boundaries, and deferred coverage.
 
 ## Run locally
 
-Run the complete non-Android gate first:
+Validate the repository before starting Android or Docker:
 
 ```sh
 scripts/check-static.sh
 ```
 
-Local Android runs require Maestro `2.6.1`, matching hosted CI. If another
-version is first on `PATH`, pass the verified `2.6.1` executable with
-`--maestro /path/to/maestro`.
+Local Android runs require Docker, a rootable emulator with `sqlite3`, and
+Maestro `2.6.1`. Resolve the APK immediately before a run so the helper records
+and verifies the exact published asset rather than trusting a reusable tag or
+filename.
 
-Resolve and verify the current published APK, then run account-free onboarding:
+Run account-free onboarding:
 
 ```sh
 apk_path=$(scripts/download-locker-nightly.sh)
 scripts/run-locker-android-local.sh --apk "$apk_path" --suite onboarding
 ```
 
-Run the authenticated online lane on a connected rootable emulator:
+Run the complete online lane:
 
 ```sh
 apk_path=$(scripts/download-locker-nightly.sh)
@@ -45,66 +58,107 @@ scripts/run-locker-seeded-suite.sh \
   --serial emulator-5554
 ```
 
-While repairing one flow, run only that canonical YAML:
+Run one registered online flow while repairing it:
 
 ```sh
 apk_path=$(scripts/download-locker-nightly.sh)
 scripts/run-locker-seeded-suite.sh \
-  --only-flow view-collection-and-item-action-menus \
   --apk "$apk_path" \
-  --serial emulator-5554
+  --serial emulator-5554 \
+  --only-flow empty-collection
 ```
 
-The seeded runner owns the disposable stack, private login, app-data clearing,
-single fixture application, ordered product execution, credential redaction,
-JUnit output, and cleanup. Maestro MCP is optional for local inspection; the
-CLI runner is the reproducible local and hosted entrypoint.
+Docker images are pulled by default, matching CI. If Docker Desktop's registry
+transaction stalls and every compose image is already cached at the exact
+digest pinned in `locker/stack/compose.yaml`, a local run can use
+`LOCKER_COMPOSE_PULL_POLICY=never`. Hosted CI always keeps the default `always`
+policy.
 
-The manual hosted workflow accepts `flow=all` for the complete lane or one
-registered hosted/unresolved flow name for a targeted x86_64 proof. Use the
-targeted scope while iterating, then run `all` for promotion evidence.
+The online runner owns stack creation and removal, private login, app-data
+preparation, fixture application, JUnit output, credential-leak checks, and
+failure diagnostics. Maestro MCP is optional for inspection; the CLI runner is
+the reproducible local and hosted entrypoint.
+
+## Local-first change policy
+
+To conserve hosted runner minutes, batch workflow, fixture, and flow changes
+before pushing:
+
+1. Run the smallest affected flow locally.
+2. Run the complete 18-flow online lane when shared state or online CI changes.
+3. Run `scripts/check-static.sh` and inspect the final Git diff.
+4. Push the finished batch once, then use the resulting automatic `main` run as
+   the hosted proof.
+
+Do not promote a targeted run or a partial local result as complete-lane
+evidence.
 
 ## Latest verified coverage
 
-### Local Android online lane
+### Published build
 
-The latest clean full run completed on 2026-08-11 with Android API 35 ARM64 and
-the following exact Ente GitHub release-candidate APK. Locker was not built
-locally.
+The latest clean local online run completed on 2026-08-11 using Android API 34
+ARM64 and Maestro `2.6.1`. This is the closest local equivalent of hosted CI;
+GitHub uses Ubuntu x86_64 KVM while the local runner uses macOS ARM64. Both use
+the same published APK, Docker backend, account/fixture runner, API level,
+device profile, memory, and flow order.
 
-| Release | Asset ID | Build | SHA-256 |
-| --- | --- | --- | --- |
-| `locker-v1.0.8-rc` | `502622451` | `ente-locker-v1.0.8.apk` | `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4` |
+| Build detail | Verified value |
+| --- | --- |
+| APK | `ente-locker-v1.0.8.apk` (`locker-v1.0.8-rc`) |
+| Asset created | 2026-08-05 12:56:34 UTC |
+| Asset ID | `502622451` |
+| SHA-256 | `a5b8bc958ff71a2a310a2759811577179de3abe3ab10a157082a7e927b85bec4` |
 
-All 18 current default-lane flows passed in one ordered execution: 18 JUnit
-tests, no failures, one account, one fixture application, no backend reset,
-unchanged identity, and one successful empty-state login plus one seeded login.
-The leakage-scanned runner left no private-suite or Docker-stack residue.
+The complete local run produced 18 JUnit tests with zero failures, one account,
+one fixture application, zero backend resets, unchanged identity, one
+empty-account login, and one seeded-account login.
 
 ### Hosted Android CI
 
-Account-free onboarding is green on Android API 34 x86_64 against published
-asset `500679355` with SHA-256
-`1cd61604c67d93b5930c7b264fa35c54b54ed45da26b8203906af7e6e0b502d0`.
+These badges show the authoritative `main` status for the published-build
+workflows:
 
-The latest completed authenticated attempt used Android API 34 x86_64 and exact
-asset `502622451`. A targeted `view-collection-and-item-action-menus` run entered
-`Home Inventory` and found `Blue Suitcase`, then failed to expose the unlabeled
-collection popup's `Edit` action
-([run 31406020777](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31406020777)).
-That flow remains canonical and individually targetable but is excluded from the
-default hosted lane until the published APK exposes a deterministic popup target.
+| Lane | Status |
+| --- | --- |
+| Online | [![Locker Android online](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-android-online.yml/badge.svg?branch=main)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-android-online.yml) |
+| Smoke | [![Locker Android smoke](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-android-smoke.yml/badge.svg?branch=main)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-android-smoke.yml) |
+| Validation | [![Locker validation](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-static.yml/badge.svg?branch=main)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/workflows/locker-static.yml) |
 
-### Deferred coverage
+### Online flow behavior
 
-- Eight core flows remain classified as hosted-unresolved in
-  `locker/product-flows.v1.json`.
-- Native picker, preview, download, and offline/platform-state flows remain
-  local or deferred.
+| Flow | Verified behavior |
+| --- | --- |
+| [`empty-home-and-save-options`](maestro/locker/online/empty-home-and-save-options.yaml) | Verifies the empty home state and available item types before fixture application. |
+| [`empty-trash`](maestro/locker/online/empty-trash.yaml) | Verifies Trash is empty for the new account. |
+| [`search-note-secret-and-thing`](maestro/locker/online/search-note-secret-and-thing.yaml) | Finds seeded note, secret, and real-world item records. |
+| [`search-with-no-results`](maestro/locker/online/search-with-no-results.yaml) | Verifies the no-results search contract. |
+| [`view-account-and-security-settings`](maestro/locker/online/view-account-and-security-settings.yaml) | Opens account and security settings without mutating sensitive data. |
+| [`search-settings-and-open-account`](maestro/locker/online/search-settings-and-open-account.yaml) | Searches settings and opens the account surface. |
+| [`view-about-and-support-settings`](maestro/locker/online/view-about-and-support-settings.yaml) | Verifies About and Help/Support rows without opening external links. |
+| [`view-theme-options`](maestro/locker/online/view-theme-options.yaml) | Opens the theme selector and verifies available choices. |
+| [`change-language-and-restore-english`](maestro/locker/online/change-language-and-restore-english.yaml) | Changes the app language and restores English for later flows. |
+| [`empty-collection`](maestro/locker/online/empty-collection.yaml) | Opens a seeded empty collection and verifies its complete empty state. |
+| [`filter-items-by-collection`](maestro/locker/online/filter-items-by-collection.yaml) | Filters the home list by a seeded collection. |
+| [`add-item-to-multiple-collections`](maestro/locker/online/add-item-to-multiple-collections.yaml) | Adds a seeded item to multiple collections and verifies membership. |
+| [`mark-and-unmark-important`](maestro/locker/online/mark-and-unmark-important.yaml) | Toggles one seeded item in and out of Important. |
+| [`select-all-and-mark-important`](maestro/locker/online/select-all-and-mark-important.yaml) | Selects a collection's items and applies the Important action. |
+| [`bulk-add-delete-and-restore-items`](maestro/locker/online/bulk-add-delete-and-restore-items.yaml) | Adds two items to a collection, deletes them, verifies Trash, restores them, and verifies final membership. |
+| [`delete-collection-keep-item`](maestro/locker/online/delete-collection-keep-item.yaml) | Deletes a collection while preserving its item in Uncategorized. |
+| [`permanently-delete-note`](maestro/locker/online/permanently-delete-note.yaml) | Deletes a note and then permanently removes it from Trash. |
+| [`logout`](maestro/locker/online/logout.yaml) | Logs out and verifies the signed-out screen. |
+
+### Not yet green or intentionally deferred
+
+- Eight core flows remain registered as `hostedUnresolved` until their
+  published-build selectors and behavior pass both targeted and complete-lane
+  validation.
+- Native document picker, preview, download, and platform/offline-state flows
+  remain local or deferred.
 - Public-link coverage requires a deliberate paid-product environment.
-- Sharing roles, multi-account behavior, fault injection, and recovery remain
-  outside the current single-account lane.
+- Multi-account sharing roles, recovery, limits, and injected failures require
+  separate environments.
 
-All 31 canonical product YAML files remain in this repository. Update this
-section only from exact-asset evidence; keep historical failed runs in GitHub
-Actions rather than adding debugging history to the README.
+All 31 canonical product YAML files remain versioned. Update verified coverage
+from a clean complete run; keep historical failed and cancelled attempts in
+GitHub Actions rather than accumulating debugging history here.

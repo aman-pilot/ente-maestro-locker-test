@@ -23,7 +23,7 @@ for public_path in \
     locker/fixtures/locker-seed.pdf \
     locker/manifests/empty.json \
     locker/stack/compose.yaml \
-    .github/workflows/locker-android-seeded.yml \
+    .github/workflows/locker-android-online.yml \
     tools/locker-seed/Cargo.toml \
     tools/locker-seed/src/main.rs; do
     if git check-ignore --quiet --no-index "$public_path"; then
@@ -120,14 +120,14 @@ fi
 
 if grep --quiet --extended-regexp \
     'matrix:|USER_EMAIL|USER_PASSWORD|MUSEUM_ENDPOINT|maestro test|adb ' \
-    .github/workflows/locker-android-seeded.yml; then
+    .github/workflows/locker-android-online.yml; then
     echo "The hosted seeded proof must remain sequential and delegate private runtime work" >&2
     exit 1
 fi
 
 if ! grep --quiet --fixed-strings \
     'scripts/run-locker-seeded-hosted.sh' \
-    .github/workflows/locker-android-seeded.yml; then
+    .github/workflows/locker-android-online.yml; then
     echo "The hosted seeded proof must use the audited Android runner" >&2
     exit 1
 fi
@@ -144,13 +144,13 @@ fi
 
 if grep --quiet --extended-regexp \
     '(debug|account-context|run\.json|baseline|screenshot|\.png|maestro\.log|console\.log|logcat|locker\.db).*(path:|upload-artifact)|path:.*(debug|account-context|run\.json|baseline|screenshot|\.png|maestro\.log|console\.log|logcat|locker\.db)' \
-    .github/workflows/locker-android-seeded.yml; then
+    .github/workflows/locker-android-online.yml; then
     echo "The hosted seeded proof must not upload private runtime state" >&2
     exit 1
 fi
 if grep --quiet --extended-regexp \
     'diagnostics/(\*\*|\*([[:space:]]|$))' \
-    .github/workflows/locker-android-seeded.yml; then
+    .github/workflows/locker-android-online.yml; then
     echo "Hosted diagnostics must use the exact route-probe allowlist" >&2
     exit 1
 fi

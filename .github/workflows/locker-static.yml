@@ -1,4 +1,4 @@
-name: "Locker / Validate"
+name: "Locker validation"
 
 on:
     push:

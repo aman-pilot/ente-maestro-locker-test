@@ -1,9 +1,6 @@
-name: "Locker / Android seeded E2E"
-run-name: "Locker seeded E2E · ${{ inputs.flow || 'all' }}"
+name: "Locker Android online"
+run-name: "Locker Android online · ${{ inputs.flow || 'all' }}"
 
-# Keep this manual until the exact published-nightly proof passes on hosted
-# x86_64. The job is deliberately sequential: one stack, one online account,
-# one shared fixture application, and one APK.
 on:
     workflow_dispatch:
         inputs:
@@ -12,12 +9,57 @@ on:
                 required: true
                 default: all
                 type: string
+    pull_request:
+        paths:
+            - ".github/workflows/locker-android-online.yml"
+            - "locker/**"
+            - "maestro/locker/online/**"
+            - "scripts/check-locker-assets.rb"
+            - "scripts/check-locker-boundaries.sh"
+            - "scripts/check-product-flows.rb"
+            - "scripts/check-static.sh"
+            - "scripts/check-workflow-security.rb"
+            - "scripts/resolve-nightly-apk.sh"
+            - "scripts/run-locker-seeded-hosted.sh"
+            - "scripts/run-locker-seeded-suite.sh"
+            - "scripts/select-locker-seeded-flow.sh"
+            - "scripts/summarize-locker-ui-hierarchy.rb"
+            - "scripts/test-hosted-flow-registration.sh"
+            - "scripts/test-resolve-nightly-apk.sh"
+            - "scripts/test-run-locker-seeded-hosted.sh"
+            - "scripts/test-run-locker-seeded-suite.sh"
+            - "scripts/test-select-locker-seeded-flow.sh"
+            - "scripts/test-summarize-locker-ui-hierarchy.sh"
+            - "tools/locker-seed/**"
+    push:
+        branches: [main]
+        paths:
+            - ".github/workflows/locker-android-online.yml"
+            - "locker/**"
+            - "maestro/locker/online/**"
+            - "scripts/check-locker-assets.rb"
+            - "scripts/check-locker-boundaries.sh"
+            - "scripts/check-product-flows.rb"
+            - "scripts/check-static.sh"
+            - "scripts/check-workflow-security.rb"
+            - "scripts/resolve-nightly-apk.sh"
+            - "scripts/run-locker-seeded-hosted.sh"
+            - "scripts/run-locker-seeded-suite.sh"
+            - "scripts/select-locker-seeded-flow.sh"
+            - "scripts/summarize-locker-ui-hierarchy.rb"
+            - "scripts/test-hosted-flow-registration.sh"
+            - "scripts/test-resolve-nightly-apk.sh"
+            - "scripts/test-run-locker-seeded-hosted.sh"
+            - "scripts/test-run-locker-seeded-suite.sh"
+            - "scripts/test-select-locker-seeded-flow.sh"
+            - "scripts/test-summarize-locker-ui-hierarchy.sh"
+            - "tools/locker-seed/**"
 
 permissions:
     contents: read
 
 concurrency:
-    group: locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}
+    group: locker-android-online-${{ github.ref }}-${{ inputs.flow || 'all' }}
     cancel-in-progress: true
 
 env:
@@ -33,7 +75,7 @@ env:
 
 jobs:
     resolve:
-        name: Plan seeded E2E
+        name: Plan online tests
         runs-on: ubuntu-latest
         outputs:
             apk_asset_id: ${{ steps.release.outputs.apk_asset_id }}
@@ -68,15 +110,15 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"
 
-    seeded-proof:
-        name: Run seeded E2E · ${{ needs.resolve.outputs.selected_flow }}
+    online:
+        name: Run online tests · ${{ needs.resolve.outputs.selected_flow }}
         needs: resolve
         runs-on: ubuntu-latest
         timeout-minutes: 60
         env:
             LOCKER_COMPOSE_PROJECT: ente-locker-seeded-${{ github.run_id }}-${{ github.run_attempt }}
             LOCKER_SELECTED_FLOW: ${{ needs.resolve.outputs.selected_flow }}
-            LOCKER_SEEDED_OUTPUT_DIR: ${{ github.workspace }}/artifacts/maestro/seeded-proof
+            LOCKER_ONLINE_OUTPUT_DIR: ${{ github.workspace }}/artifacts/maestro/online
             LOCKER_SEED_BIN: ${{ github.workspace }}/tools/locker-seed/target/release/locker-seed
         steps:
             - name: Checkout Locker test repository
@@ -153,8 +195,8 @@ jobs:
                   sudo udevadm control --reload-rules
                   sudo udevadm trigger --name-match=kvm
 
-            - name: Run seeded E2E on Android
-              id: seeded-tests
+            - name: Run online tests on Android
+              id: online-tests
               uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
               with:
                   api-level: ${{ env.LOCKER_ANDROID_API }}
@@ -167,13 +209,13 @@ jobs:
                   disable-animations: true
                   script: scripts/run-locker-seeded-hosted.sh --apk "$LOCKER_APK_PATH"
 
-            - name: Write seeded E2E summary
-              if: always() && steps.seeded-tests.outcome != 'skipped'
+            - name: Write online-test summary
+              if: always() && steps.online-tests.outcome != 'skipped'
               env:
-                  TEST_OUTCOME: ${{ steps.seeded-tests.outcome }}
+                  TEST_OUTCOME: ${{ steps.online-tests.outcome }}
               run: |
                   {
-                      echo "### Locker seeded E2E: $TEST_OUTCOME"
+                      echo "### Locker Android online: $TEST_OUTCOME"
                       echo
                       echo "- Release: \`$LOCKER_RELEASE_TAG\`"
                       echo "- Channel: \`$LOCKER_CHANNEL\`"
@@ -186,22 +228,22 @@ jobs:
                       echo "- Scope: \`$LOCKER_SELECTED_FLOW\`"
                       echo "- Account contract: one online account, one shared fixture application, no intra-lane backend reset"
                       echo
-                      if [[ -f "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" ]]; then
-                          sed 's/^/- `/' "$LOCKER_SEEDED_OUTPUT_DIR/summary.txt" | sed 's/$/`/'
+                      if [[ -f "$LOCKER_ONLINE_OUTPUT_DIR/summary.txt" ]]; then
+                          sed 's/^/- `/' "$LOCKER_ONLINE_OUTPUT_DIR/summary.txt" | sed 's/$/`/'
                       else
                           echo "- The runner stopped before producing a public redacted summary."
                       fi
                   } >> "$GITHUB_STEP_SUMMARY"
 
-            - name: Upload redacted E2E results
-              if: always() && steps.seeded-tests.outcome != 'skipped'
+            - name: Upload redacted online-test results
+              if: always() && steps.online-tests.outcome != 'skipped'
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
-                  name: locker-seeded-proof-results
+                  name: locker-online-results
                   path: |
-                      artifacts/maestro/seeded-proof/results/*.xml
-                      artifacts/maestro/seeded-proof/summary.txt
-                      artifacts/maestro/seeded-proof/diagnostics/*-ui.txt
+                      artifacts/maestro/online/results/*.xml
+                      artifacts/maestro/online/summary.txt
+                      artifacts/maestro/online/diagnostics/*-ui.txt
                   if-no-files-found: warn
                   retention-days: 7
 
@@ -213,24 +255,24 @@ jobs:
                           "$LOCKER_SEED_BIN" stack down --endpoint http://127.0.0.1:8080
                   fi
 
-    locker-seeded-gate:
-        name: Require seeded E2E · ${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }}
+    locker-online-gate:
+        name: Require online tests · ${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }}
         if: always()
-        needs: [resolve, seeded-proof]
+        needs: [resolve, online]
         runs-on: ubuntu-latest
         steps:
-            - name: Require successful seeded E2E
+            - name: Require successful online tests
               env:
                   RESOLVE_RESULT: ${{ needs.resolve.result }}
-                  SEEDED_RESULT: ${{ needs.seeded-proof.result }}
+                  ONLINE_RESULT: ${{ needs.online.result }}
               run: |
                   status=0
                   if [[ "$RESOLVE_RESULT" != success ]]; then
-                      echo "::error::Seeded E2E planning finished with result=$RESOLVE_RESULT"
+                      echo "::error::Online-test planning finished with result=$RESOLVE_RESULT"
                       status=1
                   fi
-                  if [[ "$SEEDED_RESULT" != success ]]; then
-                      echo "::error::Locker seeded E2E finished with result=$SEEDED_RESULT. Inspect the upstream summary and JUnit artifact."
+                  if [[ "$ONLINE_RESULT" != success ]]; then
+                      echo "::error::Locker Android online finished with result=$ONLINE_RESULT. Inspect the upstream summary and JUnit artifact."
                       status=1
                   fi
                   exit "$status"

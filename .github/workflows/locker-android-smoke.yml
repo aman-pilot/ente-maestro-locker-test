@@ -1,9 +1,6 @@
-name: "Locker / Android smoke"
-run-name: "Locker smoke · ${{ inputs.suite || 'all' }}"
+name: "Locker Android smoke"
+run-name: "Locker Android smoke · ${{ inputs.suite || 'all' }}"
 
-# Keep Android execution manual until the first published Locker nightly has
-# passed this exact hosted x86_64 contract. Static checks already run on pull
-# requests and pushes to main.
 on:
     workflow_dispatch:
         inputs:
@@ -15,6 +12,33 @@ on:
                 options:
                     - all
                     - onboarding
+    pull_request:
+        paths:
+            - ".github/workflows/locker-android-smoke.yml"
+            - "maestro/locker/smoke/**"
+            - "scripts/check-static.sh"
+            - "scripts/check-workflow-security.rb"
+            - "scripts/resolve-nightly-apk.sh"
+            - "scripts/run-locker-android-local.sh"
+            - "scripts/select-locker-ci-suites.sh"
+            - "scripts/test-hosted-flow-registration.sh"
+            - "scripts/test-resolve-nightly-apk.sh"
+            - "scripts/test-run-locker-android-local.sh"
+            - "scripts/test-select-locker-ci-suites.sh"
+    push:
+        branches: [main]
+        paths:
+            - ".github/workflows/locker-android-smoke.yml"
+            - "maestro/locker/smoke/**"
+            - "scripts/check-static.sh"
+            - "scripts/check-workflow-security.rb"
+            - "scripts/resolve-nightly-apk.sh"
+            - "scripts/run-locker-android-local.sh"
+            - "scripts/select-locker-ci-suites.sh"
+            - "scripts/test-hosted-flow-registration.sh"
+            - "scripts/test-resolve-nightly-apk.sh"
+            - "scripts/test-run-locker-android-local.sh"
+            - "scripts/test-select-locker-ci-suites.sh"
 
 permissions:
     contents: read

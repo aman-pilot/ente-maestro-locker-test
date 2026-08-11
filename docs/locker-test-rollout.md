@@ -12,8 +12,8 @@ stays current.
 
 | Layer | Purpose | Runs in hosted CI |
 | --- | --- | --- |
-| Published smoke | Account-free onboarding and startup behavior. | Yes, through the manual smoke workflow. |
-| Online product lane | Empty-state and seeded Locker behavior on one disposable account. | Yes, through the manual seeded workflow. |
+| Published smoke | Account-free onboarding and startup behavior. | Yes, through `Locker Android smoke`. |
+| Online product lane | Empty-state and seeded Locker behavior on one disposable account. | Yes, through `Locker Android online`. |
 | Platform local | Native picker, preview, download, share, and device-state behavior. | No; validate on a local emulator or device. |
 | Future environments | Paid public links, sharing roles, recovery, limits, and injected failures. | No. |
 
@@ -39,12 +39,11 @@ a cold-client boundary and does not change backend state.
 
 Credentials, account contexts, Maestro login arguments, run records, raw UI
 hierarchies, and debug output stay private. Product YAML must not contain login
-data or backend endpoints. On the known collection-entry assertion failure, the
-runner may publish one leakage-scanned route probe derived from the private
-hierarchy; it contains only a structural page classification, action count, and
-fixed booleans for the known seeded collection row, collection title, and item
-title. A fixed capture status reports hierarchy-command, timeout, or parser
-failure without exposing raw UI text.
+data or backend endpoints. On any product-flow failure, the runner may publish
+one leakage-scanned route probe derived from the private hierarchy. It contains
+only a structural page classification, action count, and fixed booleans for
+known synthetic fixture labels. A fixed capture status reports
+hierarchy-command, timeout, or parser failure without exposing raw UI text.
 The runner stops after the first product failure because later flows share
 mutable state and would otherwise produce cascade noise.
 
@@ -78,8 +77,10 @@ and runtime infrastructure; `maestro/locker/` owns executable UI flows.
 5. Register the flow in the relevant selector or in
    `locker/product-flows.v1.json`; static validation rejects orphaned YAML and
    stale canonical hashes.
-6. Run the smallest relevant Android flow, then `scripts/check-static.sh`.
-   Run the complete ordered lane only after targeted failures are repaired.
+6. Run the smallest relevant Android flow, repair it locally, and then run the
+   complete ordered lane when shared state or online CI changed.
+7. Run `scripts/check-static.sh`, inspect the final diff, and push the finished
+   batch once so automatic CI provides the hosted proof.
 
 Preserve unique fixture names because Maestro-visible labels are part of the
 contract. Add reusable subflows only for small, stable interactions; do not use
@@ -87,10 +88,10 @@ them to hide product state or account lifecycle.
 
 ## Hosted CI behavior
 
-Static checks run on pull requests and pushes to `main`. Android workflows are
-manual while the published x86_64 baseline is being proven. Shared workflows,
-selectors, fixtures, and runtime helpers select or invalidate the complete
-relevant lane; platform-local paths intentionally select no hosted suite.
+Static checks run on pull requests and pushes to `main`. Android workflows use
+path filters so smoke-only changes do not start the online lane and online-only
+changes do not start smoke. Every relevant push to `main` runs the complete
+selected baseline; manual dispatch remains available for targeted repair.
 
 The seeded workflow accepts `flow=all` or one registered hosted/unresolved flow
 name. A targeted run keeps the same disposable stack, account, fixture, login,
@@ -101,7 +102,7 @@ ordered lane; targeted evidence does not promote the full lane.
 External actions, Docker images, Rust dependencies, and Maestro are pinned.
 Hosted summaries record immutable APK provenance and public lifecycle counts.
 Authenticated artifacts contain leakage-scanned JUnit, the redacted lifecycle
-summary, and at most one structural product-failure route probe. Login and
+summary, and at most one structural route probe per failed product run. Login and
 private-run diagnostics remain private; account-free smoke may retain Maestro
 diagnostics.
 

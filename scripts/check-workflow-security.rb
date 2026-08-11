@@ -13,13 +13,18 @@ SENSITIVE_TRIGGERS = %w[
 
 CHECKED_PATHS = [".github/workflows/*.{yml,yaml}"].freeze
 EXPECTED_WORKFLOW_NAMES = {
-  "locker-android-seeded.yml" => "Locker / Android seeded E2E",
-  "locker-android-smoke.yml" => "Locker / Android smoke",
-  "locker-static.yml" => "Locker / Validate"
+  "locker-android-online.yml" => "Locker Android online",
+  "locker-android-smoke.yml" => "Locker Android smoke",
+  "locker-static.yml" => "Locker validation"
 }.freeze
 EXPECTED_RUN_NAMES = {
-  "locker-android-seeded.yml" => "Locker seeded E2E · ${{ inputs.flow || 'all' }}",
-  "locker-android-smoke.yml" => "Locker smoke · ${{ inputs.suite || 'all' }}"
+  "locker-android-online.yml" => "Locker Android online · ${{ inputs.flow || 'all' }}",
+  "locker-android-smoke.yml" => "Locker Android smoke · ${{ inputs.suite || 'all' }}"
+}.freeze
+EXPECTED_TRIGGERS = {
+  "locker-android-online.yml" => %w[pull_request push workflow_dispatch],
+  "locker-android-smoke.yml" => %w[pull_request push workflow_dispatch],
+  "locker-static.yml" => %w[pull_request push workflow_dispatch]
 }.freeze
 USES_REF = %r{\A([A-Za-z0-9._-]+/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]+)?)@(\S+)\z}
 FULL_SHA = /\A[0-9a-fA-F]{40}\z/
@@ -94,7 +99,10 @@ checked_files.each do |path|
   end
   expected_run_name = EXPECTED_RUN_NAMES[basename]
   if expected_run_name && workflow["run-name"] != expected_run_name
-    workflow_contract_violations << "#{path}: run name must expose the selected manual scope"
+    workflow_contract_violations << "#{path}: run name must expose the selected scope"
+  end
+  unless trigger_names(workflow).sort == EXPECTED_TRIGGERS.fetch(basename).sort
+    workflow_contract_violations << "#{path}: triggers differ from the Locker automatic CI contract"
   end
   steps.select { |step| step["uses"].to_s.start_with?("actions/checkout@") }.each do |step|
     next if input_value(step, "persist-credentials") == false
@@ -122,34 +130,34 @@ checked_files.each do |path|
     published_apk_violations << "#{path}: must not compile the Locker application"
   end
 
-  next unless basename == "locker-android-seeded.yml"
+  next unless basename == "locker-android-online.yml"
 
   jobs = workflow.fetch("jobs")
   resolve_job = jobs.fetch("resolve")
-  seeded_job = jobs.fetch("seeded-proof")
-  gate_job = jobs.fetch("locker-seeded-gate")
+  online_job = jobs.fetch("online")
+  gate_job = jobs.fetch("locker-online-gate")
   scope_step = resolve_job.fetch("steps").find { |step| step["id"] == "scope" }
-  seeded_steps = seeded_job.fetch("steps")
-  seeded_emulator_step = seeded_steps.find do |step|
+  online_steps = online_job.fetch("steps")
+  online_emulator_step = online_steps.find do |step|
     step["uses"].to_s.start_with?("ReactiveCircus/android-emulator-runner@")
   end
-  artifact_step = seeded_steps.find do |step|
+  artifact_step = online_steps.find do |step|
     step["uses"].to_s.start_with?("actions/upload-artifact@")
   end
   artifact_paths = input_value(artifact_step || {}, "path").to_s.lines.map(&:strip).reject(&:empty?)
 
   expected_scope_output = "${{ steps.scope.outputs.selected_flow }}"
   expected_selected_flow = "${{ needs.resolve.outputs.selected_flow }}"
-  expected_gate_name = "Require seeded E2E · ${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }}"
-  expected_concurrency_group = "locker-android-seeded-${{ github.ref }}-${{ inputs.flow || 'all' }}"
+  expected_gate_name = "Require online tests · ${{ needs.resolve.outputs.selected_flow || inputs.flow || 'unresolved' }}"
+  expected_concurrency_group = "locker-android-online-${{ github.ref }}-${{ inputs.flow || 'all' }}"
   expected_android_api = 34
   expected_android_target = "default"
   expected_emulator_build = 12_414_864
   expected_emulator_options = "-no-window -gpu swiftshader_indirect -feature -Vulkan -no-metrics -no-snapshot -noaudio -no-boot-anim -memory 6144"
   expected_artifact_paths = [
-    "artifacts/maestro/seeded-proof/results/*.xml",
-    "artifacts/maestro/seeded-proof/summary.txt",
-    "artifacts/maestro/seeded-proof/diagnostics/*-ui.txt"
+    "artifacts/maestro/online/results/*.xml",
+    "artifacts/maestro/online/summary.txt",
+    "artifacts/maestro/online/diagnostics/*-ui.txt"
   ]
 
   unless workflow.dig("concurrency", "group") == expected_concurrency_group &&
@@ -157,35 +165,37 @@ checked_files.each do |path|
     workflow_contract_violations << "#{path}: concurrency must isolate full and targeted scopes"
   end
   unless resolve_job.dig("outputs", "selected_flow") == expected_scope_output &&
+      resolve_job["name"] == "Plan online tests" &&
       scope_step&.dig("env", "REQUESTED_FLOW") == "${{ inputs.flow || 'all' }}" &&
       run_body(scope_step || {}).include?('scripts/select-locker-seeded-flow.sh "$REQUESTED_FLOW"') &&
-      seeded_job.dig("env", "LOCKER_SELECTED_FLOW") == expected_selected_flow &&
-      input_value(seeded_emulator_step || {}, "script") ==
+      online_job["name"] == "Run online tests · ${{ needs.resolve.outputs.selected_flow }}" &&
+      online_job.dig("env", "LOCKER_SELECTED_FLOW") == expected_selected_flow &&
+      input_value(online_emulator_step || {}, "script") ==
         'scripts/run-locker-seeded-hosted.sh --apk "$LOCKER_APK_PATH"'
     workflow_contract_violations << "#{path}: selected flow must pass through the audited selector and hosted wrapper"
   end
-  unless seeded_job["timeout-minutes"] == 60
+  unless online_job["timeout-minutes"] == 60
     workflow_contract_violations << "#{path}: the sequential full lane must retain a 60-minute timeout"
   end
   unless workflow.dig("env", "LOCKER_ANDROID_API") == expected_android_api &&
       workflow.dig("env", "LOCKER_ANDROID_TARGET") == expected_android_target &&
       workflow.dig("env", "LOCKER_EMULATOR_BUILD") == expected_emulator_build &&
       workflow.dig("env", "LOCKER_EMULATOR_OPTIONS") == expected_emulator_options &&
-      input_value(seeded_emulator_step || {}, "api-level") == "${{ env.LOCKER_ANDROID_API }}" &&
-      input_value(seeded_emulator_step || {}, "emulator-build") == "${{ env.LOCKER_EMULATOR_BUILD }}" &&
-      input_value(seeded_emulator_step || {}, "target") == "${{ env.LOCKER_ANDROID_TARGET }}" &&
-      input_value(seeded_emulator_step || {}, "arch") == "x86_64" &&
-      input_value(seeded_emulator_step || {}, "profile") == "pixel_5" &&
-      input_value(seeded_emulator_step || {}, "cores") == 4 &&
-      input_value(seeded_emulator_step || {}, "disable-animations") == true &&
-      input_value(seeded_emulator_step || {}, "emulator-options") == "${{ env.LOCKER_EMULATOR_OPTIONS }}"
+      input_value(online_emulator_step || {}, "api-level") == "${{ env.LOCKER_ANDROID_API }}" &&
+      input_value(online_emulator_step || {}, "emulator-build") == "${{ env.LOCKER_EMULATOR_BUILD }}" &&
+      input_value(online_emulator_step || {}, "target") == "${{ env.LOCKER_ANDROID_TARGET }}" &&
+      input_value(online_emulator_step || {}, "arch") == "x86_64" &&
+      input_value(online_emulator_step || {}, "profile") == "pixel_5" &&
+      input_value(online_emulator_step || {}, "cores") == 4 &&
+      input_value(online_emulator_step || {}, "disable-animations") == true &&
+      input_value(online_emulator_step || {}, "emulator-options") == "${{ env.LOCKER_EMULATOR_OPTIONS }}"
     workflow_contract_violations << "#{path}: hosted Android and emulator versions must remain pinned to the proven Auth-compatible environment"
   end
   unless gate_job["name"] == expected_gate_name
     workflow_contract_violations << "#{path}: the final gate name must expose full versus targeted scope"
   end
   unless artifact_paths == expected_artifact_paths
-    workflow_contract_violations << "#{path}: seeded artifacts must remain limited to redacted JUnit, summary, and route probes"
+    workflow_contract_violations << "#{path}: online artifacts must remain limited to redacted JUnit, summary, and route probes"
   end
 end
 
