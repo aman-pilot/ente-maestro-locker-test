@@ -48,3 +48,21 @@ appId: ${APP_ID}
     timeout: 20000
 # The selection sheet proves Home Projects was chosen; returning to Camping
 # Stove here proves Add-to preserved the original Camping Gear membership.
+
+# Return to unfiltered Home before the next flow reuses this app session.
+- tapOn: Back
+- extendedWaitUntil:
+    visible: Collections
+    timeout: 10000
+- tapOn: Back
+- runFlow:
+    when:
+      visible: All collections
+    commands:
+      - tapOn:
+          text: Clear all
+          optional: true
+      - back
+- extendedWaitUntil:
+    visible: Search your documents
+    timeout: 10000
