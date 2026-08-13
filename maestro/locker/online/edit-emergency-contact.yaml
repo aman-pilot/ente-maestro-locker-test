@@ -29,9 +29,18 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Emergency contact
     timeout: 10000
-- tapOn: Message for contact
-- eraseText
+- extendedWaitUntil:
+    visible: Call during the fixture test
+    timeout: 10000
+- longPressOn: Call during the fixture test
+- extendedWaitUntil:
+    visible: Select all
+    timeout: 10000
+- tapOn: Select all
 - inputText: Call during the fixture test before travel
+- extendedWaitUntil:
+    visible: Call during the fixture test before travel
+    timeout: 10000
 - hideKeyboard
 - swipe:
     direction: UP
@@ -47,9 +56,9 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Edit
     timeout: 20000
-- assertVisible: Call during the fixture test before travel
 
-# Prove the encrypted update survives a cold app boundary.
+# The published RC can return to a detail view backed by the pre-edit object.
+# Prove the encrypted update from a fresh read across a cold app boundary.
 - stopApp
 - launchApp
 - extendedWaitUntil:

@@ -54,7 +54,7 @@ LOCKER_MAESTRO_OUTPUT_DIR="$temp_dir/output" \
 
 grep -F -- '-s emulator-test install -r' "$temp_dir/logs/adb.log" > /dev/null
 grep -F -- '-e APP_ID=io.ente.locker.independent' "$temp_dir/logs/maestro.log" > /dev/null
-grep -F -- 'maestro/locker/smoke/onboarding.yaml' "$temp_dir/logs/maestro.log" > /dev/null
+grep -F -- 'maestro/locker/onboarding/onboarding.yaml' "$temp_dir/logs/maestro.log" > /dev/null
 grep -F -- "$temp_dir/output/onboarding-results.xml" "$temp_dir/logs/maestro.log" > /dev/null
 
 if PATH="$temp_dir/bin:$PATH" \

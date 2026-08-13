@@ -12,7 +12,7 @@ stays current.
 
 | Layer | Purpose | Runs in hosted CI |
 | --- | --- | --- |
-| Published smoke | Account-free onboarding and startup behavior. | Yes, through `Locker Android smoke`. |
+| Published onboarding | Account-free onboarding and startup behavior. | Yes, through `Locker Android onboarding`. |
 | Online product lane | Empty-state and seeded Locker behavior on one disposable account. | Yes, through `Locker Android online`. |
 | Platform local | Native picker, preview, download, share, and device-state behavior. | No; validate on a local emulator or device. |
 | Future environments | Paid public links, sharing roles, recovery, limits, and injected failures. | No. |
@@ -55,13 +55,13 @@ mutable state and would otherwise produce cascade noise.
 
 | Path | Owns |
 | --- | --- |
-| `maestro/locker/smoke/` | Public account-free flows. |
+| `maestro/locker/onboarding/` | Public account-free onboarding flows. |
 | `maestro/locker/online/` | Canonical authenticated product flows. |
 | `maestro/locker/online/subflows/` | Private runtime and shared online helpers. |
 | `maestro/locker/online/platform/`, `paid/` | Explicitly deferred platform and paid flows. |
 | `locker/product-flows.v1.json` | Canonical YAML inventory, classifications, and lane order. |
-| `locker/catalog.v1.json` | Active fixture contract and preserved reference manifests. |
-| `locker/manifests/`, `locker/fixtures/` | Shared encrypted fixture input and public files. |
+| `locker/catalog.v1.json` | Active fixture contract and planned non-hosted manifests. |
+| `locker/manifests/`, `locker/fixtures/` | Shared online fixture and planned document or paid fixture inputs. |
 | `locker/stack/`, `tools/locker-seed/` | Disposable backend and E2EE account/fixture seeder. |
 | `scripts/`, `.github/workflows/` | Static checks, APK resolution, local runners, and hosted jobs. |
 
@@ -70,7 +70,7 @@ and runtime infrastructure; `maestro/locker/` owns executable UI flows.
 
 ## Adding or changing a test
 
-1. Put account-free flows under `maestro/locker/smoke/` and authenticated
+1. Put account-free onboarding flows under `maestro/locker/onboarding/` and authenticated
    product flows under `maestro/locker/online/`.
 2. Use `appId: ${APP_ID}` and keep product YAML free of credentials, endpoint
    setup, `clearState`, and app-specific orchestration.
@@ -93,8 +93,9 @@ them to hide product state or account lifecycle.
 ## Hosted CI behavior
 
 Static checks run on pull requests and pushes to `main`. Android workflows use
-path filters so smoke-only changes do not start the online lane and online-only
-changes do not start smoke. Every relevant push to `main` runs the complete
+path filters so onboarding-only changes do not start the online lane and
+online-only changes do not start onboarding. Every relevant push to `main` runs
+the complete
 selected baseline; manual dispatch remains available for targeted repair.
 
 The seeded workflow accepts `flow=all` or one registered hosted/unresolved flow
@@ -107,7 +108,7 @@ External actions, Docker images, Rust dependencies, and Maestro are pinned.
 Hosted summaries record immutable APK provenance and public lifecycle counts.
 Authenticated artifacts contain leakage-scanned JUnit, the redacted lifecycle
 summary, and at most one structural route probe per failed product run. Login and
-private-run diagnostics remain private; account-free smoke may retain Maestro
+private-run diagnostics remain private; account-free onboarding may retain Maestro
 diagnostics.
 
 ## Intentional exclusions
@@ -127,6 +128,3 @@ preserves the one-account/one-fixture contract, keeps diagnostics secret-free,
 and passes the exact published APK in its required environment. Update README
 coverage from a clean complete `main` run, not a targeted run or local result
 presented as hosted evidence.
-
-Catalog `historicalEvidence` is noncanonical import context. It cannot promote
-coverage or replace current JUnit and runner-summary evidence.

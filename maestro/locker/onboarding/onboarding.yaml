@@ -3,7 +3,7 @@ name: Locker onboarding launches
 tags:
   - locker
   - android
-  - smoke
+  - onboarding
 ---
 - launchApp:
     clearState: true

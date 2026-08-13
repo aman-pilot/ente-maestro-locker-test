@@ -42,12 +42,12 @@ expected_account_lifecycle = {
 }
 fail_check("catalog must declare the single online account contract") unless catalog["accountLifecycle"] == expected_account_lifecycle
 
-forbidden_catalog_keys = %w[entries fixtureProfiles isolation runtimeValidation scenarios suiteRoot supportManifests]
+forbidden_catalog_keys = %w[entries fixtureProfiles historicalEvidence isolation referenceManifests runtimeValidation scenarios suiteRoot supportManifests]
 present_forbidden = forbidden_catalog_keys & catalog.keys
 fail_check("catalog retains legacy keys: #{present_forbidden.join(", ")}") unless present_forbidden.empty?
 
 online_fixture = catalog.fetch("onlineFixture")
-reference_manifests = catalog.fetch("referenceManifests")
+planned_manifests = catalog.fetch("plannedManifests")
 fail_check("the online fixture must be applied exactly once") unless online_fixture["applyCount"] == 1
 
 manifest_cache = {}
@@ -88,9 +88,9 @@ item_names = online_manifest.fetch("items").map { |item| item_name(item, online_
 fail_check("online fixture collection summary differs from #{online_manifest_path}") unless online_fixture.fetch("collections").sort == collection_names
 fail_check("online fixture item summary differs from #{online_manifest_path}") unless online_fixture.fetch("items").sort == item_names
 
-fail_check("reference manifests contain duplicates") unless reference_manifests.uniq.length == reference_manifests.length
-reference_manifests.each { |relative_path| load_manifest.call(relative_path) }
-classified = ([online_manifest_path] + reference_manifests).uniq.sort
+fail_check("planned manifests contain duplicates") unless planned_manifests.uniq.length == planned_manifests.length
+planned_manifests.each { |relative_path| load_manifest.call(relative_path) }
+classified = ([online_manifest_path] + planned_manifests).uniq.sort
 on_disk = Dir.glob(LOCKER.join("manifests/*.json")).map { |path| Pathname.new(path).relative_path_from(LOCKER).to_s }.sort
 fail_check("manifest classification differs from files on disk") unless classified == on_disk
 
@@ -136,4 +136,4 @@ services.each do |service, definition|
   fail_check("Compose service #{service} must not extend another file") if definition.key?("extends")
 end
 
-puts "Locker assets are aligned: one online fixture, #{reference_manifests.length} reference manifests"
+puts "Locker assets are aligned: one online fixture, #{planned_manifests.length} planned manifests"

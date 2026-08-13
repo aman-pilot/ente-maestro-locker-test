@@ -14,17 +14,17 @@ SENSITIVE_TRIGGERS = %w[
 CHECKED_PATHS = [".github/workflows/*.{yml,yaml}"].freeze
 EXPECTED_WORKFLOW_NAMES = {
   "locker-android-online.yml" => "Locker Android online",
-  "locker-android-smoke.yml" => "Locker Android smoke",
-  "locker-static.yml" => "Locker validation"
+  "locker-android-onboarding.yml" => "Locker Android onboarding",
+  "locker-validation.yml" => "Locker validation"
 }.freeze
 EXPECTED_RUN_NAMES = {
   "locker-android-online.yml" => "Locker Android online · ${{ inputs.flow || 'all' }}",
-  "locker-android-smoke.yml" => "Locker Android smoke · ${{ inputs.suite || 'all' }}"
+  "locker-android-onboarding.yml" => "Locker Android onboarding · ${{ inputs.suite || 'all' }}"
 }.freeze
 EXPECTED_TRIGGERS = {
   "locker-android-online.yml" => %w[pull_request push workflow_dispatch],
-  "locker-android-smoke.yml" => %w[pull_request push workflow_dispatch],
-  "locker-static.yml" => %w[pull_request push workflow_dispatch]
+  "locker-android-onboarding.yml" => %w[pull_request push workflow_dispatch],
+  "locker-validation.yml" => %w[pull_request push workflow_dispatch]
 }.freeze
 USES_REF = %r{\A([A-Za-z0-9._-]+/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]+)?)@(\S+)\z}
 FULL_SHA = /\A[0-9a-fA-F]{40}\z/

@@ -322,8 +322,8 @@ registered_scenarios=()
 while IFS= read -r scenario; do
     [[ -n "$scenario" ]] && registered_scenarios+=("$scenario")
 done < <(jq --exit-status --raw-output '.hostedLane.flows[]' "$flow_registry")
-if [[ ${#registered_scenarios[@]} -ne 18 ]]; then
-    printf 'The audited online lane must contain all 18 proven hosted flows\n' >&2
+if [[ ${#registered_scenarios[@]} -ne 21 ]]; then
+    printf 'The audited online lane must contain all 21 proven hosted flows\n' >&2
     exit 2
 fi
 

@@ -30,7 +30,7 @@ assert_flows() {
 
 assert_suites onboarding --all
 assert_suites onboarding --suite onboarding
-assert_flows onboarding "maestro/locker/smoke/onboarding.yaml" --all
+assert_flows onboarding "maestro/locker/onboarding/onboarding.yaml" --all
 
 if "$selector" --suite unknown > /dev/null 2>&1; then
     echo "Expected an unknown suite to fail" >&2

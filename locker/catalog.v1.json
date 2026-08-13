@@ -42,29 +42,11 @@
       "Spare Monitor"
     ]
   },
-  "referenceManifests": [
-    "manifests/add-item-to-multiple-collections.json",
-    "manifests/bulk-add-delete-and-restore-items.json",
-    "manifests/collections.json",
-    "manifests/delete-collection-keep-item.json",
+  "plannedManifests": [
     "manifests/document.json",
-    "manifests/edit-emergency-contact.json",
-    "manifests/empty-collection.json",
-    "manifests/empty.json",
-    "manifests/filter-items-by-collection.json",
-    "manifests/info-items.json",
     "manifests/manage-collection-public-link.json",
-    "manifests/mark-and-unmark-important.json",
-    "manifests/permanently-delete-note.json",
-    "manifests/rename-and-delete-collections.json",
     "manifests/rename-and-move-document.json",
-    "manifests/search-note-secret-and-thing.json",
-    "manifests/search-with-no-results.json",
-    "manifests/secret-actions.json",
-    "manifests/thing-actions.json",
-    "manifests/trash.json",
-    "manifests/upload-document.json",
-    "manifests/view-collection-and-item-action-menus.json"
+    "manifests/upload-document.json"
   ],
   "resolvedSelectors": {
     "home_drawer": "Open navigation menu",
@@ -81,14 +63,5 @@
     "multiline_note_editor": "The note content editor has no unique selector distinct from surrounding content.",
     "sheet_dismissal": "Several flows dismiss a modal by tapping the scrim because the shared sheet exposes no stable close selector.",
     "collection_header_actions": "Collection header actions need stable selectors before hosted promotion."
-  },
-  "historicalEvidence": {
-    "sourceSnapshotDate": "2026-07-22",
-    "eligibleScenarioCount": 26,
-    "provenScenarioCount": 25,
-    "unresolvedScenarioIds": [
-      "rename-and-move-document"
-    ],
-    "disclaimer": "Imported prototype results are noncanonical context. They do not prove the current online lane, fixture, published APK, or hosted execution."
   }
 }

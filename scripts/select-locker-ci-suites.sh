@@ -8,7 +8,7 @@ Usage:
   scripts/select-locker-ci-suites.sh --all
   scripts/select-locker-ci-suites.sh --suite onboarding
 
-Print the hosted Locker Android smoke matrix.
+Print the hosted Locker Android onboarding matrix.
 EOF
 }
 
@@ -35,5 +35,5 @@ case "${1:-}" in
 esac
 
 cat <<'JSON'
-{"include":[{"name":"Published Locker onboarding","suite":"onboarding","flows":"maestro/locker/smoke/onboarding.yaml","coverage":"fresh application launch and public onboarding actions"}]}
+{"include":[{"name":"Published Locker onboarding","suite":"onboarding","flows":"maestro/locker/onboarding/onboarding.yaml","coverage":"fresh application launch and public onboarding actions"}]}
 JSON
