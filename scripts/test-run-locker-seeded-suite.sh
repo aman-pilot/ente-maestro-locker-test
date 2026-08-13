@@ -213,7 +213,7 @@ run_suite "$output_dir" env
 [[ "$(grep -c '^seeder apply online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^seeder finish online-fixture$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^maestro login$' "$temp_dir/logs/events.log")" -eq 2 ]]
-[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 18 ]]
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 21 ]]
 [[ "$(grep -c '^adb reverse$' "$temp_dir/logs/events.log")" -eq 4 ]]
 [[ "$(grep -c '^adb seeded-db-probe$' "$temp_dir/logs/events.log")" -eq 1 ]]
 [[ "$(grep -c '^adb force-stop$' "$temp_dir/logs/events.log")" -eq 5 ]]
@@ -221,9 +221,9 @@ run_suite "$output_dir" env
 [[ "$(grep -c 'flutter.endpoint' "$temp_dir/logs/adb.log")" -ge 2 ]]
 
 grep --quiet --fixed-strings \
-    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=18 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
+    'seeded_suite status=pass accounts_created=1 fixture_applies=1 backend_resets=0 scenarios=21 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1' \
     "$output_dir/summary.txt"
-[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 18 ]]
+[[ "$(find "$output_dir/results" -type f -name '*.xml' | wc -l | tr -d ' ')" -eq 21 ]]
 if grep --recursive --quiet --extended-regexp \
     'seeded-android-proof-test@example\.org|Locker-test!Aa1' "$output_dir"; then
     echo "Public seeded output leaked credentials" >&2
@@ -244,9 +244,9 @@ rm -f "$temp_dir/logs/product-driver-failed-once"
 driver_retry_output="$temp_dir/public-driver-retry"
 run_suite "$driver_retry_output" env LOCKER_TEST_PRODUCT_DRIVER_FAIL_ONCE=true
 [[ "$(grep -c '^maestro product empty-home-and-save-options$' "$temp_dir/logs/events.log")" -eq 2 ]]
-[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 19 ]]
+[[ "$(grep -c '^maestro product ' "$temp_dir/logs/events.log")" -eq 22 ]]
 grep --quiet --fixed-strings \
-    'scenarios=18 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1 product_driver_retries=1' \
+    'scenarios=21 failures=0 identity_unchanged=true empty_login_attempts=1 seeded_login_attempts=1 product_driver_retries=1' \
     "$driver_retry_output/summary.txt"
 if [[ -d "$driver_retry_output/diagnostics" ]]; then
     echo "A recovered pre-flow Maestro driver failure produced a product diagnostic" >&2

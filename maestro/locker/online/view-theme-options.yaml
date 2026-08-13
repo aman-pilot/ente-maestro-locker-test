@@ -7,7 +7,7 @@ appId: ${APP_ID}
     timeout: 10000
 
 # Open Settings > Appearance/Theme and assert the safe theme choices.
-# This smoke is view-only so it never leaves the app in a changed theme.
+# This check is view-only so it never leaves the app in a changed theme.
 - runFlow:
     file: subflows/open-navigation-menu.yaml
 - extendedWaitUntil:
