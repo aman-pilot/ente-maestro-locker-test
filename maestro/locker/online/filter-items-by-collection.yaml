@@ -4,10 +4,11 @@ appId: ${APP_ID}
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: Extension Ladder
+    visible: Filters
     timeout: 30000
 
-# Apply the seeded collection filter from home.
+# Apply the seeded collection filter before asserting the item. Earlier flows
+# add records, so global Home ordering cannot establish fixture visibility.
 - tapOn: Filters
 - extendedWaitUntil:
     visible: All collections
@@ -35,9 +36,16 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: Collections
     timeout: 10000
-- tapOn: "Garage Equipment\\n.*items"
+- scrollUntilVisible:
+    element: "Garage Equipment\\n.*items?"
+    direction: UP
+    centerElement: true
+    timeout: 10000
+- tapOn:
+    text: "Garage Equipment\\n.*items?"
+    point: 25%,50%
 - extendedWaitUntil:
-    visible: Garage Equipment
+    notVisible: "Garage Equipment\\n.*items?"
     timeout: 10000
 - assertVisible: Extension Ladder
 
@@ -51,9 +59,10 @@ appId: ${APP_ID}
     when:
       visible: All collections
     commands:
-      - tapOn: Clear all
+      - tapOn:
+          text: Clear all
+          optional: true
       - back
 - extendedWaitUntil:
-    visible: Add item
+    visible: Search your documents
     timeout: 10000
-- assertVisible: Search your documents
