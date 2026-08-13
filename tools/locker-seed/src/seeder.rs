@@ -68,7 +68,6 @@ pub async fn apply(
     run_dir: &Path,
 ) -> Result<RunRecord> {
     let manifest = Manifest::load(manifest_path)?;
-    let fixture_root = manifest_path.parent().unwrap_or_else(|| Path::new("."));
     let manifest_bytes = fs::read(manifest_path)?;
     let manifest_sha256 = sha256_hex(&manifest_bytes);
     let account = auth::login(
@@ -83,17 +82,8 @@ pub async fn apply(
     let master_key = Key::try_from_slice(&account.secrets.master_key)
         .context("account returned an invalid master key")?;
     let client = MuseumClient::new(&account_context.endpoint, &auth::encoded_token(&account))?;
-    let (collections, items) =
-        seed_manifest(&client, &master_key, &manifest, fixture_root, now_ms()).await?;
-    verify_seed(
-        &client,
-        &master_key,
-        &manifest,
-        fixture_root,
-        &collections,
-        &items,
-    )
-    .await?;
+    let (collections, items) = seed_manifest(&client, &master_key, &manifest, now_ms()).await?;
+    verify_seed(&client, &master_key, &manifest, &collections, &items).await?;
 
     let record = RunRecord {
         version: 1,
@@ -157,7 +147,6 @@ async fn seed_manifest(
     client: &MuseumClient,
     master_key: &Key,
     manifest: &Manifest,
-    fixture_root: &Path,
     now_ms: u128,
 ) -> Result<(
     BTreeMap<String, SeededCollection>,
@@ -206,15 +195,6 @@ async fn seed_manifest(
         .await?;
     }
 
-    let thumbnail = if manifest
-        .items
-        .iter()
-        .any(|item| matches!(item, ItemFixture::Document { .. }))
-    {
-        thumbnail_fixture()?
-    } else {
-        Vec::new()
-    };
     let mut items = BTreeMap::new();
 
     for fixture in &manifest.items {
@@ -222,7 +202,6 @@ async fn seed_manifest(
         let primary = collections
             .get(&refs[0])
             .ok_or_else(|| anyhow!("missing primary collection {}", refs[0]))?;
-        let title = fixture.title(fixture_root);
         let created = match fixture {
             ItemFixture::Note { title, content, .. } => {
                 client
@@ -292,17 +271,6 @@ async fn seed_manifest(
                         data,
                         now_ms,
                     )
-                    .await?
-            }
-            ItemFixture::Document { path, .. } => {
-                let bytes = fs::read(fixture_root.join(path)).with_context(|| {
-                    format!(
-                        "failed to read document fixture {}",
-                        fixture_root.join(path).display()
-                    )
-                })?;
-                client
-                    .create_document(primary.id, &primary.key, &title, &bytes, &thumbnail, now_ms)
                     .await?
             }
         };
@@ -393,7 +361,6 @@ async fn verify_seed(
     client: &MuseumClient,
     master_key: &Key,
     manifest: &Manifest,
-    fixture_root: &Path,
     collections: &BTreeMap<String, SeededCollection>,
     items: &BTreeMap<String, CreatedItem>,
 ) -> Result<()> {
@@ -488,7 +455,7 @@ async fn verify_seed(
     }
 
     for fixture in &manifest.items {
-        let expected_title = fixture.title(fixture_root);
+        let expected_title = fixture.title();
         let seeded = items
             .get(fixture.fixture_ref())
             .ok_or_else(|| anyhow!("missing seeded item {}", fixture.fixture_ref()))?;
@@ -525,36 +492,8 @@ async fn verify_seed(
                 seeded.id
             );
         }
-        let expected_file_type = if matches!(fixture, ItemFixture::Document { .. }) {
-            3
-        } else {
-            4
-        };
-        verify_metadata(seeded.id, &decrypted.metadata, expected_file_type)?;
+        verify_metadata(seeded.id, &decrypted.metadata, 4)?;
         verify_pub_magic(fixture, &decrypted.pub_magic)?;
-
-        if let ItemFixture::Document { path, .. } = fixture {
-            let expected = fs::read(fixture_root.join(path))?;
-            let actual = client
-                .download_document(remote, &decrypted.file_key)
-                .await?;
-            if actual != expected {
-                bail!(
-                    "document {} failed encrypted download verification",
-                    seeded.id
-                );
-            }
-            let expected_thumbnail = thumbnail_fixture()?;
-            let actual_thumbnail = client
-                .download_thumbnail(remote, &decrypted.file_key)
-                .await?;
-            if actual_thumbnail != expected_thumbnail {
-                bail!(
-                    "document {} thumbnail failed encrypted download verification",
-                    seeded.id
-                );
-            }
-        }
 
         if fixture.state() == ItemState::Active {
             let mut expected_memberships = item_collection_refs(fixture);
@@ -676,7 +615,6 @@ fn verify_pub_magic(fixture: &ItemFixture, pub_magic: &Value) -> Result<()> {
             insert_optional(&mut data, "notes", notes.as_deref());
             Some(("emergencyContact", data))
         }
-        ItemFixture::Document { .. } => None,
     };
     if let Some((expected_type, expected_data)) = expected_info {
         let actual_type = pub_magic
@@ -751,14 +689,6 @@ fn item_collection_refs(fixture: &ItemFixture) -> Vec<String> {
         refs.push(IMPORTANT_REF.to_owned());
     }
     refs
-}
-
-fn thumbnail_fixture() -> Result<Vec<u8>> {
-    let encoded = include_str!("../../../locker/fixtures/black-thumbnail.jpg.b64");
-    Ok(base64::Engine::decode(
-        &base64::engine::general_purpose::STANDARD,
-        encoded.split_whitespace().collect::<String>(),
-    )?)
 }
 
 fn insert_optional(target: &mut Value, key: &str, value: Option<&str>) {
@@ -912,9 +842,9 @@ mod tests {
     }
 
     #[test]
-    fn document_edit_move_manifest_preseeds_locker_defaults() {
+    fn upload_document_manifest_preseeds_only_the_empty_destination() {
         let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../locker/manifests/rename-and-move-document.json");
+            .join("../../locker/manifests/upload-document.json");
         let manifest = Manifest::load(&manifest_path).unwrap();
         let collections = manifest
             .collections
@@ -928,17 +858,14 @@ mod tests {
             })
             .collect::<std::collections::HashSet<_>>();
 
-        assert!(collections.contains(&("uncategorized", "Uncategorized", "uncategorized")));
-        assert!(collections.contains(&("important", "Important", "favorites")));
-        assert!(collections.contains(&("documents", "Documents", "folder")));
-        assert!(collections.contains(&("insurance_documents", "Insurance Documents", "folder")));
-        assert!(collections.contains(&("policy_archive", "Policy Archive", "folder")));
-
-        let document = manifest
-            .items
-            .iter()
-            .find(|item| item.fixture_ref() == "home_insurance_policy")
-            .unwrap();
-        assert_eq!(document.collections(), ["insurance_documents"]);
+        assert_eq!(
+            collections,
+            std::collections::HashSet::from([(
+                "insurance_documents",
+                "Insurance Documents",
+                "folder"
+            )])
+        );
+        assert!(manifest.items.is_empty());
     }
 }

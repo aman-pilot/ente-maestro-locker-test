@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Cursor};
+use std::collections::HashMap;
 
 use anyhow::{Context, Result, anyhow, bail};
 use base64::{Engine, engine::general_purpose::STANDARD};
@@ -45,7 +45,6 @@ pub struct RemoteFileAttributes {
     pub encrypted_data: Option<String>,
     #[serde(default)]
     pub decryption_header: String,
-    pub size: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -65,10 +64,6 @@ pub struct RemoteFile {
     pub collection_id: i64,
     pub encrypted_key: String,
     pub key_decryption_nonce: String,
-    #[serde(default)]
-    pub file: RemoteFileAttributes,
-    #[serde(default)]
-    pub thumbnail: RemoteFileAttributes,
     pub metadata: RemoteFileAttributes,
     #[serde(default, rename = "pubMagicMetadata")]
     pub pub_magic_metadata: Option<RemoteMagicMetadata>,
@@ -137,18 +132,6 @@ struct TrashResponse {
     diff: Vec<TrashEntry>,
     #[serde(default)]
     has_more: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct UploadURLResponse {
-    object_key: String,
-    url: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct DownloadURLResponse {
-    url: String,
 }
 
 impl MuseumClient {
@@ -245,67 +228,6 @@ impl MuseumClient {
         })
     }
 
-    pub async fn create_document(
-        &self,
-        collection_id: i64,
-        collection_key: &Key,
-        title: &str,
-        plaintext: &[u8],
-        thumbnail_plaintext: &[u8],
-        now_ms: u128,
-    ) -> Result<CreatedItem> {
-        let file_key = Key::generate();
-        let (encrypted_file, file_header) = encrypt_stream(plaintext, &file_key)?;
-        let file_object_key = self.upload_object(&encrypted_file).await?;
-        let (encrypted_thumbnail, thumbnail_header) =
-            encrypt_stream(thumbnail_plaintext, &file_key)?;
-        let thumbnail_object_key = self.upload_object(&encrypted_thumbnail).await?;
-
-        let encrypted_key = crypto::secretbox::encrypt(file_key.as_bytes(), collection_key);
-        let metadata = json!({
-            "title": title,
-            "creationTime": now_ms,
-            "modificationTime": now_ms,
-            "fileType": 3
-        });
-        let pub_magic = json!({"noThumb": true});
-        let encrypted_metadata = crypto::blob::encrypt(&serde_json::to_vec(&metadata)?, &file_key)?;
-        let encrypted_pub_magic =
-            crypto::blob::encrypt(&serde_json::to_vec(&pub_magic)?, &file_key)?;
-
-        let body = json!({
-            "collectionID": collection_id,
-            "encryptedKey": STANDARD.encode(encrypted_key.encrypted_data),
-            "keyDecryptionNonce": STANDARD.encode(encrypted_key.nonce.as_bytes()),
-            "file": {
-                "objectKey": file_object_key,
-                "decryptionHeader": STANDARD.encode(file_header.as_bytes()),
-                "size": encrypted_file.len()
-            },
-            "thumbnail": {
-                "objectKey": thumbnail_object_key,
-                "decryptionHeader": STANDARD.encode(thumbnail_header.as_bytes()),
-                "size": encrypted_thumbnail.len()
-            },
-            "metadata": {
-                "encryptedData": STANDARD.encode(encrypted_metadata.encrypted_data),
-                "decryptionHeader": STANDARD.encode(encrypted_metadata.decryption_header.as_bytes())
-            },
-            "pubMagicMetadata": {
-                "version": 1,
-                "count": 1,
-                "data": STANDARD.encode(encrypted_pub_magic.encrypted_data),
-                "header": STANDARD.encode(encrypted_pub_magic.decryption_header.as_bytes())
-            }
-        });
-        let response: IDResponse = self.post_json("/files", &body).await?;
-        Ok(CreatedItem {
-            id: response.id,
-            primary_collection_id: collection_id,
-            file_key,
-        })
-    }
-
     pub async fn add_file_to_collection(
         &self,
         file_id: i64,
@@ -358,16 +280,6 @@ impl MuseumClient {
             .filter(|entry| !entry.is_deleted)
             .map(|entry| entry.file)
             .collect())
-    }
-
-    pub async fn download_document(&self, file: &RemoteFile, file_key: &Key) -> Result<Vec<u8>> {
-        self.download_and_decrypt(file.id, &file.file, "download", "document", file_key)
-            .await
-    }
-
-    pub async fn download_thumbnail(&self, file: &RemoteFile, file_key: &Key) -> Result<Vec<u8>> {
-        self.download_and_decrypt(file.id, &file.thumbnail, "preview", "thumbnail", file_key)
-            .await
     }
 
     pub fn decrypt_collection_key(collection: &RemoteCollection, master_key: &Key) -> Result<Key> {
@@ -473,74 +385,6 @@ impl MuseumClient {
         Ok(inventory)
     }
 
-    async fn upload_object(&self, bytes: &[u8]) -> Result<String> {
-        let digest = md5::compute(bytes);
-        let md5_b64 = STANDARD.encode(digest.0);
-        let body = json!({
-            "contentLength": bytes.len(),
-            "contentMD5": md5_b64
-        });
-        let upload: UploadURLResponse = self.post_json("/files/upload-url", &body).await?;
-        let response = self
-            .http
-            .put(&upload.url)
-            .header(header::CONTENT_TYPE, "application/octet-stream")
-            .header("Content-MD5", md5_b64)
-            .body(bytes.to_vec())
-            .send()
-            .await
-            .with_context(|| format!("failed to upload object {}", upload.object_key))?;
-        checked(response).await?;
-        Ok(upload.object_key)
-    }
-
-    async fn download_and_decrypt(
-        &self,
-        file_id: i64,
-        attributes: &RemoteFileAttributes,
-        route: &str,
-        object_name: &str,
-        file_key: &Key,
-    ) -> Result<Vec<u8>> {
-        let v2_response = self
-            .http
-            .get(self.url(&format!("/files/{route}/v2/{file_id}")))
-            .send()
-            .await?;
-        let encrypted = if v2_response.status() == reqwest::StatusCode::NOT_FOUND {
-            // Museum versions before the v2 URL endpoint return a temporary
-            // redirect from the original route. Reqwest follows it to the
-            // signed MinIO URL for us.
-            checked(
-                self.http
-                    .get(self.url(&format!("/files/{route}/{file_id}")))
-                    .send()
-                    .await?,
-            )
-            .await?
-            .bytes()
-            .await?
-        } else {
-            let response: DownloadURLResponse = checked(v2_response).await?.json().await?;
-            checked(self.http.get(response.url).send().await?)
-                .await?
-                .bytes()
-                .await?
-        };
-        if let Some(expected_size) = attributes.size.filter(|size| *size > 0) {
-            let actual_size = i64::try_from(encrypted.len())
-                .context("downloaded encrypted object is too large to validate")?;
-            if actual_size != expected_size {
-                bail!(
-                    "downloaded {object_name} {file_id} has {actual_size} encrypted bytes, expected {expected_size}"
-                );
-            }
-        }
-        let header = decode_header(&attributes.decryption_header)?;
-        crypto::stream::decrypt_file_data(&encrypted, &header, file_key)
-            .with_context(|| format!("failed to decrypt downloaded {object_name}"))
-    }
-
     async fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         let response = checked(self.http.get(self.url(path)).send().await?).await?;
         response
@@ -569,13 +413,6 @@ impl MuseumClient {
     fn url(&self, path: &str) -> String {
         format!("{}{}", self.endpoint, path)
     }
-}
-
-fn encrypt_stream(bytes: &[u8], key: &Key) -> Result<(Vec<u8>, Header)> {
-    let mut source = Cursor::new(bytes);
-    let mut encrypted = Vec::new();
-    let header = crypto::stream::encrypt_file(&mut source, &mut encrypted, key)?;
-    Ok((encrypted, header))
 }
 
 fn decode_nonce(value: &str) -> Result<Nonce> {
@@ -610,15 +447,6 @@ async fn checked(response: Response) -> Result<Response> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn stream_payload_round_trips() {
-        let key = Key::generate();
-        let plaintext = b"Locker document fixture";
-        let (encrypted, header) = encrypt_stream(plaintext, &key).unwrap();
-        let decrypted = crypto::stream::decrypt_file_data(&encrypted, &header, &key).unwrap();
-        assert_eq!(decrypted, plaintext);
-    }
 
     #[test]
     fn collection_payload_round_trips() {

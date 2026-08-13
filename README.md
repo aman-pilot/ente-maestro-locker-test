@@ -114,8 +114,8 @@ Every row below was verified by those exact authoritative `main` runs.
 - Eight core flows remain registered as `hostedUnresolved` until their
   published-build selectors and behavior pass targeted and complete-lane
   validation.
-- Native document picker, preview, download, and platform/offline-state flows
-  remain local or deferred.
+- Native document picker, preview, download, rename/move, and platform/offline-state
+  flows require explicit external device/document preparation and remain deferred.
 - Public-link coverage requires a deliberate paid-product environment.
 - Multi-account sharing roles, recovery, limits, and injected failures require
   separate environments.

@@ -90,19 +90,6 @@ pub enum ItemFixture {
         #[serde(default)]
         state: ItemState,
     },
-    Document {
-        #[serde(rename = "ref")]
-        fixture_ref: String,
-        path: String,
-        #[serde(default)]
-        title: Option<String>,
-        #[serde(default)]
-        collections: Vec<String>,
-        #[serde(default)]
-        important: bool,
-        #[serde(default)]
-        state: ItemState,
-    },
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -119,11 +106,11 @@ impl Manifest {
             .with_context(|| format!("failed to read manifest {}", path.display()))?;
         let manifest: Self = serde_json::from_slice(&bytes)
             .with_context(|| format!("invalid manifest JSON in {}", path.display()))?;
-        manifest.validate(path.parent().unwrap_or_else(|| Path::new(".")))?;
+        manifest.validate()?;
         Ok(manifest)
     }
 
-    pub fn validate(&self, fixture_root: &Path) -> Result<()> {
+    pub fn validate(&self) -> Result<()> {
         if self.version != 1 {
             bail!("unsupported manifest version {}; expected 1", self.version);
         }
@@ -180,7 +167,7 @@ impl Manifest {
             if !refs.insert(item.fixture_ref()) {
                 bail!("duplicate fixture ref {}", item.fixture_ref());
             }
-            let display_name = item.title(fixture_root);
+            let display_name = item.title();
             if display_name.trim().is_empty() {
                 bail!("item {} has an empty display name", item.fixture_ref());
             }
@@ -203,16 +190,6 @@ impl Manifest {
                     );
                 }
             }
-            if let ItemFixture::Document { path, .. } = item {
-                let file_path = fixture_root.join(path);
-                if !file_path.is_file() {
-                    bail!(
-                        "document {} does not exist at {}",
-                        item.fixture_ref(),
-                        file_path.display()
-                    );
-                }
-            }
         }
 
         Ok(())
@@ -225,8 +202,7 @@ impl ItemFixture {
             Self::Note { fixture_ref, .. }
             | Self::Secret { fixture_ref, .. }
             | Self::Thing { fixture_ref, .. }
-            | Self::EmergencyContact { fixture_ref, .. }
-            | Self::Document { fixture_ref, .. } => fixture_ref,
+            | Self::EmergencyContact { fixture_ref, .. } => fixture_ref,
         }
     }
 
@@ -235,8 +211,7 @@ impl ItemFixture {
             Self::Note { collections, .. }
             | Self::Secret { collections, .. }
             | Self::Thing { collections, .. }
-            | Self::EmergencyContact { collections, .. }
-            | Self::Document { collections, .. } => collections,
+            | Self::EmergencyContact { collections, .. } => collections,
         }
     }
 
@@ -245,8 +220,7 @@ impl ItemFixture {
             Self::Note { important, .. }
             | Self::Secret { important, .. }
             | Self::Thing { important, .. }
-            | Self::EmergencyContact { important, .. }
-            | Self::Document { important, .. } => *important,
+            | Self::EmergencyContact { important, .. } => *important,
         }
     }
 
@@ -255,25 +229,16 @@ impl ItemFixture {
             Self::Note { state, .. }
             | Self::Secret { state, .. }
             | Self::Thing { state, .. }
-            | Self::EmergencyContact { state, .. }
-            | Self::Document { state, .. } => *state,
+            | Self::EmergencyContact { state, .. } => *state,
         }
     }
 
-    pub fn title(&self, fixture_root: &Path) -> String {
+    pub fn title(&self) -> String {
         match self {
             Self::Note { title, .. } => title.clone(),
             Self::Secret { name, .. }
             | Self::Thing { name, .. }
             | Self::EmergencyContact { name, .. } => name.clone(),
-            Self::Document { path, title, .. } => title.clone().unwrap_or_else(|| {
-                fixture_root
-                    .join(path)
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .unwrap_or("document")
-                    .to_owned()
-            }),
         }
     }
 }
@@ -309,8 +274,24 @@ mod tests {
         )
         .unwrap();
 
-        manifest.validate(Path::new(".")).unwrap();
+        manifest.validate().unwrap();
         assert_eq!(manifest.items.len(), 4);
+    }
+
+    #[test]
+    fn rejects_repository_seeded_document_shapes() {
+        let error = serde_json::from_str::<Manifest>(
+            r#"{
+                "version": 1,
+                "items": [
+                    {"ref":"document","type":"document","path":"external.pdf"}
+                ]
+            }"#,
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(error.contains("unknown variant `document`"));
     }
 
     #[test]
@@ -323,7 +304,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err();
+        let error = manifest.validate().unwrap_err();
         assert!(error.to_string().contains("unknown collection"));
     }
 
@@ -337,7 +318,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err();
+        let error = manifest.validate().unwrap_err();
         assert!(error.to_string().contains("reserved"));
     }
 
@@ -351,7 +332,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err();
+        let error = manifest.validate().unwrap_err();
         assert!(error.to_string().contains("unsupported type"));
     }
 
@@ -368,7 +349,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err().to_string();
+        let error = manifest.validate().unwrap_err().to_string();
         assert!(error.contains("duplicate collection display name"));
         assert!(error.contains("Personal Records"));
         assert!(error.contains("personal"));
@@ -388,7 +369,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err().to_string();
+        let error = manifest.validate().unwrap_err().to_string();
         assert!(error.contains("duplicate item display name"));
         assert!(error.contains("Passport Renewal Checklist"));
         assert!(error.contains("renewal_note"));
@@ -410,7 +391,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err().to_string();
+        let error = manifest.validate().unwrap_err().to_string();
         assert!(error.contains("duplicate item display name"));
         assert!(error.contains("Personal Records"));
         assert!(error.contains("personal_records"));
@@ -434,7 +415,7 @@ mod tests {
         )
         .unwrap();
 
-        manifest.validate(Path::new(".")).unwrap();
+        manifest.validate().unwrap();
     }
 
     #[test]
@@ -449,7 +430,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = manifest.validate(Path::new(".")).unwrap_err().to_string();
+        let error = manifest.validate().unwrap_err().to_string();
         assert!(error.contains("item blank_note has an empty display name"));
     }
 }

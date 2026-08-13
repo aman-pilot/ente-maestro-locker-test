@@ -28,7 +28,6 @@ end
 def item_name(item, manifest_dir)
   return item["title"] if item["title"]
   return item["name"] if item["name"]
-  return File.basename(item.fetch("path")) if item["type"] == "document"
 
   fail_check("item #{item["ref"].inspect} has no visible name in #{manifest_dir}")
 end
@@ -71,11 +70,7 @@ load_manifest = lambda do |relative_path|
       Array(item["collections"]).each do |collection_ref|
         fail_check("#{relative_path} item #{item.fetch("ref")} references unknown collection #{collection_ref}") unless collection_refs.include?(collection_ref)
       end
-      next unless item["type"] == "document"
-
-      document = manifest_path.dirname.join(item.fetch("path")).cleanpath
-      fail_check("document path escapes locker/: #{item.fetch("path")}") unless document.to_s.start_with?("#{LOCKER}#{File::SEPARATOR}")
-      fail_check("missing document fixture #{document.relative_path_from(ROOT)}") unless document.file?
+      fail_check("#{relative_path} must not seed repository-owned document binaries") if item["type"] == "document"
     end
     manifest
   end
@@ -96,13 +91,10 @@ fail_check("manifest classification differs from files on disk") unless classifi
 
 provenance = load_json(LOCKER.join("provenance.v1.json"))
 fail_check("provenance schemaVersion must be 1") unless provenance["schemaVersion"] == 1
-provenance.fetch("fixtures").each do |relative_path, expected_hash|
-  fixture_path = ROOT.join(relative_path).cleanpath
-  fail_check("provenance fixture escapes repository: #{relative_path}") unless fixture_path.to_s.start_with?("#{ROOT}#{File::SEPARATOR}")
-  fail_check("missing provenance fixture #{relative_path}") unless fixture_path.file?
-  actual_hash = Digest::SHA256.file(fixture_path).hexdigest
-  fail_check("fixture hash mismatch for #{relative_path}") unless actual_hash == expected_hash
-end
+fixture_hashes = provenance.fetch("fixtures")
+fail_check("repository-owned fixture hashes must be empty") unless fixture_hashes.empty?
+fixture_files = Dir.glob(LOCKER.join("fixtures/**/*"), File::FNM_DOTMATCH).select { |path| File.file?(path) }
+fail_check("repository-owned fixture files remain: #{fixture_files.map { |path| Pathname.new(path).relative_path_from(ROOT) }.join(", ")}") unless fixture_files.empty?
 
 manifest_lines = Dir.glob(LOCKER.join("manifests/*.json")).sort.map do |path|
   relative_path = Pathname.new(path).relative_path_from(ROOT)

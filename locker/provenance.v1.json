@@ -15,11 +15,8 @@
     "minioClient": "minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727",
     "socat": "alpine/socat@sha256:e7b17711daaa7d49107a7193112689e91fb1a27bddd9cb0b32641b55b8e9e3b0"
   },
-  "fixtures": {
-    "locker/fixtures/black-thumbnail.jpg.b64": "585169db87f14de69e03f64b99fb0ef50a4e0a85fcfba6f1b7bce74308632c57",
-    "locker/fixtures/locker-seed.pdf": "0cb8b160e921c59ddbb9aa16416f0ae72b1c019f53631fd1f46d233070bd361e"
-  },
-  "manifestSetSha256": "a8b764fe48715005b7775b93e64431a164ada54502cda0c5bb5031128a02c885",
+  "fixtures": {},
+  "manifestSetSha256": "b85e70a7a094ccc1fab6489f0a5c3b9ea3b507ba2d5ed0b43f202a00bcc2607e",
   "stackVerification": {
     "verifiedAt": "2026-08-03",
     "dockerServer": "29.4.0",

@@ -61,7 +61,7 @@ mutable state and would otherwise produce cascade noise.
 | `maestro/locker/online/platform/`, `paid/` | Explicitly deferred platform and paid flows. |
 | `locker/product-flows.v1.json` | Canonical YAML inventory, classifications, and lane order. |
 | `locker/catalog.v1.json` | Active fixture contract and planned non-hosted manifests. |
-| `locker/manifests/`, `locker/fixtures/` | Shared online fixture and planned document or paid fixture inputs. |
+| `locker/manifests/` | Shared online fixture plus planned empty-collection inputs for native upload and paid public-link tests. |
 | `locker/stack/`, `tools/locker-seed/` | Disposable backend and E2EE account/fixture seeder. |
 | `scripts/`, `.github/workflows/` | Static checks, APK resolution, local runners, and hosted jobs. |
 
@@ -115,8 +115,9 @@ diagnostics.
 
 - Eight core flows are preserved but remain hosted-unresolved until their
   published-build semantics pass targeted and complete-lane validation.
-- Native document picker, preview, download, and platform/offline-state flows
-  are not part of the first hosted lane.
+- Native document picker, preview, download, rename/move, and platform/offline-state
+  flows require explicit external device/document preparation and are not part
+  of the first hosted lane.
 - Paid public links, multi-account sharing roles, recovery, limits, and fault
   injection require separate environments and are deferred.
 - Locker has no offline-account mode.

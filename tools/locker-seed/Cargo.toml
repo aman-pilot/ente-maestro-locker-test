@@ -10,7 +10,6 @@ base64 = "0.22"
 clap = { version = "4.5", features = ["derive", "env"] }
 ente-accounts = { git = "https://github.com/ente-io/ente.git", rev = "390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e" }
 ente-core = { git = "https://github.com/ente-io/ente.git", rev = "390eb68100b4cdc1a2a74e43e8c94a77ce17bc1e", features = ["srp"] }
-md5 = "0.7"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

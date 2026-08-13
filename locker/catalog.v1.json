@@ -43,9 +43,7 @@
     ]
   },
   "plannedManifests": [
-    "manifests/document.json",
     "manifests/manage-collection-public-link.json",
-    "manifests/rename-and-move-document.json",
     "manifests/upload-document.json"
   ],
   "resolvedSelectors": {

@@ -58,16 +58,16 @@
       "create-edit-move-delete-and-restore-secret": "Creation and collection-selection semantics still need an isolated green run.",
       "create-edit-move-delete-and-restore-thing": "Creation and collection-selection semantics still need an isolated green run.",
       "rename-and-delete-collections": "Collection selection/navigation is locally flaky and has not repeated its earlier green result.",
-      "rename-and-move-document": "The rename was absent after save and relaunch although Museum recorded the collection move.",
+      "rename-and-move-document": "Requires an externally prepared document in Insurance Documents; the repository no longer seeds document binaries.",
       "view-collection-and-item-action-menus": "The exact published RC exposes no semantic label for the collection popup button, and its coordinate fallback failed on hosted x86_64 after collection entry succeeded."
     },
     "nativeSystemDeferred": {
-      "download-document": "Targets the native iOS Files save and replace surface.",
-      "prevent-duplicate-document-open": "Depends on the system document preview.",
-      "upload-and-permanently-delete-document": "Targets the native iOS picker and still needs an explicit device-file setup contract."
+      "download-document": "Requires an externally prepared Locker document and targets the native iOS Files save and replace surface.",
+      "prevent-duplicate-document-open": "Requires an externally prepared Locker document and depends on the system document preview.",
+      "upload-and-permanently-delete-document": "Requires an explicitly prepared native device file; the repository seeds only the empty destination collection."
     },
     "platformStateDeferred": {
-      "toggle-document-offline": "Requires dedicated platform and offline-state validation."
+      "toggle-document-offline": "Requires an externally prepared Locker document plus dedicated platform and offline-state validation."
     },
     "paidDeferred": {
       "manage-collection-public-link": "Requires a deliberate paid-product and public-link test environment."
