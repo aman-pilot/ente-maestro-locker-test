@@ -1,6 +1,6 @@
 # Ente Locker Maestro tests
 
-Maestro smoke and end-to-end tests that run against published Ente Locker
+Maestro onboarding and end-to-end tests that run against published Ente Locker
 Android builds.
 
 At the start of every Android run, the workflows resolve the newest compatible
@@ -9,11 +9,12 @@ Locker beta or release-candidate APK from
 asset ID and SHA-256 digest for the run, then verify the APK before installing
 it. The workflows do not build Locker or use Maestro Cloud.
 
-The account-free smoke workflow verifies onboarding. The online workflow runs
-on Ubuntu and starts an isolated Docker Compose stack with Museum, PostgreSQL
-15, MinIO, and a socat network bridge. It creates one synthetic account, checks
-the empty state, applies one shared encrypted fixture, and runs the ordered
-product flows against that same account without resetting the backend.
+The account-free onboarding workflow verifies first launch. The online workflow
+runs on Ubuntu and starts an isolated Docker Compose stack with Museum,
+PostgreSQL 15, MinIO, and a socat network bridge. It creates one synthetic
+account, checks the empty state, applies one shared encrypted fixture, and runs
+the ordered product flows against that same account without resetting the
+backend.
 
 The tests target published builds rather than a temporary Ente branch. Product
 changes are therefore exercised after they reach Ente `main` and appear in a
@@ -78,17 +79,17 @@ and checksum identify the tested build precisely.
 
 The clean required runs completed on 2026-08-11 UTC:
 [online run 31477531786](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31477531786),
-[smoke run 31474463061](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31474463061),
+[onboarding run 31474463061](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31474463061),
 and [validation run 31477531800](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31477531800).
 The online run completed 18 scenarios with zero failures using one account, one
-fixture application, and zero backend resets. The smoke run completed
+fixture application, and zero backend resets. The onboarding run completed
 onboarding with zero failures.
 
 Every row below was verified by those exact authoritative `main` runs.
 
 | Flow | Verified behavior |
 | --- | --- |
-| [`onboarding`](maestro/locker/smoke/onboarding.yaml) | [![Passed: run 31474463061](https://img.shields.io/badge/Latest%20run-passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31474463061) Opens the published app from fresh state and completes account-free onboarding. |
+| [`onboarding`](maestro/locker/onboarding/onboarding.yaml) | [![Passed: run 31474463061](https://img.shields.io/badge/Latest%20run-passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31474463061) Opens the published app from fresh state and completes account-free onboarding. |
 | [`empty-home-and-save-options`](maestro/locker/online/empty-home-and-save-options.yaml) | [![Passed: run 31477531786](https://img.shields.io/badge/Latest%20run-passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31477531786) Verifies the empty home state and available item types before fixture application. |
 | [`empty-trash`](maestro/locker/online/empty-trash.yaml) | [![Passed: run 31477531786](https://img.shields.io/badge/Latest%20run-passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31477531786) Verifies Trash is empty for the new account. |
 | [`search-note-secret-and-thing`](maestro/locker/online/search-note-secret-and-thing.yaml) | [![Passed: run 31477531786](https://img.shields.io/badge/Latest%20run-passed-2ea44f?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/aman-pilot/ente-maestro-locker-test/actions/runs/31477531786) Finds seeded note, secret, and real-world item records. |

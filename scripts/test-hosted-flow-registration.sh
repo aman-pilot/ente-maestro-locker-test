@@ -42,7 +42,7 @@ collect_reachable() {
             dependency_absolute=$(realpath "$source_path")
             dependency_path=${dependency_absolute#"$workspace_root/"}
             case "$dependency_path" in
-                maestro/locker/smoke/*)
+                maestro/locker/onboarding/*)
                     enqueue "$dependency_path"
                     ;;
                 *)
@@ -65,6 +65,6 @@ while IFS= read -r flow; do
         echo "Hosted Locker Maestro flow is not registered in a suite: $flow" >&2
         exit 1
     fi
-done < <(find "$workspace_root/maestro/locker/smoke" -name '*.yaml' -type f | sed "s|^$workspace_root/||" | sort)
+done < <(find "$workspace_root/maestro/locker/onboarding" -name '*.yaml' -type f | sed "s|^$workspace_root/||" | sort)
 
 echo "Hosted Locker Maestro flow registration tests passed"

@@ -1,5 +1,5 @@
-name: "Locker Android smoke"
-run-name: "Locker Android smoke · ${{ inputs.suite || 'all' }}"
+name: "Locker Android onboarding"
+run-name: "Locker Android onboarding · ${{ inputs.suite || 'all' }}"
 
 on:
     workflow_dispatch:
@@ -14,8 +14,8 @@ on:
                     - onboarding
     pull_request:
         paths:
-            - ".github/workflows/locker-android-smoke.yml"
-            - "maestro/locker/smoke/**"
+            - ".github/workflows/locker-android-onboarding.yml"
+            - "maestro/locker/onboarding/**"
             - "scripts/check-static.sh"
             - "scripts/check-workflow-security.rb"
             - "scripts/resolve-nightly-apk.sh"
@@ -28,8 +28,8 @@ on:
     push:
         branches: [main]
         paths:
-            - ".github/workflows/locker-android-smoke.yml"
-            - "maestro/locker/smoke/**"
+            - ".github/workflows/locker-android-onboarding.yml"
+            - "maestro/locker/onboarding/**"
             - "scripts/check-static.sh"
             - "scripts/check-workflow-security.rb"
             - "scripts/resolve-nightly-apk.sh"
@@ -44,7 +44,7 @@ permissions:
     contents: read
 
 concurrency:
-    group: locker-android-smoke-${{ github.ref }}
+    group: locker-android-onboarding-${{ github.ref }}
     cancel-in-progress: true
 
 env:
@@ -56,7 +56,7 @@ env:
 
 jobs:
     resolve:
-        name: Plan smoke tests
+        name: Plan onboarding tests
         runs-on: ubuntu-latest
         outputs:
             apk_asset_id: ${{ steps.release.outputs.apk_asset_id }}
@@ -76,7 +76,7 @@ jobs:
             - name: Validate Locker test contracts
               run: scripts/check-static.sh
 
-            - name: Select smoke suite
+            - name: Select onboarding suite
               id: select
               env:
                   REQUESTED_SUITE: ${{ inputs.suite || 'all' }}
@@ -98,8 +98,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: scripts/resolve-nightly-apk.sh --app locker --github-output "$GITHUB_OUTPUT"
 
-    smoke:
-        name: Run smoke · ${{ matrix.name }}
+    onboarding:
+        name: Run onboarding · ${{ matrix.name }}
         needs: resolve
         runs-on: ubuntu-latest
         timeout-minutes: 30
@@ -178,8 +178,8 @@ jobs:
                   sudo udevadm control --reload-rules
                   sudo udevadm trigger --name-match=kvm
 
-            - name: Run account-free smoke tests
-              id: smoke-tests
+            - name: Run account-free onboarding tests
+              id: onboarding-tests
               continue-on-error: true
               uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
               with:
@@ -191,10 +191,10 @@ jobs:
                   disable-animations: true
                   script: LOCKER_MAESTRO_OUTPUT_DIR=artifacts/maestro scripts/run-locker-android-local.sh --apk "$LOCKER_APK_PATH" --suite "${{ matrix.suite }}"
 
-            - name: Write smoke-test summary
-              if: always() && steps.smoke-tests.outcome != 'skipped'
+            - name: Write onboarding-test summary
+              if: always() && steps.onboarding-tests.outcome != 'skipped'
               env:
-                  TEST_OUTCOME: ${{ steps.smoke-tests.outcome }}
+                  TEST_OUTCOME: ${{ steps.onboarding-tests.outcome }}
               run: |
                   if [[ "$TEST_OUTCOME" == "success" ]]; then
                       status=passed
@@ -202,7 +202,7 @@ jobs:
                       status=failed
                   fi
                   {
-                      echo "### Locker Android smoke $status"
+                      echo "### Locker Android onboarding $status"
                       echo
                       echo "- Release: \`$LOCKER_RELEASE_TAG\`"
                       echo "- Channel: \`$LOCKER_CHANNEL\`"
@@ -217,7 +217,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Upload JUnit results
-              if: always() && steps.smoke-tests.outcome != 'skipped'
+              if: always() && steps.onboarding-tests.outcome != 'skipped'
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: locker-${{ matrix.suite }}-results
@@ -226,7 +226,7 @@ jobs:
                   retention-days: 7
 
             - name: Upload account-free failure diagnostics
-              if: steps.smoke-tests.outcome == 'failure'
+              if: steps.onboarding-tests.outcome == 'failure'
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: locker-${{ matrix.suite }}-diagnostics
@@ -234,20 +234,20 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 3
 
-            - name: Propagate smoke failure
-              if: steps.smoke-tests.outcome == 'failure'
+            - name: Propagate onboarding failure
+              if: steps.onboarding-tests.outcome == 'failure'
               run: exit 1
 
-    locker-smoke-gate:
-        name: Require smoke tests
+    locker-onboarding-gate:
+        name: Require onboarding tests
         if: always()
-        needs: [resolve, smoke]
+        needs: [resolve, onboarding]
         runs-on: ubuntu-latest
         steps:
-            - name: Require successful smoke tests
+            - name: Require successful onboarding tests
               env:
                   RESOLVE_RESULT: ${{ needs.resolve.result }}
-                  SMOKE_RESULT: ${{ needs.smoke.result }}
+                  ONBOARDING_RESULT: ${{ needs.onboarding.result }}
               run: |
                   test "$RESOLVE_RESULT" = success
-                  test "$SMOKE_RESULT" = success
+                  test "$ONBOARDING_RESULT" = success

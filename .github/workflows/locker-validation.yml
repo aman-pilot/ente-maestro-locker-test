@@ -10,11 +10,11 @@ permissions:
     contents: read
 
 concurrency:
-    group: locker-static-${{ github.ref }}
+    group: locker-validation-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
-    static:
+    validation:
         name: Validate test repository
         runs-on: ubuntu-latest
         steps:

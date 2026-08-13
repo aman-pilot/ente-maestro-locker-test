@@ -21,7 +21,7 @@ for public_path in \
     locker/product-flows.v1.json \
     locker/provenance.v1.json \
     locker/fixtures/locker-seed.pdf \
-    locker/manifests/empty.json \
+    locker/manifests/hosted-online.json \
     locker/stack/compose.yaml \
     .github/workflows/locker-android-online.yml \
     tools/locker-seed/Cargo.toml \
